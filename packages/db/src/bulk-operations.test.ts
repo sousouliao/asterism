@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { hasUnfinishedMultiCollectionDialOperation, invokeBulkOperation } from './bulk-operations';
+import { invokeBulkOperation } from './bulk-operations';
 import type { SupabaseClient } from './client';
 
 function clientReturning(data: unknown) {
@@ -12,12 +12,6 @@ const operation = {
   source: 'manual',
   interaction: 'bulk_dialog',
   clientRequestId: '11111111-1111-4111-8111-111111111111',
-  undoOfOperationId: null,
-  undoExpiresAt: null,
-  undoEligibleCount: 0,
-  undoSkippedCount: 0,
-  undoConflictCount: 0,
-  undoExpired: false,
   sourceRepoIds: ['repo-1'],
   status: 'pending',
   completedAt: null,
@@ -27,8 +21,8 @@ const operation = {
     {
       id: 'item-1',
       repoId: 'repo-1',
-      relationType: 'tag',
-      targetId: 'tag-1',
+      relationType: 'collection',
+      targetId: 'collection-1',
       action: 'add',
       status: 'pending',
       attemptCount: 0,
@@ -50,7 +44,9 @@ describe('invokeBulkOperation', () => {
       interaction: 'bulk_dialog' as const,
       clientRequestId: '11111111-1111-4111-8111-111111111111',
       repoIds: ['repo-1'],
-      changes: [{ relationType: 'tag' as const, targetId: 'tag-1', action: 'add' as const }],
+      changes: [
+        { relationType: 'collection' as const, targetId: 'collection-1', action: 'add' as const },
+      ],
     };
 
     await expect(invokeBulkOperation(client, input)).resolves.toEqual(operation);
@@ -68,27 +64,6 @@ describe('invokeBulkOperation', () => {
     await expect(
       invokeBulkOperation(client, { action, operationId: 'operation-1' }),
     ).resolves.toEqual(operation);
-  });
-
-  it('creates one operation-scoped undo with a stable client request identity', async () => {
-    const undoOperation = {
-      ...operation,
-      interaction: 'collection_dial_undo',
-      undoOfOperationId: 'operation-1',
-    };
-    const undoSummary = { eligibleCount: 1, skippedCount: 2, conflictCount: 1, expired: false };
-    const { client, invoke } = clientReturning({ operation: undoOperation, undoSummary });
-    const input = {
-      action: 'undo' as const,
-      operationId: 'operation-1',
-      clientRequestId: '22222222-2222-4222-8222-222222222222',
-    };
-
-    await expect(invokeBulkOperation(client, input)).resolves.toEqual({
-      operation: undoOperation,
-      undoSummary,
-    });
-    expect(invoke).toHaveBeenCalledWith('bulk-organize', { body: input });
   });
 
   it('rejects malformed outcomes at the trust boundary', async () => {
@@ -125,17 +100,22 @@ describe('invokeBulkOperation', () => {
       invokeBulkOperation(client, { action: 'get', operationId: 'operation-1' }),
     ).rejects.toThrow('invalid response');
   });
-});
 
-describe('hasUnfinishedMultiCollectionDialOperation', () => {
-  it('uses the server-side exists query without a history window', async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
+  it('rejects leftover Collection Dial undo projections', async () => {
+    const { client } = clientReturning({
+      operation: {
+        ...operation,
+        undoOfOperationId: null,
+        undoExpiresAt: null,
+        undoEligibleCount: 0,
+        undoSkippedCount: 0,
+        undoConflictCount: 0,
+        undoExpired: false,
+      },
+    });
 
     await expect(
-      hasUnfinishedMultiCollectionDialOperation({ rpc } as unknown as SupabaseClient, 'user-1'),
-    ).resolves.toBe(true);
-    expect(rpc).toHaveBeenCalledWith('has_unfinished_multi_collection_dial_operation', {
-      p_user_id: 'user-1',
-    });
+      invokeBulkOperation(client, { action: 'get', operationId: 'operation-1' }),
+    ).rejects.toThrow('invalid response');
   });
 });

@@ -28,9 +28,12 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260814170000_collection_dial_undo.sql` | Collection Dial 30 秒 Undo：首次 effective add receipt 原子写入不可延长的 `undo_expires_at`，并新增仅 service-role 的 `create_collection_dial_undo` RPC |
 | `20260818150000_fix_collection_dial_undo_apply.sql` | 修正 `apply_collection_relation_mutation` 中 Undo 收据查找的 PL/pgSQL 变量 / SQL 别名碰撞，使 remove 能真正落到 matching membership |
 | `20260819120000_retire_user_tags.sql` | ADR 0035：按规范化名把 Tag 转为或合并进 Collection，幂等写入 `collection_repos` 与 baseline `collection_relation_heads`，然后删除 `tags` / `repo_tags`；新建 bulk operation 只接受 `collection` |
+| `20260827000000_retire_collection_dial.sql` | ADR 0036：删除 Collection Dial 账本行、Undo RPC / 列与 item 子集 overload；`create_bulk_operation` 只接受 `bulk_dialog`；`apply_collection_relation_mutation` 直接调用 unchecked。canonical `collection_repos` 与 relation head 保留 |
 
 > 2026-08-05 之前的 AI / Organization migration 是已部署环境必须重放的历史；
-> 新环境仍按文件名顺序应用，最终由 `20260805120000_remove_ai_organization.sql` 收敛到当前 schema。
+> 新环境仍按文件名顺序应用，最终由 `20260805120000_remove_ai_organization.sql` 收敛。
+> Collection Dial 相关 migration 同样是历史重放；新环境由
+> `20260827000000_retire_collection_dial.sql` 收敛到当前 schema。
 
 > `user_repo_embeddings` 的语义向量属 derived 数据、按用户客户端直写；规模尚小，暂不建 ANN（HNSW / IVFFlat）索引（见 ADR 0026 与 `knowledge/contracts/data-model.md`）。
 
@@ -74,7 +77,7 @@ user_repo_embeddings` 的
 
 ### 受信集合关系 mutation 冒烟
 
-数据库验收已固化为 pgTAP 集成回归：`pnpm exec supabase start` 后运行 `pnpm test:db`。CI 会自动启动本地 Supabase，覆盖 baseline/no-op、真实并发 add、响应丢失重放、跨用户、非法 target 与客户端直写拒绝。
+数据库验收已固化为 pgTAP 集成回归：`pnpm exec supabase start` 后运行 `pnpm test:db`。CI 会自动启动本地 Supabase，覆盖 baseline/no-op、真实并发 add、响应丢失重放、跨用户、非法 target、客户端直写拒绝，以及 Collection Dial RPC / create 已退役。
 
 应用 `20260812120000_trusted_collection_relation_mutations.sql` 并部署最新
 `bulk-organize` 后，以两个真实用户会话验证：
@@ -91,8 +94,9 @@ user_repo_embeddings` 的
 5. 迁移前已有的每条 `collection_repos` membership 都应有 `present = true`、`version = 1`、
    `last_operation_item_id is null` 的基线 head，canonical 行数保持不变。
 
-应用 `20260814170000_collection_dial_undo.sql` 并部署含 `undo` action 的 `bulk-organize` 后，
-Collection Dial 的 30 秒 Undo 才可在真实会话使用。throwaway prototype 已退役。GitHub #34 已关闭；验收问题另开 ticket。
+应用 `20260827000000_retire_collection_dial.sql` 并部署当前 `bulk-organize` 后，Collection Dial
+的 create / undo RPC 不再存在。维护者需对 `hqtrmulypxwdqvzlkhke` 手动 apply 该 migration 并
+部署 `bulk-organize`；本轮不自动 `supabase db push` / `functions deploy`。
 
 ## GitHub OAuth 配置（后台手动一次）
 

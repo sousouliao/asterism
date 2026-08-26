@@ -1,5 +1,4 @@
 import {
-  type CollectionDialRepositoryEmbedding,
   DEFAULT_EMBEDDING_MODEL,
   findMutualSemanticNeighbors,
   repoContentHash,
@@ -28,10 +27,12 @@ export function selectSemanticNeighborhood(
     .filter((record): record is StarredRepoRecord => Boolean(record));
 }
 
+type FreshRepoEmbedding = { repoId: string; vector: number[] };
+
 export function selectFreshRepoEmbeddingVectors(
   starredRepos: readonly StarredRepoRecord[],
   embeddings: readonly RepoEmbeddingRecord[],
-): CollectionDialRepositoryEmbedding[] {
+): FreshRepoEmbedding[] {
   const repoById = new Map(starredRepos.map((record) => [record.repoId, record]));
   return embeddings.flatMap((record) => {
     const starred = repoById.get(record.repoId);
@@ -41,27 +42,6 @@ export function selectFreshRepoEmbeddingVectors(
       record.contentHash === repoContentHash(starred.repo);
     return fresh ? [{ repoId: record.repoId, vector: [...record.embedding] }] : [];
   });
-}
-
-export function useFreshRepoEmbeddings(enabled: boolean): CollectionDialRepositoryEmbedding[] {
-  const { session } = useSession();
-  const userId = session?.user.id;
-  const availability = useEmbeddingAvailability(userId);
-  const { data: starredRepos } = useStarredRepos();
-  const { data: embeddings } = useQuery({
-    queryKey: embeddingKeys.list(userId ?? 'anon'),
-    enabled: Boolean(userId && enabled && availability === 'available'),
-    staleTime: 10 * 60 * 1_000,
-    queryFn: () => (userId ? listRepoEmbeddings(supabase, userId) : Promise.resolve([])),
-  });
-
-  return useMemo(
-    () =>
-      availability === 'available' && embeddings && starredRepos
-        ? selectFreshRepoEmbeddingVectors(starredRepos, embeddings)
-        : [],
-    [availability, embeddings, starredRepos],
-  );
 }
 
 export function useSemanticNeighborhood(anchorRepoId: string | undefined): StarredRepoRecord[] {

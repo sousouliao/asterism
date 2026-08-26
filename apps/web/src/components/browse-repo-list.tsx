@@ -1,7 +1,6 @@
 import type { StarredRepoRecord } from '@asterism/db';
 import { memo, useEffect, useState } from 'react';
 import type { BulkSelectionController } from '../lib/bulk-selection';
-import type { CollectionDialGripController } from '../lib/collection-dial-grip';
 import type { RepoViewMode } from '../stores/browse-view';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import type { RepoCardCollection } from './repo-card-context';
@@ -19,7 +18,6 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   onSelect,
   scrollElement,
   bulkSelection,
-  collectionDial,
 }: {
   view: RepoViewMode;
   records: StarredRepoRecord[];
@@ -30,7 +28,6 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
   bulkSelection?: BulkSelectionController;
-  collectionDial?: CollectionDialGripController;
 }) {
   // 访问过的视图保持挂载，后续切换只做显隐，避开虚拟列表重建成本。
   const [mountedViews, setMountedViews] = useState<ReadonlySet<RepoViewMode>>(
@@ -60,7 +57,6 @@ export const BrowseRepoList = memo(function BrowseRepoList({
               onSelect={onSelect}
               scrollElement={mode === view ? scrollElement : null}
               bulkSelection={bulkSelection}
-              collectionDial={collectionDial}
             />
           </div>
         ) : null,

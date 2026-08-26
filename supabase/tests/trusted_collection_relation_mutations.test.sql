@@ -1,7 +1,7 @@
 create extension if not exists pgtap with schema extensions;
 create extension if not exists dblink with schema extensions;
 
-select extensions.plan(29);
+select extensions.plan(20);
 
 insert into auth.users (id, email)
 values
@@ -218,200 +218,28 @@ select extensions.is(
   'baseline bootstrapping preserves the canonical membership'
 );
 
-create temporary table dial_scope_operation as
-select public.create_bulk_operation(
-  '10000000-0000-4000-8000-000000000001',
-  'manual',
-  'collection_dial',
-  '40000000-0000-4000-8000-000000000010',
-  array[
-    '20000000-0000-4000-8000-000000000001'::uuid,
-    '20000000-0000-4000-8000-000000000002'::uuid
-  ],
-  array['20000000-0000-4000-8000-000000000002'::uuid],
-  '[{"relationType":"collection","targetId":"30000000-0000-4000-8000-000000000001","action":"add"}]'::jsonb
-) as id;
-
-select extensions.is(
-  (select source_repo_ids from public.bulk_operations
-   where id = (select id from dial_scope_operation)),
-  array[
-    '20000000-0000-4000-8000-000000000001'::uuid,
-    '20000000-0000-4000-8000-000000000002'::uuid
-  ],
-  'Collection Dial persists the complete frozen source scope'
+select extensions.hasnt_function(
+  'public',
+  'create_collection_dial_undo',
+  'create_collection_dial_undo is retired'
 );
-select extensions.is(
-  (select array_agg(repo_id order by repo_id) from public.bulk_operation_items
-   where operation_id = (select id from dial_scope_operation)),
-  array['20000000-0000-4000-8000-000000000002'::uuid],
-  'Collection Dial creates items only for the frozen missing subset'
+select extensions.hasnt_function(
+  'public',
+  'has_unfinished_multi_collection_dial_operation',
+  'has_unfinished_multi_collection_dial_operation is retired'
 );
-
-set request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
-set role authenticated;
-select extensions.ok(
-  public.has_unfinished_multi_collection_dial_operation(
-    '10000000-0000-4000-8000-000000000001'
-  ),
-  'the owner can detect an unfinished multi Collection Dial without a history window'
-);
-reset role;
-reset request.jwt.claim.sub;
-
-create temporary table dial_item as
-select * from public.claim_bulk_operation_items(
-  '10000000-0000-4000-8000-000000000001',
-  (select id from dial_scope_operation),
-  array['pending']
-);
-
-create temporary table dial_mutation as
-select public.apply_collection_relation_mutation(
-  '10000000-0000-4000-8000-000000000001',
-  target_id,
-  repo_id,
-  action,
-  id
-) as receipt
-from dial_item;
-
-select extensions.ok(
-  (select undo_expires_at > statement_timestamp()
-   from public.bulk_operations where id = (select id from dial_scope_operation)),
-  'the effective mutation receipt starts Undo before result recording'
-);
-
-select public.record_bulk_operation_item_result(
-  '10000000-0000-4000-8000-000000000001',
-  (select id from dial_item),
-  'succeeded',
-  null,
-  null,
-  (select (receipt->>'effectiveChanged')::boolean from dial_mutation),
-  (select (receipt->>'effectiveMutationId')::uuid from dial_mutation),
-  (select (receipt->>'relationVersion')::bigint from dial_mutation)
-);
-
-create temporary table first_undo as
-select public.create_collection_dial_undo(
-  '10000000-0000-4000-8000-000000000001',
-  (select id from dial_scope_operation),
-  '40000000-0000-4000-8000-000000000011'
-) as outcome;
-
-select extensions.is(
-  (select (outcome->>'eligibleCount')::integer from first_undo),
-  1,
-  'Undo includes only the effective relation whose head still matches'
-);
-select extensions.is(
-  (select (outcome->>'skippedCount')::integer from first_undo),
-  1,
-  'Undo reports the already-present repository from the frozen scope as skipped'
-);
-select extensions.is(
-  public.create_collection_dial_undo(
+select extensions.throws_ok(
+  $$select public.create_bulk_operation(
     '10000000-0000-4000-8000-000000000001',
-    (select id from dial_scope_operation),
-    '40000000-0000-4000-8000-000000000011'
-  ),
-  (select outcome from first_undo),
-  'response-loss replay restores the same Undo outcome'
-);
-select extensions.is(
-  (select count(*) from public.bulk_operations
-   where undo_of_operation_id = (select id from dial_scope_operation)),
-  1::bigint,
-  'each original Collection Dial operation has at most one Undo operation'
-);
-
-create temporary table first_undo_items as
-select * from public.claim_bulk_operation_items(
-  '10000000-0000-4000-8000-000000000001',
-  (select (outcome->>'operationId')::uuid from first_undo),
-  array['pending']
-);
-
-select extensions.is(
-  (select count(*) from first_undo_items),
-  1::bigint,
-  'Undo creates one running remove item for the effective add'
-);
-
-create temporary table first_undo_mutation as
-select public.apply_collection_relation_mutation(
-  '10000000-0000-4000-8000-000000000001',
-  target_id,
-  repo_id,
-  action,
-  id
-) as receipt
-from first_undo_items;
-
-select extensions.ok(
-  (select (receipt->>'effectiveChanged')::boolean from first_undo_mutation),
-  'Undo remove applies against the original receipt and matching head'
-);
-select extensions.is(
-  (select present from public.collection_relation_heads
-   where user_id = '10000000-0000-4000-8000-000000000001'
-     and collection_id = '30000000-0000-4000-8000-000000000001'
-     and repo_id = '20000000-0000-4000-8000-000000000002'),
-  false,
-  'Undo remove clears the matching collection membership'
-);
-
-create temporary table historical_dial_operation as
-select public.create_bulk_operation(
-  '10000000-0000-4000-8000-000000000001',
-  'manual',
-  'collection_dial',
-  '40000000-0000-4000-8000-000000000012',
-  array['20000000-0000-4000-8000-000000000001'::uuid],
-  array['20000000-0000-4000-8000-000000000001'::uuid],
-  '[{"relationType":"collection","targetId":"30000000-0000-4000-8000-000000000001","action":"add"}]'::jsonb
-) as id;
-
-create temporary table historical_dial_item as
-select * from public.claim_bulk_operation_items(
-  '10000000-0000-4000-8000-000000000001',
-  (select id from historical_dial_operation),
-  array['pending']
-);
-
-create temporary table historical_dial_mutation as
-select public.apply_collection_relation_mutation(
-  '10000000-0000-4000-8000-000000000001',
-  target_id,
-  repo_id,
-  action,
-  id
-) as receipt
-from historical_dial_item;
-
-select public.record_bulk_operation_item_result(
-  '10000000-0000-4000-8000-000000000001',
-  (select id from historical_dial_item),
-  'succeeded',
-  null,
-  null,
-  (select (receipt->>'effectiveChanged')::boolean from historical_dial_mutation),
-  (select (receipt->>'effectiveMutationId')::uuid from historical_dial_mutation),
-  (select (receipt->>'relationVersion')::bigint from historical_dial_mutation)
-);
-
-update public.bulk_operations
-set undo_expires_at = null
-where id = (select id from historical_dial_operation);
-
-select extensions.ok(
-  (public.create_collection_dial_undo(
-    '10000000-0000-4000-8000-000000000001',
-    (select id from historical_dial_operation),
-    '40000000-0000-4000-8000-000000000013'
-  )->>'expired')::boolean,
-  'a historical operation without a server expiry is fail-closed'
+    'manual',
+    'collection_dial',
+    '40000000-0000-4000-8000-000000000010',
+    array['20000000-0000-4000-8000-000000000001'::uuid],
+    '[{"relationType":"collection","targetId":"30000000-0000-4000-8000-000000000001","action":"add"}]'::jsonb
+  )$$,
+  'P0001',
+  'invalid_bulk_request',
+  'new operations no longer accept collection_dial'
 );
 
 select * from extensions.finish();

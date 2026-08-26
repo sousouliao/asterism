@@ -1,8 +1,9 @@
 # ADR 0034 · 为 Collection Dial Undo 记录有效集合关系变更身份
 
-- Status: Accepted
+- Status: Accepted（relation head / 受信 mutation 仍有效；产品 Undo 面已由 ADR 0036 退役）
 - Date: 2026-08-12
 - Builds on: ADR 0023、0032、0033、GitHub #29
+- Partial supersession: ADR 0036 删除 Collection Dial Undo RPC、Undo 列与 `collection_dial*` interaction；保留本决策的 `collection_relation_heads` 与受信 mutation
 
 ## Context
 

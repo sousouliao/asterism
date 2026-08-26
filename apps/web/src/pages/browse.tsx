@@ -1,5 +1,5 @@
 import { deriveRepoFacets, hasActiveFilter, rankHybridRepos } from '@asterism/core';
-import { Button, CollectionDial, cn, GlassControlRow, toast } from '@asterism/ui';
+import { Button, cn, GlassControlRow } from '@asterism/ui';
 import {
   AlertTriangleIcon,
   ListChecksIcon,
@@ -15,9 +15,6 @@ import { BrowseRepoList } from '../components/browse-repo-list';
 import { BulkExportDialog } from '../components/bulk-export';
 import { BulkOperationBanner, BulkOrganizeDialog } from '../components/bulk-organization';
 import { BulkSelectionBar } from '../components/bulk-selection-bar';
-import { CollectionDialMoreOverlay } from '../components/collection-dial-more-overlay';
-import { CollectionDialOperationStatus } from '../components/collection-dial-operation-status';
-import { CollectionFormDialog } from '../components/collection-form-dialog';
 import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
@@ -29,21 +26,14 @@ import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
-import {
-  useBulkOperationActions,
-  useBulkOperations,
-  useCollectionDialOperationActions,
-  useHasUnfinishedMultiCollectionDialOperation,
-} from '../data/use-bulk-operations';
+import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
-import { useCollections, useCreateCollection } from '../data/use-collections';
+import { useCollections } from '../data/use-collections';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
-import { useFreshRepoEmbeddings } from '../data/use-semantic-neighborhood';
 import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from '../data/use-semantic-search';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useBrowseView } from '../hooks/use-browse-view';
-import { useCollectionDial } from '../hooks/use-collection-dial';
 import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
 import {
   addSelection,
@@ -51,7 +41,6 @@ import {
   removeSelection,
   toggleSelection,
 } from '../lib/bulk-selection';
-import { getMultiCollectionDialBlockReason } from '../lib/collection-dial-availability';
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
@@ -79,19 +68,8 @@ function BrowseDataPage() {
   const embeddingBootstrap = useEmbeddingBootstrapContext();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
-  const createCollection = useCreateCollection();
-  const {
-    data: bulkOperations,
-    isError: bulkOperationsError,
-    refetch: refetchBulkOperations,
-  } = useBulkOperations();
-  const {
-    data: hasUnfinishedMultiDialOperation,
-    isPending: unfinishedMultiDialPending,
-    isError: unfinishedMultiDialError,
-  } = useHasUnfinishedMultiCollectionDialOperation();
+  const { data: bulkOperations } = useBulkOperations();
   const bulkActions = useBulkOperationActions();
-  const dialOperationActions = useCollectionDialOperationActions();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
   const isLoading = reposLoading || collectionReposLoading || collectionsLoading || notesLoading;
   const sync = useSyncStars();
@@ -103,85 +81,8 @@ function BrowseDataPage() {
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkExportOpen, setBulkExportOpen] = useState(false);
   const skipViewScrollResetRef = useRef(peekPendingReadmeReturn()?.sourceKey === 'browse');
-  const freshRepoEmbeddings = useFreshRepoEmbeddings(true);
   const activeBulkDialogOperation = bulkOperations?.find(
     (operation) => operation.status !== 'completed' && operation.interaction === 'bulk_dialog',
-  );
-  const prepareDialPickup = useCallback(() => {
-    return requestClose();
-  }, [requestClose]);
-  const collectionDial = useCollectionDial({
-    collections: collections ?? [],
-    collectionRepos: collectionRepos ?? [],
-    repositoryEmbeddings: freshRepoEmbeddings,
-    selectionMode: bulkSelectionMode,
-    selectedRepoIds,
-    multiPickupBlockReason:
-      getMultiCollectionDialBlockReason({
-        hasUnfinishedOperation: hasUnfinishedMultiDialOperation,
-        isPending: unfinishedMultiDialPending,
-        isError: unfinishedMultiDialError,
-      }) ?? undefined,
-    scopeLabel: (count) => t('collectionDial.selectedScope', { count }),
-    preparePickup: prepareDialPickup,
-    onUnavailable: (reason) =>
-      toast.info(
-        reason === 'no_collections'
-          ? t('collectionDial.noCollections')
-          : reason === 'active_multi_operation'
-            ? t('collectionDial.activeMultiOperation')
-            : reason === 'operation_state_unavailable'
-              ? t('collectionDial.operationStateUnavailable')
-              : t('collectionDial.alreadyInAllCollections'),
-      ),
-    retryableMessage: t('collectionDial.retryableError'),
-    terminalMessage: t('collectionDial.terminalError'),
-    convergenceMessage: t('collectionDial.convergenceError'),
-    successMessage: (addedCount, alreadyMemberCount) =>
-      t('collectionDial.successCounts', { addedCount, alreadyMemberCount }),
-    failureCountsMessage: ({ addedCount, alreadyMemberCount, retryableCount, terminalCount }) =>
-      t('collectionDial.failureCounts', {
-        addedCount,
-        alreadyMemberCount,
-        retryableCount,
-        terminalCount,
-      }),
-  });
-  const dialGripController = useMemo(
-    () => ({
-      activeRepoId:
-        collectionDial.state.phase === 'active'
-          ? collectionDial.state.pickup.repoIds[0]
-          : undefined,
-      onPickup: collectionDial.onGripPickup,
-      onPointerDown: collectionDial.onGripPointerDown,
-    }),
-    [collectionDial.onGripPickup, collectionDial.onGripPointerDown, collectionDial.state],
-  );
-  const dialCopy = useMemo(
-    () => ({
-      label: t('collectionDial.dialLabel'),
-      placement: (repo: string, collection: string) =>
-        t('collectionDial.placement', { repo, collection }),
-      position: (current: number, positionTotal: number) =>
-        t('collectionDial.position', { current, total: positionTotal }),
-      selectCollection: (collection: string) =>
-        t('collectionDial.selectCollection', { collection }),
-      confirm: (collection: string) => t('collectionDial.addToCollection', { collection }),
-      cancel: t('collectionDial.cancel'),
-      retry: t('collectionDial.retry'),
-      done: t('collectionDial.done'),
-      readyStatus: t('collectionDial.readyStatus'),
-      submittingStatus: t('collectionDial.submittingStatus'),
-      successStatus: t('collectionDial.successStatus'),
-      keyboardHint: t('collectionDial.keyboardHint'),
-      noTargetStatus: t('collectionDial.noEligibleTargetStatus'),
-      more: t('collectionDial.more'),
-      createNew: t('collectionDial.createNew'),
-      membership: (missingCount: number, alreadyMemberCount: number) =>
-        t('collectionDial.membership', { missingCount, alreadyMemberCount }),
-    }),
-    [t],
   );
 
   useEffect(() => {
@@ -418,7 +319,6 @@ function BrowseDataPage() {
       onSelect={openInspector}
       scrollElement={repoScrollElement}
       bulkSelection={selectionController}
-      collectionDial={dialGripController}
     />
   );
 
@@ -478,32 +378,6 @@ function BrowseDataPage() {
             </GlassControlRow>
             {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
             {bulkOperationContent}
-            <CollectionDialOperationStatus
-              operations={bulkOperations ?? []}
-              collections={collections ?? []}
-              queryError={bulkOperationsError}
-              busyOperationId={
-                dialOperationActions.undo.variables?.id ??
-                dialOperationActions.retry.variables?.id ??
-                dialOperationActions.resume.variables?.id
-              }
-              onResume={(operation) =>
-                dialOperationActions.resume.mutate(operation, {
-                  onError: () => toast.error(t('collectionDial.writeError')),
-                })
-              }
-              onRetry={(operation) =>
-                dialOperationActions.retry.mutate(operation, {
-                  onError: () => toast.error(t('collectionDial.writeError')),
-                })
-              }
-              onUndo={(operation) =>
-                dialOperationActions.undo.mutate(operation, {
-                  onError: () => toast.error(t('collectionDial.undoError')),
-                })
-              }
-              onRefresh={() => void refetchBulkOperations()}
-            />
           </div>
         </div>
 
@@ -572,69 +446,6 @@ function BrowseDataPage() {
           collections={collections ?? []}
           collectionRepos={collectionRepos ?? []}
         />
-        {collectionDial.state.phase === 'active' ? (
-          <CollectionDial
-            repoLabel={collectionDial.state.pickup.repoLabel}
-            targets={collectionDial.state.pickup.targets}
-            activeIndex={collectionDial.state.activeIndex}
-            status={collectionDial.state.status}
-            message={collectionDial.state.message}
-            dropTargetId={collectionDial.dropTargetId}
-            dragPoint={collectionDial.dragPoint}
-            focusOnOpen={collectionDial.focusOnOpen}
-            copy={dialCopy}
-            onSelect={collectionDial.select}
-            onStep={collectionDial.step}
-            onConfirm={collectionDial.confirm}
-            onRetry={collectionDial.retry}
-            onCancel={collectionDial.cancel}
-            onMore={
-              collectionDial.state.pickup.catalog.length > 0 ? collectionDial.openMore : undefined
-            }
-            onCreateNew={collectionDial.openNew}
-          />
-        ) : null}
-        {collectionDial.state.phase === 'active' ? (
-          <>
-            <CollectionDialMoreOverlay
-              open={collectionDial.overlay === 'more'}
-              catalog={collectionDial.state.pickup.catalog}
-              onOpenChange={(open) => {
-                if (!open) collectionDial.closeOverlay();
-              }}
-              onSelect={collectionDial.promote}
-            />
-            <CollectionFormDialog
-              open={collectionDial.overlay === 'new'}
-              onOpenChange={(open) => {
-                if (!open) collectionDial.closeOverlay();
-              }}
-              title={t('collectionDial.newTitle')}
-              descriptionText={t('collectionDial.newDescription')}
-              returnFocusSelector="[data-collection-dial-new]"
-              submitLabel={t('collectionDial.createAndAdd', {
-                count: collectionDial.state.pickup.repoIds.length,
-              })}
-              existingNames={(collections ?? []).map((collection) => collection.name)}
-              pending={createCollection.isPending}
-              errorMessage={createCollection.isError ? t('collectionDial.createError') : undefined}
-              onSubmit={(values) =>
-                createCollection.mutate(values, {
-                  onSuccess: (collection) => {
-                    const current = collectionDial.state;
-                    if (current.phase !== 'active') return;
-                    collectionDial.createAndAdd({
-                      ...collection,
-                      missingRepoIds: current.pickup.repoIds,
-                      alreadyMemberCount: 0,
-                      missingCount: current.pickup.repoIds.length,
-                    });
-                  },
-                })
-              }
-            />
-          </>
-        ) : null}
       </div>
     );
   }
@@ -651,20 +462,6 @@ function BrowseDataPage() {
         {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
 
         {bulkOperationContent}
-        <CollectionDialOperationStatus
-          operations={bulkOperations ?? []}
-          collections={collections ?? []}
-          queryError={bulkOperationsError}
-          busyOperationId={
-            dialOperationActions.undo.variables?.id ??
-            dialOperationActions.retry.variables?.id ??
-            dialOperationActions.resume.variables?.id
-          }
-          onResume={(operation) => dialOperationActions.resume.mutate(operation)}
-          onRetry={(operation) => dialOperationActions.retry.mutate(operation)}
-          onUndo={(operation) => dialOperationActions.undo.mutate(operation)}
-          onRefresh={() => void refetchBulkOperations()}
-        />
 
         {repoContent}
       </div>

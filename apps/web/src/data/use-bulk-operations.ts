@@ -2,7 +2,6 @@ import {
   type BulkChange,
   type BulkOperation,
   type BulkOperationCreateSource,
-  hasUnfinishedMultiCollectionDialOperation,
   invokeBulkOperation,
   listBulkOperations,
 } from '@asterism/db';
@@ -28,18 +27,6 @@ export function useBulkOperations() {
       const operations = query.state.data;
       return operations?.some((operation) => operation.status === 'running') ? 2_000 : false;
     },
-  });
-}
-
-export function useHasUnfinishedMultiCollectionDialOperation() {
-  const { session } = useSession();
-  const userId = session?.user.id;
-  return useQuery({
-    queryKey: userId
-      ? [...bulkOperationKeys.list(userId), 'unfinished-multi-collection-dial']
-      : bulkOperationKeys.all,
-    enabled: Boolean(userId),
-    queryFn: () => hasUnfinishedMultiCollectionDialOperation(supabase, userId as string),
   });
 }
 
@@ -125,61 +112,4 @@ export function useBulkOperationActions() {
   });
 
   return { create, resume, retry, complete };
-}
-
-export function useCollectionDialOperationActions() {
-  const { session } = useSession();
-  const userId = session?.user.id;
-  const queryClient = useQueryClient();
-  const undoRequestIds = useRef(new Map<string, string>());
-
-  const refresh = async () => {
-    if (!userId) return;
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: bulkOperationKeys.list(userId) }),
-      queryClient.invalidateQueries({ queryKey: collectionRepoKeys.list(userId) }),
-      queryClient.invalidateQueries({ queryKey: collectionKeys.list(userId) }),
-    ]);
-  };
-
-  const resume = useMutation({
-    mutationFn: (operation: BulkOperation) =>
-      runBulkOperationUntilSettled(operation.id, 'execute', 'pending', (request) =>
-        invokeBulkOperation(supabase, request),
-      ),
-    onSettled: refresh,
-  });
-  const retry = useMutation({
-    mutationFn: (operation: BulkOperation) =>
-      runBulkOperationUntilSettled(operation.id, 'retry', 'retryable_failed', (request) =>
-        invokeBulkOperation(supabase, request),
-      ),
-    onSettled: refresh,
-  });
-  const undo = useMutation({
-    mutationFn: async (operation: BulkOperation) => {
-      const clientRequestId = undoRequestIds.current.get(operation.id) ?? crypto.randomUUID();
-      undoRequestIds.current.set(operation.id, clientRequestId);
-      const outcome = await invokeBulkOperation(supabase, {
-        action: 'undo',
-        operationId: operation.id,
-        clientRequestId,
-      });
-      const settled = outcome.operation.items.some(
-        (item) => item.status === 'pending' || item.status === 'running',
-      )
-        ? await runBulkOperationUntilSettled(
-            outcome.operation.id,
-            'execute',
-            'pending',
-            (request) => invokeBulkOperation(supabase, request),
-          )
-        : outcome.operation;
-      undoRequestIds.current.delete(operation.id);
-      return { ...outcome, operation: settled };
-    },
-    onSettled: refresh,
-  });
-
-  return { resume, retry, undo, refresh };
 }

@@ -13,14 +13,8 @@ export type {
   BulkOperationStatus,
   BulkRelationAction,
   BulkRelationType,
-  BulkUndoOutcome,
-  BulkUndoSummary,
 } from './bulk-operations';
-export {
-  hasUnfinishedMultiCollectionDialOperation,
-  invokeBulkOperation,
-  listBulkOperations,
-} from './bulk-operations';
+export { invokeBulkOperation, listBulkOperations } from './bulk-operations';
 export type { SupabaseClient, SupabaseClientOptions } from './client';
 export { createSupabaseClient } from './client';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './database.types';

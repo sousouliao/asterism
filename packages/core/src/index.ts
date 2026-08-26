@@ -1,23 +1,6 @@
 export const CORE_VERSION = '0.0.0';
 
 export { normalizeClassificationName } from './classifications/name';
-export type {
-  CollectionDialCatalogEntry,
-  CollectionDialEvent,
-  CollectionDialPickup,
-  CollectionDialRepositoryEmbedding,
-  CollectionDialSnapshot,
-  CollectionDialSnapshotEntry,
-  CollectionDialState,
-  CollectionDialTarget,
-} from './collections/collection-dial';
-export {
-  collectionDialReducer,
-  createCollectionDialPickup,
-  createCollectionDialSnapshot,
-  rankCollectionDialTargets,
-  searchCollectionDialCatalog,
-} from './collections/collection-dial';
 export {
   buildExportPayload,
   scopeExportSnapshot,

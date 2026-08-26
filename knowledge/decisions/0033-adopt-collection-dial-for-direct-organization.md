@@ -1,7 +1,8 @@
 # ADR 0033 · 采用 Collection Dial 作为 Browse 直接整理入口
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-08-12
+- Superseded by: ADR 0036（2026-08-27）
 - Builds on: ADR 0023、0026–0028、0032
 
 ## Context

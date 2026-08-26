@@ -87,18 +87,13 @@ Cutover migration `20260819120000_retire_user_tags.sql` 已按 `normalize_classi
 
 - `user_id` — 操作所属用户
 - `source` — `manual` / `promotion`；当前产品只创建 `manual`，保留 `promotion` 仅为历史兼容
-- `interaction` — `bulk_dialog` / `collection_dial` / `collection_dial_undo`；区分并发门禁与恢复入口，不改变 `source` 的历史兼容语义
+- `interaction` — 仅 `bulk_dialog`。ADR 0036 已删除 `collection_dial` / `collection_dial_undo` 账本行、Undo 列与对应 RPC；列本身保留，新产品只创建批量对话框操作
 - `client_request_id` — 客户端请求幂等键；`(user_id, client_request_id)` 唯一
-- `undo_of_operation_id` — Undo operation 指向原 Collection Dial operation（可选；每个原 operation 最多一个）
-- `undo_expires_at` — 原 operation 的短期 Undo 服务端截止时间（可选）
-- `undo_eligible_count` / `undo_skipped_count` / `undo_conflict_count` / `undo_expired` — Undo operation 在首次创建时固化的准确服务端结果基线；响应丢失或刷新后不得按变化后的 head 重新解释
 - `source_repo_ids` — 确认时固化的 repository ID 范围
 - `status` — `pending` / `running` / `needs_attention` / `completed`
 - `completed_at` — 完成时间（可选）
 
-用户确认后才创建操作。范围不随筛选变化或后续同步改变；状态由逐关系项目汇总。Collection Dial 的 `source_repo_ids` 始终保存拿起时冻结的完整范围，RPC 另接收该目标当时真正缺失的 repository ID 子集，并只为这个子集创建 items；子集必须非空、去重且完全包含于完整范围，幂等冲突同时绑定完整范围与 item 子集。这样已存在关系不会产生 no-op receipt，失败恢复仍能准确播报完整范围。AI 来源的 operation 与草稿幂等字段已随 ADR 0032 删除。
-
-Collection Dial 首个真实 add mutation receipt 由服务端在同一事务写入 `undo_expires_at = statement_timestamp() + 30 seconds`，后续状态记录、恢复或重试不得延长；缺失 expiry 必须 fail closed。Undo RPC 在锁定原 operation 后最多创建一个 `collection_dial_undo` operation，只为当前 relation head 仍匹配原 item receipt 的有效 add 创建 remove items；过期、历史 no-op、目标 / 仓库失效及 head drift 固化为 skip / conflict 计数。执行 remove 前再次在同一事务复核 head；响应丢失后若同一 Undo item 已有 mutation receipt，则幂等恢复该 receipt，而不是误判为后续冲突。
+用户确认后才创建操作。范围不随筛选变化或后续同步改变；状态由逐关系项目汇总。创建 RPC 按完整 `source_repo_ids` 展开 items，不再接受缺失子集。AI 来源的 operation 与草稿幂等字段已随 ADR 0032 删除；Collection Dial 账本与 Undo 字段已随 ADR 0036 删除。
 
 ### `bulk_operation_items` — 批量关系变更
 
@@ -116,7 +111,7 @@ Collection Dial 首个真实 add mutation receipt 由服务端在同一事务写
 
 ### `collection_relation_heads` — 集合关系最后有效变更
 
-为 ADR 0034 的独立短期 Undo 保存集合关系的当前存在状态和最后一次有效变更身份；删除关系后 head 仍保留。
+为 ADR 0034 保存集合关系的当前存在状态和最后一次有效变更身份，供 Quick Look、导入与批量执行做并发 / 幂等保护；删除关系后 head 仍保留。ADR 0036 已关闭 Collection Dial Undo 产品面，head 不再服务短期 Undo RPC。
 
 - `user_id`、`collection_id`、`repo_id`
 - `present` — 当前 canonical `collection_repos` 是否存在
@@ -124,7 +119,7 @@ Collection Dial 首个真实 add mutation receipt 由服务端在同一事务写
 - `effective_mutation_id` — 最后一次真实关系变更的 UUID
 - `last_operation_item_id` — 该变更由 bulk item 产生时记录其身份；普通用户写入为空
 
-约束：`(user_id, collection_id, repo_id)` 唯一。所有 collection relation 写路径必须经 `packages/db` 的 typed command / 受信 RPC；迁移为既有关系生成不归属于任何新 operation 的基线 head。Collection Dial Undo 仅在当前 head 仍精确匹配原成功 item receipt 时创建反向 operation，不能覆盖后续用户改动。
+约束：`(user_id, collection_id, repo_id)` 唯一。所有 collection relation 写路径必须经 `packages/db` 的 typed command / 受信 RPC；迁移为既有关系生成不归属于任何新 operation 的基线 head。
 
 ### `user_repo_embeddings` — 仓库语义向量（derived 平面，ADR 0026）
 

@@ -33,23 +33,14 @@ export interface BulkOperationItem extends BulkChange {
   effectiveRelationVersion: number | null;
 }
 
-export type BulkOperationInteraction = 'bulk_dialog' | 'collection_dial' | 'collection_dial_undo';
-export type BulkOperationCreateInteraction = Exclude<
-  BulkOperationInteraction,
-  'collection_dial_undo'
->;
+export type BulkOperationInteraction = 'bulk_dialog';
+export type BulkOperationCreateInteraction = BulkOperationInteraction;
 
 export interface BulkOperation {
   id: string;
   source: 'manual' | 'promotion';
   interaction: BulkOperationInteraction;
   clientRequestId: string;
-  undoOfOperationId: string | null;
-  undoExpiresAt: string | null;
-  undoEligibleCount: number;
-  undoSkippedCount: number;
-  undoConflictCount: number;
-  undoExpired: boolean;
   sourceRepoIds: string[];
   status: BulkOperationStatus;
   completedAt: string | null;
@@ -58,24 +49,11 @@ export interface BulkOperation {
   items: BulkOperationItem[];
 }
 
-export interface BulkUndoSummary {
-  eligibleCount: number;
-  skippedCount: number;
-  conflictCount: number;
-  expired: boolean;
-}
-
-export interface BulkUndoOutcome {
-  operation: BulkOperation;
-  undoSummary: BulkUndoSummary;
-}
-
 export interface CreateBulkOperationInput {
   source: 'manual';
   interaction: BulkOperationCreateInteraction;
   clientRequestId: string;
   repoIds: string[];
-  itemRepoIds?: string[];
   changes: BulkChange[];
 }
 
@@ -86,11 +64,6 @@ export interface BulkOrganizeDependencies {
   executeOperation: (userId: string, operationId: string) => Promise<BulkOperation | null>;
   retryOperation: (userId: string, operationId: string) => Promise<BulkOperation | null>;
   completeOperation: (userId: string, operationId: string) => Promise<BulkOperation | null>;
-  undoOperation: (
-    userId: string,
-    operationId: string,
-    clientRequestId: string,
-  ) => Promise<BulkUndoOutcome | null>;
 }
 
 type OperationAction = 'get' | 'execute' | 'retry' | 'complete';
@@ -123,7 +96,7 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
 }
 
 function isCreateInteraction(value: unknown): value is BulkOperationCreateInteraction {
-  return value === 'bulk_dialog' || value === 'collection_dial';
+  return value === 'bulk_dialog';
 }
 
 function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
@@ -132,10 +105,15 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
   }
   const input = value as Record<string, unknown>;
   const interaction = input.interaction;
-  const expectedKeys = ['action', 'source', 'interaction', 'clientRequestId', 'repoIds', 'changes'];
-  if (interaction === 'collection_dial') expectedKeys.push('itemRepoIds');
   if (
-    !hasExactKeys(input, expectedKeys) ||
+    !hasExactKeys(input, [
+      'action',
+      'source',
+      'interaction',
+      'clientRequestId',
+      'repoIds',
+      'changes',
+    ]) ||
     input.action !== 'create' ||
     input.source !== 'manual' ||
     !isCreateInteraction(interaction) ||
@@ -148,19 +126,6 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
   const repoIds = [...new Set(input.repoIds.filter(isId))];
   if (repoIds.length === 0 || repoIds.length !== new Set(input.repoIds).size) {
     return null;
-  }
-  let itemRepoIds: string[] | undefined;
-  if (interaction === 'collection_dial') {
-    if (!Array.isArray(input.itemRepoIds)) return null;
-    itemRepoIds = [...new Set(input.itemRepoIds.filter(isId))];
-    const repoScope = new Set(repoIds);
-    if (
-      itemRepoIds.length === 0 ||
-      itemRepoIds.length !== new Set(input.itemRepoIds).size ||
-      itemRepoIds.some((repoId) => !repoScope.has(repoId))
-    ) {
-      return null;
-    }
   }
 
   const changes: BulkChange[] = [];
@@ -191,20 +156,11 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
   if (changes.length === 0 || repoIds.length * changes.length > 10_000) {
     return null;
   }
-  if (
-    interaction === 'collection_dial' &&
-    (changes.length !== 1 ||
-      changes[0]?.relationType !== 'collection' ||
-      changes[0].action !== 'add')
-  ) {
-    return null;
-  }
   return {
     source: input.source,
     interaction,
     clientRequestId: input.clientRequestId,
     repoIds,
-    ...(itemRepoIds ? { itemRepoIds } : {}),
     changes,
   };
 }
@@ -222,26 +178,6 @@ function operationRequest(value: unknown): { action: OperationAction; operationI
     return null;
   }
   return { action: input.action as OperationAction, operationId: input.operationId };
-}
-
-function undoRequest(
-  value: unknown,
-): { action: 'undo'; operationId: string; clientRequestId: string } | null {
-  if (!value || typeof value !== 'object') return null;
-  const input = value as Record<string, unknown>;
-  if (
-    !hasExactKeys(input, ['action', 'operationId', 'clientRequestId']) ||
-    input.action !== 'undo' ||
-    !isId(input.operationId) ||
-    !isUuid(input.clientRequestId)
-  ) {
-    return null;
-  }
-  return {
-    action: 'undo',
-    operationId: input.operationId,
-    clientRequestId: input.clientRequestId,
-  };
 }
 
 export function createBulkOrganizeHandler(dependencies: BulkOrganizeDependencies) {
@@ -281,17 +217,6 @@ export function createBulkOrganizeHandler(dependencies: BulkOrganizeDependencies
           return json({ error: 'invalid_request' }, 400);
         }
         return json({ operation: await dependencies.createOperation(userId, input) });
-      }
-
-      if ((body as Record<string, unknown> | null)?.action === 'undo') {
-        const input = undoRequest(body);
-        if (!input) return json({ error: 'invalid_request' }, 400);
-        const outcome = await dependencies.undoOperation(
-          userId,
-          input.operationId,
-          input.clientRequestId,
-        );
-        return outcome ? json(outcome) : json({ error: 'operation_not_found' }, 404);
       }
 
       const input = operationRequest(body);

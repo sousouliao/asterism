@@ -8,7 +8,6 @@ import {
 import {
   type BulkOperation,
   type BulkOperationItem,
-  type BulkUndoOutcome,
   type CreateBulkOperationInput,
   createBulkOrganizeHandler,
 } from './handler.ts';
@@ -48,7 +47,7 @@ async function getOperation(
     admin
       .from('bulk_operations')
       .select(
-        'id, source, interaction, client_request_id, undo_of_operation_id, undo_expires_at, undo_eligible_count, undo_skipped_count, undo_conflict_count, undo_expired, source_repo_ids, status, completed_at, created_at, updated_at',
+        'id, source, interaction, client_request_id, source_repo_ids, status, completed_at, created_at, updated_at',
       )
       .eq('id', operationId)
       .eq('user_id', userId)
@@ -74,13 +73,6 @@ async function getOperation(
     source: row.source as BulkOperation['source'],
     interaction: row.interaction as BulkOperation['interaction'],
     clientRequestId: String(row.client_request_id),
-    undoOfOperationId:
-      typeof row.undo_of_operation_id === 'string' ? row.undo_of_operation_id : null,
-    undoExpiresAt: typeof row.undo_expires_at === 'string' ? row.undo_expires_at : null,
-    undoEligibleCount: Number(row.undo_eligible_count),
-    undoSkippedCount: Number(row.undo_skipped_count),
-    undoConflictCount: Number(row.undo_conflict_count),
-    undoExpired: row.undo_expired === true,
     sourceRepoIds: (row.source_repo_ids as string[]) ?? [],
     status: row.status as BulkOperation['status'],
     completedAt: typeof row.completed_at === 'string' ? row.completed_at : null,
@@ -196,7 +188,6 @@ Deno.serve(async (request: Request) => {
         p_interaction: input.interaction,
         p_client_request_id: input.clientRequestId,
         p_repo_ids: input.repoIds,
-        p_item_repo_ids: input.itemRepoIds ?? input.repoIds,
         p_changes: input.changes.map(
           (change): Json => ({
             relationType: change.relationType,
@@ -227,44 +218,6 @@ Deno.serve(async (request: Request) => {
       });
       if (error) throw new Error('bulk_operation_complete_failed');
       return getOperation(admin, userId, operationId);
-    },
-    undoOperation: async (userId, operationId, clientRequestId) => {
-      const { data, error } = await admin.rpc('create_collection_dial_undo', {
-        p_user_id: userId,
-        p_operation_id: operationId,
-        p_client_request_id: clientRequestId,
-      });
-      if (error) {
-        const message = error.message;
-        if (message.includes('invalid_undo_request')) throw new Error('invalid_undo_request');
-        if (message.includes('client_request_conflict')) throw new Error('client_request_conflict');
-        throw new Error('bulk_operation_create_failed');
-      }
-      if (!data) return null;
-      if (typeof data !== 'object' || Array.isArray(data)) {
-        throw new Error('bulk_operation_create_failed');
-      }
-      const summary = data as Record<string, unknown>;
-      if (
-        typeof summary.operationId !== 'string' ||
-        typeof summary.eligibleCount !== 'number' ||
-        typeof summary.skippedCount !== 'number' ||
-        typeof summary.conflictCount !== 'number' ||
-        typeof summary.expired !== 'boolean'
-      ) {
-        throw new Error('bulk_operation_create_failed');
-      }
-      const operation = await getOperation(admin, userId, summary.operationId);
-      if (!operation) throw new Error('bulk_operation_create_failed');
-      return {
-        operation,
-        undoSummary: {
-          eligibleCount: summary.eligibleCount,
-          skippedCount: summary.skippedCount,
-          conflictCount: summary.conflictCount,
-          expired: summary.expired,
-        },
-      } satisfies BulkUndoOutcome;
     },
   });
 

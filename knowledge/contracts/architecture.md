@@ -119,7 +119,7 @@ sequenceDiagram
 
 > ADR 0032 已退役服务端 AI 整理：运行时不保存 Provider credential，不调用 Generation Provider，也不维护 AI 草稿、任务、计划或同步后整理机会。历史 AI 操作已经写入的普通组织关系仍是 canonical 用户数据，不由退役迁移回滚。ADR 0035 进一步把用户自定义 Tag 迁入 Collection；成员关系保留，Tag color 不迁移。
 
-> 语义能力保持纯浏览器内边界：浏览器生成 repository/query embedding，只把用户向量存入本人 RLS 隔离的 `user_repo_embeddings`，用于隐形混合搜索、Related Stars 与 Collection Dial 已有集合候选的静默排序；它不经过 BYOK，不自动修改 canonical。Collection Dial 只读取与当前模型和仓库内容指纹匹配的新鲜向量，信号不足、失败或多选无共识时退回会话 MRU 与稳定顺序。
+> 语义能力保持纯浏览器内边界：浏览器生成 repository/query embedding，只把用户向量存入本人 RLS 隔离的 `user_repo_embeddings`，用于隐形混合搜索与 Related Stars；它不经过 BYOK，不自动修改 canonical。ADR 0036 已退役 Collection Dial，embedding 不再用于集合盘候选排序。
 
 README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML 仅有 5 分钟会话内缓存，也不建立搜索索引。
 

@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> **Collection Dial 已从产品退役（2026-08-27，ADR 0036）**：Browse 不再提供 Grip、底部集合盘、More / New 或 Dial Undo。整理入口只剩 Quick Look 与批量整理对话框。追加 migration `20260827000000_retire_collection_dial.sql` 删除 Dial 账本行、Undo RPC / 列、`p_item_repo_ids` overload，并把 `create_bulk_operation` 收紧为只接受 `bulk_dialog`。canonical `collection_repos` 与 ADR 0034 的 relation head / 受信 mutation 保留。历史 Dial migration、ADR 0033/0034 与 logs 不删。本机无 Docker，未跑 `pnpm test:db`，未 `supabase db push` / `functions deploy`。下一 frontier 仍为 Phase 3 浏览器扩展；扩展不得复活 Collection Dial。见 `logs/2026-08-27-retire-collection-dial.md`。
+
 > **ADR 0035 Tag 退役 cutover 已落地（2026-08-19）**：单一追加 migration `20260819120000_retire_user_tags.sql` 按 `normalize_classification_name` 把每个 Tag 转为或合并进 Collection，幂等写入 `collection_repos` 与不归属新 operation 的 baseline `collection_relation_heads`，然后删除 `tags` / `repo_tags`。新 `collection_repos` 只走既有受信 RPC；历史 `bulk_operation_items.relation_type = 'tag'` 保留为账本事实，新建只允许 `collection`。导出 v2 只写 Collection，导入接受 v1（tags 折叠）与 v2。Browse 主栏增加可搜索 Collection FacetPicker；卡片/列表用集合名占据原 chip 槽；Quick Look 去掉 Tags；批量只留 Collection；`/tags` 重定向到 `/collections`；Dashboard 改为集合覆盖率 + Collection Top 5。本机无 Docker，未跑 pgTAP / 本地 migration apply，也未部署远端。未发布 GitHub issue，未 push。见 `logs/2026-08-19-retire-user-tags-cutover.md`。
 
 > **#34 维护者验收后关闭，#29 规格父票随之关闭（2026-08-19）**：维护者完成 Collection Dial 验收并关闭 GitHub #34；发现的问题延后另开 ticket，不阻塞 Phase 2.2 关单。实现链全部落地且原型退役门槛已满足后，规格父票 #29 也已关闭并摘掉 `ready-for-agent`。#29–#34 链结束，Collection Dial 无未关 issue。下一 frontier 为 Phase 3 浏览器扩展。见 `logs/2026-08-19-issue-34-closed.md`。

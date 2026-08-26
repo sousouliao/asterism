@@ -28,15 +28,6 @@ export {
   ChartTooltip,
   ChartTooltipContent,
 } from './components/ui/chart';
-export type {
-  CollectionDialCopy,
-  CollectionDialViewStatus,
-  CollectionDialViewTarget,
-} from './components/ui/collection-dial';
-export {
-  CollectionDial,
-  CollectionDialGrip,
-} from './components/ui/collection-dial';
 export {
   Dialog,
   DialogClose,
