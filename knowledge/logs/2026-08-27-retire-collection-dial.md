@@ -17,4 +17,5 @@
 
 - `pnpm lint` / `typecheck` / `test` / `build` 均通过。lint 先修正了 `repo-card.tsx` 与 `bulk-operations.test.ts` 的 Biome 格式。
 - 浏览器：本地 `vite preview`（`http://127.0.0.1:4173/`）重定向到 `/login`，GitHub OAuth 阻断，未能进入已登录 Browse 核验 Quick Look 加入/移出集合或选择模式批量整理对话框。登录页无 Grip / 底部集合盘。生产构建 `apps/web/dist` 不含 `collection-dial` / `CollectionDial` / `collectionDial` 字符串；`repo-card` / `repo-table` 组件测试覆盖点击选择且无 Grip 残留 padding。
-- 本机无 Docker：未运行 `pnpm test:db`。Vercel 生产已随 `main` `8754113` 发布（`https://asterism-nu.vercel.app`）。Supabase 远端仍需 apply `20260827000000_retire_collection_dial.sql` 并部署 `bulk-organize`；Web 已不再调用 Dial / Undo，旧 RPC 暂时闲置不影响整理入口。
+- 本机无 Docker：未运行 `pnpm test:db`。Vercel 生产已随 `main` `8754113` 发布（`https://asterism-nu.vercel.app`）。
+- 远端 `hqtrmulypxwdqvzlkhke`：`supabase db push --linked` 已应用排队的 `20260819120000_retire_user_tags.sql` 与 `20260827000000_retire_collection_dial.sql`（`migration list --linked` Local=Remote）。`create_collection_dial_undo` / `has_unfinished_multi_collection_dial_operation` 已不存在；`create_bulk_operation` 仅 6 参；`interaction` CHECK 只允许 `bulk_dialog`。`bulk-organize` 已 `--use-api` 部署为 ACTIVE v7。advisor 里 SECURITY DEFINER 可被 anon/authenticated 调用是既有受信 RPC 形态，本轮未改 grant。

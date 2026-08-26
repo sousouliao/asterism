@@ -95,8 +95,8 @@ user_repo_embeddings` 的
    `last_operation_item_id is null` 的基线 head，canonical 行数保持不变。
 
 应用 `20260827000000_retire_collection_dial.sql` 并部署当前 `bulk-organize` 后，Collection Dial
-的 create / undo RPC 不再存在。维护者需对 `hqtrmulypxwdqvzlkhke` 手动 apply 该 migration 并
-部署 `bulk-organize`；本轮不自动 `supabase db push` / `functions deploy`。
+的 create / undo RPC 不再存在。维护者项目 `hqtrmulypxwdqvzlkhke` 已于 2026-08-27 apply
+`20260819120000` + `20260827000000`，并把 `bulk-organize` 部署为 ACTIVE v7。
 
 ## GitHub OAuth 配置（后台手动一次）
 
