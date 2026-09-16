@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
 export type RepoViewMode = 'grid' | 'list';
 
@@ -24,6 +24,28 @@ export function migrateBrowseViewState(persistedState: unknown): { view: RepoVie
   return { view: 'grid' };
 }
 
+const fallbackStorageData = new Map<string, string>();
+const fallbackStorage: StateStorage = {
+  getItem: (key) => fallbackStorageData.get(key) ?? null,
+  removeItem: (key) => fallbackStorageData.delete(key),
+  setItem: (key, value) => fallbackStorageData.set(key, value),
+};
+
+function resolveBrowseViewStorage(): StateStorage {
+  try {
+    const storage = globalThis.localStorage;
+    const probeKey = '__asterism_browse_view_storage_probe__';
+    storage.setItem(probeKey, probeKey);
+    const usable = storage.getItem(probeKey) === probeKey;
+    storage.removeItem(probeKey);
+    return usable ? storage : fallbackStorage;
+  } catch {
+    return fallbackStorage;
+  }
+}
+
+const browseViewStorage = resolveBrowseViewStorage();
+
 /** Browse 视图模式偏好，持久化到 localStorage 以跨会话保留。 */
 export const useBrowseViewStore = create<BrowseViewState>()(
   persist(
@@ -34,6 +56,7 @@ export const useBrowseViewStore = create<BrowseViewState>()(
     {
       name: 'asterism-browse-view',
       version: 1,
+      storage: createJSONStorage(() => browseViewStorage),
       partialize: (state) => ({ view: state.view }),
       migrate: migrateBrowseViewState,
     },

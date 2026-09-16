@@ -120,7 +120,7 @@ OAuth 回流并显示当前用户。
 | 函数 | 作用 |
 | --- | --- |
 | `sync-stars` | 受信路径（service role）同步用户 GitHub starred 仓库到 `repos` / `user_stars`，支持增量。详见 `functions/sync-stars/README.md` 与 `knowledge/decisions/0006` |
-| `bulk-organize` | 受信路径（service role）创建并执行持久化批量 tag / collection 关系变更；按逐关系结果恢复和重试。详见 `functions/bulk-organize/README.md` 与 ADR 0023 |
+| `bulk-organize` | 受信路径（service role）创建并执行持久化 Collection 关系变更；按逐关系结果恢复和重试，历史 tag item 仅作账本兼容读取。详见 `functions/bulk-organize/README.md` 与 ADR 0023 / 0035 |
 | `read-repo-readme` | 受保护的 README 读取边界：校验会话与 `user_stars` 成员关系后代理 GitHub REST README HTML，ETag 重验证，token 与内容不落库。详见 `functions/read-repo-readme/README.md` |
 
 ```bash

@@ -1,5 +1,7 @@
 create extension if not exists pgtap with schema extensions;
 
+begin;
+
 select extensions.plan(4);
 
 insert into auth.users (id, email)
@@ -30,7 +32,6 @@ select extensions.throws_ok(
     'bulk_dialog',
     '11111111-1111-4111-8111-111111111111',
     array['20000000-0000-4000-8000-000000000001']::uuid[],
-    array['20000000-0000-4000-8000-000000000001']::uuid[],
     '[{"relationType":"tag","targetId":"30000000-0000-4000-8000-000000000001","action":"add"}]'::jsonb
   )$$,
   'P0001',
@@ -48,3 +49,7 @@ select extensions.ok(
   ),
   'historical relation_type tag remains a legal ledger value'
 );
+
+select * from extensions.finish();
+
+rollback;

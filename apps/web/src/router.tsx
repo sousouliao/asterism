@@ -15,12 +15,6 @@ import { LoginPage } from './pages/login';
 import { RepoBaseRedirect } from './pages/repo-base-redirect';
 import { RepoReadmePage } from './pages/repo-readme';
 
-const ReadmeCorpusLabPage = lazy(() =>
-  import('./pages/readme-corpus-lab').then((module) => ({
-    default: module.ReadmeCorpusLabPage,
-  })),
-);
-
 const CollectionsPage = lazy(() =>
   import('./pages/collections').then((module) => ({ default: module.CollectionsPage })),
 );
@@ -72,6 +66,25 @@ function CorpusLabFallback() {
   return <div className="p-6 text-sm text-muted-foreground">{t('loading.page')}</div>;
 }
 
+function createDevelopmentRoutes() {
+  const ReadmeCorpusLabPage = lazy(() =>
+    import('./pages/readme-corpus-lab').then((module) => ({
+      default: module.ReadmeCorpusLabPage,
+    })),
+  );
+
+  return [
+    {
+      path: '/dev/readme-corpus',
+      element: (
+        <Suspense fallback={<CorpusLabFallback />}>
+          <ReadmeCorpusLabPage />
+        </Suspense>
+      ),
+    },
+  ];
+}
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -81,18 +94,7 @@ export const router = createBrowserRouter([
       </RequireAnon>
     ),
   },
-  ...(import.meta.env.DEV
-    ? [
-        {
-          path: '/dev/readme-corpus',
-          element: (
-            <Suspense fallback={<CorpusLabFallback />}>
-              <ReadmeCorpusLabPage />
-            </Suspense>
-          ),
-        },
-      ]
-    : []),
+  ...(import.meta.env.DEV ? createDevelopmentRoutes() : []),
   {
     path: '/',
     element: (

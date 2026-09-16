@@ -8,18 +8,12 @@ installLocalStorage();
 /** Node 25+ exposes a non-functional `localStorage` global that shadows happy-dom. */
 function installLocalStorage(): void {
   const existing = globalThis.localStorage;
-  if (
-    existing &&
-    typeof existing.getItem === 'function' &&
-    typeof existing.setItem === 'function'
-  ) {
+  if (isUsableStorage(existing)) {
     return;
   }
 
   const fromWindow =
-    typeof window !== 'undefined' &&
-    window.localStorage &&
-    typeof window.localStorage.getItem === 'function'
+    typeof window !== 'undefined' && isUsableStorage(window.localStorage)
       ? window.localStorage
       : null;
   const storage = fromWindow ?? createMemoryStorage();
@@ -28,6 +22,20 @@ function installLocalStorage(): void {
     enumerable: true,
     value: storage,
   });
+}
+
+function isUsableStorage(storage: Storage | undefined): storage is Storage {
+  if (!storage) return false;
+
+  const probeKey = '__asterism_storage_probe__';
+  try {
+    storage.setItem(probeKey, probeKey);
+    const usable = storage.getItem(probeKey) === probeKey;
+    storage.removeItem(probeKey);
+    return usable;
+  } catch {
+    return false;
+  }
 }
 
 function createMemoryStorage(): Storage {
