@@ -1,8 +1,7 @@
 {
   "app": {
     "name": "Asterism",
-    "tagline": "把杂乱的 GitHub Star 连成有意义的星座。",
-    "coreVersion": "Core 版本：{{version}}"
+    "tagline": "你的私人开源软件记忆库。"
   },
   "auth": {
     "loading": "正在检查登录态…",
@@ -47,8 +46,8 @@
     "toggle": "切换主题"
   },
   "login": {
-    "brandTagline": "你的 Star 仓库，\n终于井然有序。",
-    "brandSubtitle": "把数百个杂乱的 GitHub Star 整理成可搜索的个人知识库。",
+    "brandTagline": "记住那些\n曾对你重要的软件。",
+    "brandSubtitle": "把 GitHub Stars 同步为由你掌控、私密且可检索的个人记忆。",
     "features": {
       "tagging": "用集合整理 Star",
       "search": "按仓库名称和描述搜索",

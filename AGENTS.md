@@ -1,8 +1,10 @@
 # AGENTS.md
 
-Asterism is an open-source, self-hostable GitHub Star manager (responsive web
-first; browser extension and desktop later). This file is the entry contract for
-any AI agent working in this repository.
+Asterism is an open-source, self-deployable personal memory for open-source
+software. GitHub Stars are its first source; responsive web is the current
+surface, while browser extension and desktop are deferred until the Memory and
+Retrieval foundations are stable. This file is the entry contract for any AI
+agent working in this repository.
 
 ## Single source of truth
 

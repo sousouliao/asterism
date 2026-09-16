@@ -1,29 +1,28 @@
 # Asterism
 
-> Chart your stars. A whole sky of GitHub stars, finally in constellations.
+> Your private memory for open-source software.
 
-**Asterism** is an open-source, self-deployable manager for your GitHub Stars. It
-turns a sprawling, unsearchable list of starred repositories into an organized
-sky — group them into collections, take notes, and find repositories
-through keyword and semantic search, structured filters, and reliable manual bulk
-workflows. The browser extension and desktop app follow next.
+**Asterism** is an open-source, self-deployable personal memory for open-source
+software. GitHub Stars are its first source: sync the projects you once noticed,
+keep private context about them, and retrieve the right repository when it matters.
 
-> Status: **Phase 2 bulk organization + browser semantic retrieval complete.**
-> The responsive Web application, real Supabase flows, recoverable manual bulk
-> workflows, invisible hybrid search, and Related Stars are implemented. Server-side
-> AI organization and BYOK Connections were retired in ADR 0032. Phase 3 is the
-> browser extension; contracts and roadmap live in
+> Status: **Memory Foundation is the current frontier.** The responsive Web app,
+> real Supabase flows, recoverable manual bulk workflows, invisible hybrid search,
+> Related Stars, Collections, and Notes are implemented. Issue #37 will establish
+> Memory as the first-class personal context model. Browser extension and desktop
+> remain planned, after the Memory and Retrieval foundations are stable. Contracts
+> and roadmap live in
 > [`knowledge/`](knowledge/).
 
 ---
 
 ## Why Asterism
 
-GitHub Stars are easy to collect and almost impossible to use. Once you cross a
-few hundred, the built-in list offers no collections, no notes, no real search, and no
-way to think about what you saved. Asterism is the layer on top: an *asterism*
-is a recognizable pattern picked out of countless stars — exactly what this tool
-helps you do with yours.
+GitHub Stars capture that something looked useful, but not why it mattered or how
+to find it again months later. Asterism keeps that private context beside the
+repository and makes your past attention retrievable. An *asterism* is a recognizable
+pattern picked out of countless stars: the name remains a metaphor for turning
+scattered attention into memory, not a promise of a star-map interface.
 
 ## Features
 
@@ -31,8 +30,8 @@ A short overview — see [`knowledge/contracts/product.md`](knowledge/contracts/
 for the authoritative feature scope and acceptance criteria.
 
 - **Sync your stars** from GitHub and keep them up to date.
-- **Collections** to organize repositories your way.
-- **Notes** on any repository, kept private to you.
+- **Private context** through Collections and Notes today, evolving into one Memory
+  per repository in the current foundation phase.
 - **Search & filtering** across repository name/description, language, topics,
   collections, star count, update time, and archive status.
 - **Stats dashboard** to understand your stars at a glance.
@@ -93,14 +92,13 @@ asterism/
 
 ## 中文简介
 
-**Asterism** 是一个开源、可自部署的 GitHub Star 管理器。它把杂乱、难以检索的
-star 列表整理成一片有序的星空：打标签、归集合、写笔记，并通过关键词和结构化筛选查找仓库。
-优先完成响应式 Web、手动批量整理与浏览器内语义检索，再推出浏览器扩展与桌面端。
+**Asterism** 是一个开源、可自部署的个人开源软件记忆库。GitHub Stars 是首个来源：
+同步曾经关注的项目，保存只有自己知道的上下文，并在真正需要时重新找到它们。
 
-> 当前状态：**Phase 2 批量整理 + 浏览器内语义检索已完成。** 响应式 Web、真实 Supabase
-> 核心链路、可恢复手动批量操作、隐形混合搜索与 Related Stars 已落地；服务端 AI 整理与
-> BYOK Connection 已按 ADR 0032 退役。下一阶段为浏览器扩展，
-> 架构与路线图见 [`knowledge/`](knowledge/)。
+> 当前状态：**Memory Foundation 是当前开发 frontier。** 响应式 Web、真实 Supabase
+> 核心链路、可恢复手动批量操作、隐形混合搜索、Related Stars、Collection 与 Note 已落地；
+> #37 将把 Memory 建立为一等个人上下文。浏览器扩展和桌面端保留，但延后到 Memory / Retrieval
+> 基础稳定之后。架构与路线图见 [`knowledge/`](knowledge/)。
 
 - 功能、技术栈与目录结构详见上文英文部分，权威功能范围见
   [`knowledge/contracts/product.md`](knowledge/contracts/product.md)。

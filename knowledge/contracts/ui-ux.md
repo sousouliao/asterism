@@ -20,7 +20,7 @@
 | Browse · 列表/表格 | `8:59` | ⚠️ frame 名为 "Browse - Card View"，**实为表格/列表视图** |
 | Browse · 卡片 | `8:227` | ⚠️ frame 名为 "Dashboard"，**实为卡片视图** |
 | Settings | `8:299` | 外观 / 账号 |
-| Repo Quick Look | evolved from `8:364` | 非模态仓库快速详情（collections / notes；ADR 0035 退役 tags） |
+| Repo Quick Look | evolved from `8:364` | 非模态仓库快速详情（Collections / personal Memory；ADR 0037） |
 | Dashboard · Insights | `8:413` | ⚠️ frame 名为 "Browse - List View"，**实为统计仪表盘** |
 | Tags Management | `12:2` | 历史标签管理画面；ADR 0035 cutover 后不再是产品表面 |
 | Collections | `12:126` | 集合 |
@@ -219,13 +219,15 @@ Browse 列表是紧凑生产力视图，不是 GitHub 元数据表格的复刻�
 
 Repo Quick Look 是 Browse 与集合详情共享的瞬时、非模态详情层。它服务于快速扫读与轻量整理，不是持久工作区；打开前后主内容的位置与宽度必须完全不变。
 
+ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。#37 落地后，主体顺序调整为 Overview → Memory → Related Stars（有可信结果时）→ Collections；Memory 同时呈现 “Why I saved this” 与自由文本 Note。原因缺失时显示明确的双语 “Not recorded yet / 尚未记录”，不得由 AI 生成或猜测。Collection 保留为次级人工组织区，不新增管理能力。#37 完成前现有 Notes 交互继续作为过渡实现。
+
 - 自适应呈现：`≥768px` 通过 body portal 默认固定在右侧与底部各 `24px`，宽 `480px`；高度随内容收缩，最大为 `min(46rem, 100svh - 48px)`，超过上限时仅主体内部滚动，不允许用固定高度制造空白。悬浮层无遮罩、焦点锁定或布局占位。`<768px` 使用底部 Sheet，最大高度 `90svh`。
 - 表面与动效：悬浮层使用 Graphite Glass overlay、`12px` 圆角与既有 `--glass-shadow`，不得添加装饰性玻璃或更大阴影。打开与关闭从当前可见 repo trigger 以 `220ms` ease-out 位移和轻微缩放展开/收回；trigger 不可见时退化为淡入淡出。相邻仓库切换只对内容做 `120ms` crossfade，窗口不移动；reduced motion 下直接切换。
 - 连续浏览：当前卡片或列表行使用完整 inset ring / surface 表达选中，不使用侧边色条；`J` / `K` 与面板内上一项 / 下一项控制沿当前可见排序移动，并在虚拟列表中把新选中项滚入视野。输入框、菜单与对话框聚焦时不得劫持快捷键。
 - 选择与关闭：点击当前已选仓库再次关闭，点击其他仓库直接切换；点击悬浮窗外或按 Esc 关闭，repo trigger 自身不走外部关闭处理；Quick Look 自身经 Portal 挂出的菜单 / 列表框 / 对话框不算窗外点击，不得因此关闭浮窗。任何路由变化都关闭 Quick Look，不跨页面保留。从 README 工作区按来源协调器返回 Browse / Collection 后，若同一仓库仍在恢复后的可见列表中，允许程序化重开该仓库的 Quick Look（这是可逆阅读迂回的一部分，不是跨路由保活）。键盘 Enter / Space 打开时把焦点移入窗口，关闭后返回原 trigger；pointer 打开保留列表操作上下文。
 - 窗口移动：桌面与平板悬浮层以仓库身份所在的完整首行作为拖动区域，不添加 drag icon 或其他冗余能力提示；仓库链接短按仍打开 GitHub，pointer 位移达到 `4px` 后才进入拖动并抑制链接点击，关闭按钮不参与拖动。浮窗限制在视口 `12px` 安全边距内，窗口尺寸变化后自动收回视口，手机底部 Sheet 不提供拖动。
-- 编辑安全：笔记草稿切换仓库、关闭面板、浏览器后退或离开页面前必须拦截；用户可选择保存并继续、放弃并继续，或通过关闭按钮 / Esc / 点遮罩继续编辑（关闭与「继续编辑」同义，页脚不再单独展示该动作）。页脚两个决策动作桌面右对齐，窄屏同宽单列，不得用 `space-between` 拆散。保存失败时保留草稿与原选择，不得静默丢失。
-- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。主体固定为 Overview → Related Stars（有可信结果时）→ Collections → Notes 的单列结构。集合编辑必须可搜索，不能在高基数时摊开全部目标。
+- 编辑安全：Memory 的 `whySaved` 与 `note` 共用一套草稿边界。切换仓库、关闭面板、浏览器后退或离开页面前必须拦截；用户可选择保存并继续、放弃并继续，或通过关闭按钮 / Esc / 点遮罩继续编辑（关闭与「继续编辑」同义，页脚不再单独展示该动作）。页脚两个决策动作桌面右对齐，窄屏同宽单列，不得用 `space-between` 拆散。保存失败时保留两个字段的草稿与原选择，不得静默丢失。
+- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。Memory Foundation 完成后的主体固定为 Overview → Memory → Related Stars（有可信结果时）→ Collections 的单列结构。集合编辑必须可搜索，不能在高基数时摊开全部目标。
 - Related Stars 是从当前收藏继续探索的只读 derived 能力：只展示最多 5 条互为 Top-12 语义近邻，不显示相似度百分比；每条使用标准整行按钮、仓库身份与一行描述，点击后在同一 Quick Look 中切换并允许继续探索。embedding 未准备、当前仓库无向量、无互为近邻或查询失败时整段不出现，不显示空态、不强行补足数量。
 - 可访问性：桌面和平板悬浮层使用命名的非模态 `dialog`，手机沿用 Sheet 语义；所有图标按钮必须有 i18n 标签与 tooltip，选中行 / 卡片暴露 `aria-selected` 或等价状态，并通过 `aria-controls` / `aria-expanded` 关联面板。
 
@@ -307,9 +309,10 @@ Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等�
 ## Brand Tone · 品牌语气
 
 - **名称**：Asterism（星群 / 星组）。
-- **主题意象**：stars / constellation（星标 / 星座 / 星图）——把零散的 GitHub star 连成有意义的"星座"。
+- **产品定义**：your private memory for open-source software；中文表达聚焦“记住曾关注的软件，并在需要时重新找到”。
+- **主题意象**：stars / constellation（星标 / 星座）——把零散关注连成可找回的个人记忆；不承诺星图 UI。
 - **语气**：克制、专业、面向开发者；克制使用动效与装饰，信息密度优先，体现"工具感"与"秩序感"。
-- **隐喻一致性**：集合可呼应"星座"意象，但避免过度堆砌主题词导致功能表达含糊。不要用第二套组织概念或教学文案解释 Collection。
+- **隐喻一致性**：Memory、检索和个人上下文使用直接语言；集合可克制呼应“星座”意象，但避免过度堆砌主题词导致功能表达含糊。不要用第二套组织概念或教学文案解释 Collection。
 
 ## UI Generation Loop · UI 生成循环
 

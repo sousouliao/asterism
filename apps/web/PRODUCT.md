@@ -2,24 +2,20 @@
 
 > This file is the impeccable-facing summary of Asterism's product context, kept in sync with `knowledge/contracts/product.md` and `knowledge/contracts/ui-ux.md` (Brand Tone section) at the repo root. **Those contracts are the single source of truth** (see root `AGENTS.md`); if this file and the knowledge base ever disagree, the knowledge base wins and this file should be updated to match.
 
-## Register
-
-product
-
 ## Users
 
-- **重度 star 用户**：starred 仓库数以百计甚至上千，靠 GitHub 原生功能已无法有效管理。
-- **技术内容整理者**：需要给收藏建集合、写笔记、按主题归集，沉淀为个人技术资料库。
+- **重度 Star 用户**：曾关注数百或上千个开源项目，却无法回忆当时为何收藏。
+- **开发者与技术研究者**：需要从过去关注的软件中重新找到适合当前问题的工具和判断依据。
 - **跨设备 / 跨端用户**：希望在浏览器、扩展、桌面之间共享同一份组织好的收藏。
 - **注重数据自主**：偏好开源、可自部署、数据可导出的方案。
 
-Context: developers, at their desk, mid-workflow — searching for a repo they starred months ago, or triaging a fresh batch of stars into collections. The job is retrieval and organization, not discovery/browsing for pleasure.
+Context: developers, at their desk, mid-workflow — trying to recover why a repository mattered or which previously saved project fits the problem at hand. The job is memory and retrieval, not discovery for entertainment or classification for its own sake.
 
 ## Product Purpose
 
-Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。它把开发者杂乱无章、随手点下的成百上千个 starred 仓库，重新组织成一个**可检索、可归集、可记录、可洞察**的个人知识星图（"Asterism" = 星群：把零散的星标连成有意义的星座）。
+Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库**。GitHub Stars 是首个来源；产品帮助用户保留私人上下文，并在需要时重新找到和理解曾关注的软件。
 
-`apps/web` is the primary surface (响应式 Web，MVP 优先端)，覆盖登录、同步、浏览（卡片/列表 + 虚拟滚动）、多维筛选、隐形混合搜索、Related Stars、集合、笔记、手动批量整理、统计仪表盘与导入导出。ADR 0035 已退役用户自定义 Tag，组织关系只保留 Collection。success = 用户能在几秒内从上千个 star 里找到仓库，并用稳定、可恢复的手动流程维护自己的集合。
+`apps/web` is the current primary surface，覆盖登录、同步、浏览、多维筛选、隐形混合搜索、Related Stars、Collection、Note、手动批量整理、统计与导入导出。ADR 0037 把 Memory Foundation 设为当前 frontier；success = 用户能在需要时找回相关软件，并理解它为什么曾经值得保存。Collection 保留为次级人工组织能力，不再是产品中心。
 
 ## Brand Personality
 
@@ -39,7 +35,7 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 3. **状态透明**：同步中 / 完成 / 失败等状态要清晰可见，用户始终知道数据处于什么阶段、来自哪里。
 4. **隐喻服务功能，不喧宾夺主**："星座"主题词可用但不能让操作路径或信息层级变得含糊。
 5. **数据自主与开源优先**：可自部署、数据可导出，视觉与交互不应制造"锁定感"（如隐藏导出入口、模糊数据归属）。
-6. **用户掌控 canonical**：集合与笔记只由用户的明确操作修改；浏览器内语义能力只帮助检索和发现相关收藏。ADR 0035 退役用户自定义 Tag。
+6. **用户掌控 canonical**：Memory 与 Collection 只由用户的明确操作修改；浏览器内语义能力只帮助检索和发现相关收藏，不猜测用户为何保存。
 
 ## Accessibility & Inclusion
 

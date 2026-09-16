@@ -4,35 +4,38 @@
 
 ## Vision · 愿景
 
-Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。它把开发者杂乱无章、随手点下的成百上千个 starred 仓库，重新组织成一个**可检索、可归集、可记录、可洞察**的个人知识星图。
+Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库**：**your private memory for open-source software**。它从用户自己的 GitHub Stars 出发，保留 GitHub 没有的个人上下文，并让用户在真正需要时重新找到、理解和使用曾关注的软件。
 
 **可自部署（self-deployable）**指用户可使用自己控制的 Supabase Cloud 项目与静态托管环境完成完整部署；**完全自托管（fully self-hosted）**指自行运行完整 Supabase 基础设施。Phase 1 只承诺前者，不维护项目自有 Docker Compose。
 
-名字 "Asterism"（星群）即取意于此：把零散的星标连成有意义的星座。
+名字 "Asterism"（星群）仍表达把零散关注连成有意义记忆的品牌隐喻。
 
 “星图 / 星座”是产品品牌与知识组织的比喻，不承诺以二维点云地图作为用户界面。正式交互必须直接服务于查找、判断或整理仓库。
 
 ## Target Users · 目标用户
 
-- **重度 star 用户**：starred 仓库数以百计甚至上千，靠 GitHub 原生功能已无法有效管理。
-- **技术内容整理者**：需要给收藏建集合、写笔记、按主题归集，沉淀为个人技术资料库。
+- **重度 Star 用户**：曾关注数百或上千个开源项目，却难以回忆当时为什么保存、后来是否仍相关。
+- **开发者与技术研究者**：希望从过去关注的软件中找回适合当前问题的工具、判断与个人上下文。
 - **跨设备 / 跨端用户**：希望在浏览器、扩展、桌面之间共享同一份组织好的收藏。
 - **注重数据自主**：偏好开源、可自托管、数据可导出的方案。
 
 ## Scope · 范围
 
-- **阶段顺序**：响应式 Web → 批量整理 + 浏览器内语义检索 → 浏览器扩展 → 桌面（Tauri），各端共享 `core` / `ui` / `db`。
-- **数据源**：用户自己的 GitHub starred 仓库（通过 GitHub GraphQL API 拉取）。
+- **阶段顺序**：已交付响应式 Web、可靠批量整理与浏览器内语义检索；当前进入 Memory Foundation，之后依据真实 Memory 使用证据推进统一 Retrieval。浏览器扩展与桌面端保留，但延后到这两层基础稳定以后。
+- **数据源**：用户自己的 GitHub starred 仓库是首个 Memory 来源（通过 GitHub GraphQL API 拉取）；近期不接入外部互联网发现或其他 Provider。
 - **后端**：Supabase（Auth + Postgres source-of-truth + Edge Functions），TanStack Query 提供会话内请求缓存。当前不承诺离线浏览；多个客户端会话不主动推送收敛，进入页面、查询刷新、完成本地操作或重新连接后读取最新状态。
 - **语义能力**：隐形混合搜索与 Related Stars 使用浏览器内 embedding，向量按用户存于 `user_repo_embeddings`；它不依赖 BYOK，也不写入集合或笔记。
 - **AI 整理退役**：产品不再提供服务端 Generation、BYOK Connection、AI 整理草稿或 Organization Task。历史 AI 执行已经形成的普通组织关系继续作为 canonical 用户数据保留。
-- **组织模型（ADR 0035）**：用户自定义组织关系只保留 Collection。GitHub Language / Topics / Archived / 时间承担客观筛选；Note 承担个人上下文。用户自定义 Tag 已退役。
+- **Memory 模型（ADR 0037）**：每个用户与 Repo 首版恰好一条 Memory，承载来源、来源时间、`whySaved` 与自由文本 `note`。Star 是初始来源，不是产品终点；系统不得猜测 `whySaved`。
+- **组织模型（ADR 0035）**：用户自定义组织关系只保留 Collection。Collection 是次级人工组织能力，保留既有功能但暂停新增 Collection Management；GitHub Language / Topics / Archived / 时间承担客观筛选。
 
 ### Language · 领域用语
 
 - **Collection**：用户命名的 starred 仓库分组，允许多归属，可进入、可筛选、可批量维护。「待读」「生产可用」等状态型短标记也是 Collection。
 - **GitHub metadata**：仓库的客观属性（语言、topics、归档、时间、star 数），不是用户组织概念。
-- **Note**：用户为单个仓库写下的个人上下文。
+- **Memory**：用户与 Repo 的私有关系记录。首版每个用户与仓库一条，保存来源、来源时间、收藏原因与自由文本笔记。
+- **Why saved**：用户本人记录的收藏原因；缺失时必须明确显示未记录，不得由 AI 推断。
+- **Note**：Memory 中的自由文本字段。独立 Note 模型只在 #37 cutover 前作为现有实现存在。
 - 避免对用户说 Tag / Label / 分类 来表示第二套组织关系。
 
 各阶段交付节奏见 `../roadmap.md`。
@@ -106,7 +109,7 @@ Phase 1 已交付自定义标签，下列验收保持为历史完成记录。ADR
 
 Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文，并在约 100 个集合时保持可搜索；这些是 ADR 0035 实现验收，不是 Phase 1 阻断项。
 
-### 8. 笔记（Notes）
+### 8. 笔记（Notes，Memory Foundation 前的现有实现）
 
 - [x] 用户可为单个仓库撰写 / 编辑 / 删除笔记。
 - [x] 笔记持久化到 Postgres，并在后续查询时从 source-of-truth 读取最新状态。
@@ -137,6 +140,8 @@ Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文�
 以下能力不属于 MVP，按路线图分阶段交付，验收标准在对应阶段细化。
 
 > **ADR 0032 退役 AI 整理**：Asterism 保留手动批量整理与浏览器内语义检索，不再提供 BYOK Generation、AI 草稿、Organization Task 或同步后整理机会。历史执行结果继续作为普通 canonical 数据保留。
+- **Memory Foundation（当前 frontier，GitHub #37）**：以每个 `user × repo` 一条 Memory 替代独立 Note，承载 `whySaved` 与 `note`；Stars 同步幂等创建基础记录，旧 Note 安全迁移，Quick Look 提供完整编辑与失败恢复，导出格式升级并兼容旧 Notes 导入。
+- **统一 Retrieval（尚未立项）**：复用现有关键词/语义混合搜索、Related Stars 与浏览器内 embedding，在 Memory Foundation 产生真实数据与使用反馈后另行定义。它不是 #37 的隐含范围。
 - **退役用户自定义 Tag（ADR 0035）**：cutover 已把每个 Tag 转为或合并进同名 Collection，删除 Tag 用户面与表。Browse 增加集合筛选；Quick Look 与批量只留 Collection + Notes；Collections 索引 / 选择器可搜索并支撑约 100 个集合；新导出只写 Collection，v1 JSON 的 tags 导入时转换。Tag color 不迁移。实现规格见 `logs/2026-08-19-retire-user-tags.md`，落地记录见 `logs/2026-08-19-retire-user-tags-cutover.md`。
 - **失效仓库检测**：识别已删除 / 已归档 / 长期无更新的仓库并提示。
 - **批量整理**（Phase 2）：多选仓库后批量加入/移出集合、导出选中仓库；只修改 Asterism 私有数据，不执行 GitHub star/unstar，也不申请 `public_repo` scope。ADR 0035 cutover 前确认层仍可同时配置标签与集合；cutover 后只配置集合。用户执行“全选当前筛选结果”时，系统立即把当时匹配的仓库固化为一个**选择范围快照**（repository ID 集合）；后续筛选变化或同步新增仓库不得悄然改变该批工作的对象，界面持续显示准确数量，用户可清空后重新选择。批量关系写入以一条“仓库 × 集合 × 添加或移除动作”为最小执行与重试单位（cutover 前历史账本仍可能含标签关系）：成功项保留，失败项单独报告且只重试失败关系；重复添加已有关系或移除不存在的关系视为成功，确保重试幂等。执行前尚未确认的勾选只属于当前会话；用户确认后必须形成持久化的**批量操作记录**，保存稳定的选择范围、动作和逐关系结果，使页面刷新、关闭或网络中断后仍可继续查看并重试。失败关系分为**可重试失败**（网络、超时或临时服务故障）与**终止失败**（目标已删除、权限/归属不成立或请求无效）；终止失败不得原样反复重试。批量操作只有在全部关系成功，或剩余终止失败被用户明确结束后，才进入完成状态。选中仓库导出复用现有格式：JSON 是包含所选仓库及其集合、笔记的可恢复部分备份（cutover 前仍含标签；新版导出只写集合），导入时只合并对应数据而不删除库中其他内容，旧备份中的标签按 ADR 0035 转成集合；CSV 是所选仓库清单，Markdown 是包含组织信息的可读归档，二者仍不承诺恢复。导出按固定 repository ID 范围读取下载时的最新 Postgres 权威数据；导出不写数据，因此不建立批量操作记录，失败后原位重新生成。
@@ -146,6 +151,8 @@ Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文�
 
 ## Extension-Specific · 浏览器扩展专属能力
 
+浏览器扩展不是当前 frontier；以下能力延后到 Memory / Retrieval 基础稳定后重新验收，不能在 #37 前启动。
+
 - **GitHub 仓库页内加入集合 / 写笔记**：通过 content script，在 GitHub 仓库页面内直接把当前仓库加入集合或写笔记，无需切回应用。不提供用户自定义 Tag。
 - **Popup 快搜**：点击扩展图标弹出快速搜索面板，秒搜已收藏仓库。
 - **右键收藏**：通过右键菜单将当前仓库快速加入集合。
@@ -154,7 +161,8 @@ Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文�
 
 ## Non-Goals · 明确不做
 
-- **不做 GitHub 客户端**：不替代 GitHub 浏览代码、issue、PR 等功能，只聚焦 star 的组织与管理。
+- **不做 GitHub 客户端**：不替代 GitHub 浏览代码、issue、PR 等功能，只围绕用户曾关注的开源软件建立私人 Memory 与 Retrieval。
+- **近期不做远期 Memory 推演能力**：Memory Foundation 不实现 AI Chat、联网搜索、RepoSnapshot、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 或二维星图 UI。
 - **不管理他人的 star**：只管理登录用户自己的 starred 仓库，不做社交 / 公共分享星单（至少 MVP 与近期路线图内不做）。
 - **不做通用书签管理器**：范围限定在 GitHub 仓库，不扩展到任意 URL 收藏。
 - **不提供服务端 AI 整理**：不保存 Provider credential，不调用 Generation Provider，不生成或执行 AI 整理计划。

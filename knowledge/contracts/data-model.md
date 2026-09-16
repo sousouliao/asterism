@@ -7,9 +7,10 @@
 ## 设计原则
 
 - **`repos` 为全局共享、公共可读**：同一个 GitHub 仓库的元数据全局只存一份，所有用户共享读取，避免重复。
-- **用户私有数据按 `user_id` 隔离**：star 关系、集合、笔记、设置等都归属具体用户，彼此不可见。
+- **用户私有数据按 `user_id` 隔离**：star 关系、Memory、集合、设置等都归属具体用户，彼此不可见。
 - **关系尽量规范化**：多对多关系（仓库↔集合）用独立连接表表达。
-- **用户组织只保留 Collection（ADR 0035）**：用户命名的分组、工作列表与状态型短标记都写入 `collections` / `collection_repos`。`tags` / `repo_tags` 已由 cutover migration 迁入集合后删除；Tag color 不迁移。
+- **Memory 是个人上下文的一等关系（ADR 0037）**：首版每个 `user × repo` 一条，Star 同步只幂等创建缺失记录，用户内容不得被覆盖。
+- **用户组织只保留 Collection（ADR 0035）**：用户命名的分组、工作列表与状态型短标记都写入 `collections` / `collection_repos`。Collection 是次级组织能力，暂停扩展其管理功能。
 - **进阶能力保持解耦**：`bulk_operations` / `bulk_operation_items` 提供可靠手动批量写入；`user_repo_embeddings` 保存浏览器生成的 derived 向量。AI Provider、草稿、任务与计划表已由 ADR 0032 退役。
 
 约定：所有表含 `id`（主键，uuid 或 bigint，下文不再逐一重复）、`created_at`、`updated_at`（时间戳）。`user_id` 引用 Supabase `auth.users(id)`。
@@ -38,7 +39,7 @@
 - `is_fork` — 是否为 fork（boolean，可选）
 - `synced_at` — 本系统最近一次同步该仓库元数据的时间
 
-关系：被 `user_stars`、`collection_repos` 与 `notes` 引用。
+关系：被 `user_stars`、`collection_repos` 与目标模型 `memories` 引用；#37 cutover 前仍被现有 `notes` 引用。
 
 ### `user_stars` — 用户的 star 关系
 
@@ -71,13 +72,26 @@ Cutover migration `20260819120000_retire_user_tags.sql` 已按 `normalize_classi
 
 约束：`(collection_id, repo_id)` 唯一。
 
-### `notes` — 仓库笔记
+### `memories` — 用户与仓库的个人记忆（Memory Foundation 目标）
+
+- `user_id` → `auth.users(id)`
+- `repo_id` → `repos(id)`
+- `source` — 首版固定为 `github_star`
+- `source_created_at` — 对应 `user_stars.starred_at`
+- `why_saved` — 用户记录的收藏原因（nullable）
+- `note` — 自由文本笔记（nullable）
+
+约束：`(user_id, repo_id)` 唯一。清空个人字段写为 `null`，不删除基础 Memory；Stars 重复同步不得覆盖用户字段。
+
+### `notes` — 过渡中的现有仓库笔记
 
 - `user_id` → `auth.users(id)`
 - `repo_id` → `repos(id)`
 - `body` — 笔记正文（markdown 文本）
 
-约束：MVP 下 `(user_id, repo_id)` 唯一（每仓库一条笔记）；如未来需多条可放开。
+约束：当前实现为 `(user_id, repo_id)` 唯一。#37 将把内容迁入 `memories.note` 后删除本表与旧查询接口；迁移必须保留开发环境已有内容。
+
+> 实现状态：ADR 0037 已接受目标模型，但 schema cutover 只由 GitHub #37 授权。#37 完成前，migration 与运行时仍以 `notes` 为准。
 
 ---
 
@@ -143,9 +157,10 @@ Cutover migration `20260819120000_retire_user_tags.sql` 已按 `normalize_classi
   - SELECT：全局可读（所有已认证用户均可读）。
   - INSERT / UPDATE：仅由受信路径写入（同步逻辑 / Edge Functions / service role），普通用户不可直接写。
 
-- **`user_stars` / `collections` / `notes` / `user_repo_embeddings`**
+- **`user_stars` / `memories` / `collections` / `user_repo_embeddings`**
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
+  - #37 cutover 前同一规则继续适用于现有 `notes`；完成后 `notes` 删除。
   - `tags` / `repo_tags` 已由 ADR 0035 cutover 删除。
 
 - **`collection_repos` / `collection_relation_heads`**

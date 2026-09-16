@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Open-source, self-hostable multi-platform GitHub Star manager",
+  "description": "Open-source, self-deployable personal memory for open-source software",
   "license": "MIT",
   "packageManager": "pnpm@8.15.9",
   "engines": {

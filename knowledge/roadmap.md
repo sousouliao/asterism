@@ -1,107 +1,55 @@
 # Asterism · 路线图（Roadmap）
 
-> 本文是分阶段路线图（契约/规划层）。每个阶段标注目标与里程碑，作为后续 loop 验收与进度跟踪（`state/PROGRESS.md`）的依据。各阶段开发需另行批准。
+> 本文是已批准的阶段路线图。长期构想见 `proposals/asterism-transformation-roadmap.md`；该提案不自动授权实施，具体工作仍以 Contracts、Accepted ADR 与 GitHub issue 为准。
 
-## 当前状态（Current Status）
+## 当前状态
 
-- **Phase 0 已验收（2026-06-29）**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均完成并端到端验证；设计 token（GitHub Primer）已定稿并落 `packages/ui`。详见 `state/PROGRESS.md`。
-- **Phase 1 已完成**：Web MVP 用户可见主流程、真实 Supabase 核心链路、七项最终收尾与四道工程门禁已于 2026-07-18 全部验收。
-- **Phase 2 已完成并收敛**：可靠手动批量整理、选中导出、浏览器内 embedding、隐形混合搜索与 Related Stars 已交付；服务端 AI 整理及 BYOK Generation 于 2026-08-05 按 ADR 0032 退役。
-- **当前产品 frontier 为 Phase 3 浏览器扩展**：Phase 2.2 Collection Dial 已由 ADR 0036 从产品中退役（#30–#34 实现链此前已关闭）。ADR 0035 Tag 退役 cutover 已于 2026-08-19 落地，组织关系只保留 Collection。扩展不得实现「页内打标签」，也不得复活 Collection Dial。
+Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR 0037）。GitHub Stars 是首个 Memory 来源；Collection 保留为次级人工组织能力。当前唯一功能 frontier 是 GitHub #37 **Memory Foundation · Why I saved this**。
 
-| 阶段 | 名称 | 状态 |
+| 阶段 | 状态 | 结果 / 边界 |
 | --- | --- | --- |
-| Phase 0 | 脚手架 Scaffold | 已验收（Done, 2026-06-29） |
-| Phase 1 | Web MVP | Done（2026-07-18） |
-| Phase 2 | 批量整理 + 浏览器内语义检索 | Done（2026-08-05，AI 整理已退役） |
-| Phase 2.2 | Collection Dial | Retired（ADR 0036，2026-08-27） |
-| — | Tag 退役 cutover（ADR 0035） | Done（2026-08-19） |
-| Phase 3 | 浏览器扩展 Extension | 未开始 |
-| Phase 4 | 桌面 Desktop | 未开始 |
+| Phase 0 · Scaffold | Done（2026-06-29） | Monorepo、Supabase、OAuth 与工程门禁 |
+| Phase 1 · Web MVP | Done（2026-07-18） | 同步、浏览、筛选、Collection、Note、统计与导入导出 |
+| Phase 2 · Reliable organization + semantic retrieval | Done（2026-08-05） | 可靠批量整理、混合搜索、Related Stars；服务端 AI 整理已退役 |
+| Phase 2.2 · Collection Dial | Retired（ADR 0036） | 专用用户面、账本与 Undo 已删除 |
+| Product Repositioning | Done（ADR 0037） | Personal Open Source Memory 成为正式定位 |
+| Memory Foundation | **Current frontier** | #37：一对一 Memory 与 “Why I saved this” 完整纵向切片 |
+| Unified Retrieval | Not approved | 等 Memory 数据与反馈形成后另行立项 |
+| Browser Extension / Desktop | Deferred | Memory / Retrieval 基础稳定后重新排期 |
 
----
+## 已交付基础
 
-## Phase 0 · 脚手架（Scaffold）
+- GitHub OAuth 与增量 Stars 同步。
+- 响应式 Web、卡片 / 列表虚拟滚动、多维筛选和统计。
+- Collection、Note、可靠手动批量整理与部分导出。
+- 浏览器内 embedding、隐形混合搜索与 Related Stars。
+- Postgres source-of-truth、RLS、`packages/db` 数据边界与写失败恢复。
+- JSON v2 导入导出；v1 Tag 数据兼容导入为 Collection。
 
-目标：把蓝图变成可运行的最小工程骨架，打通"登录 + 读取 star"的端到端链路基础。
+这些能力是 Memory 方向的基础资产，不因产品转向而重做。暂停新增 Collection Management，不恢复 Tag、Collection Dial、服务端 BYOK Generation 或 AI 整理。
 
-里程碑：
+## Memory Foundation · 当前阶段
 
-- Monorepo 实包就位：`apps/{web,extension,desktop}` 与 `packages/{core,ui,db,config}` 的最小可构建骨架。
-- 共享包骨架：`core`（GitHub API/同步/模型）、`ui`（shadcn + Tailwind 基底）、`db`（Supabase 客户端 + 查询）的导出边界与占位实现。
-- Supabase 项目就绪：建项目、初版 schema、启用 RLS（表结构按 `contracts/data-model.md`）。
-- GitHub OAuth 打通：Supabase Auth GitHub provider 配置完成，可完成登录回流。
+目标：让每个已同步 Repo 都拥有一条属于当前用户的 Memory，并允许用户明确记录为什么保存及自由笔记。
 
-完成判据：能本地启动 Web 应用、完成 GitHub 登录、并从 Supabase 读到当前用户的基础数据。
+当前批准的完整切片是 GitHub #37：
 
-## Phase 1 · Web MVP
+- 每个 `(user_id, repo_id)` 一条基础 Memory。
+- Star 同步幂等创建，绝不覆盖用户内容。
+- 旧 Note 迁入 `Memory.note` 后退役旧模型。
+- Repo Quick Look 提供 `whySaved` 与 `note` 的加载、编辑、清空、保存和失败恢复。
+- 原因为空时明确显示未记录，不使用 AI 猜测。
+- JSON v3 写出 Memory，v1/v2 Notes 继续可导入。
+- 领域类型、数据访问、UI、i18n、测试和知识库作为一个端到端 issue 交付。
 
-目标：交付可日常使用的 Web 端 GitHub Star 管理器。
+完成判据以 #37 和 Contracts 为准，并包含真实 Supabase migration / RLS / sync smoke。
 
-里程碑：
+## Memory Foundation 之后
 
-- 同步 stars：拉取用户 star 列表并入库（增量/全量）。
-- 列表展示：卡片/列表视图 + **虚拟滚动**（TanStack Virtual），支撑上万条无卡顿。
-- 多维筛选与搜索：按语言、topics、时间等过滤 + 关键词搜索。
-- 标签（tags）、集合（collections）、笔记（notes）：用户侧组织能力。ADR 0035 已退役 Tag，现在只保留集合与笔记。
-- 统计仪表盘：语言/时间/集合等维度的可视化（shadcn Charts）。
-- 导入 / 导出：数据可迁移（如 JSON/CSV）。
+下一候选方向是统一 Retrieval：把现有关键词匹配、语义近邻、Related Stars 与用户 Memory 组合成面向意图的检索。只有在 #37 完成并产生真实 Memory 数据和使用反馈后，才创建对应 issue 和验收标准。
 
-完成判据：用户可登录、同步、用集合与笔记组织、搜索筛选并查看统计，数据按 RLS 隔离且经 `packages/db` 从 Postgres 读取；提供可执行的 Supabase Cloud + 静态托管自部署文档。当前不承诺离线浏览、主动跨会话推送或完整 Supabase Docker 自托管。Phase 1 交付的标签已由 ADR 0035 迁入集合。
+以下方向只保存在长期提案中，尚未获得实现授权：AI Chat / Ask、联网搜索、RepoSnapshot、Resurface、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 与星图 UI。
 
-## Phase 2 · 批量整理 + 浏览器内语义检索
+## 延后客户端
 
-目标：深化 Web 端的可靠整理与查找能力，再扩展到新端。
-
-里程碑：
-
-- 手动选择或“全选当前筛选结果”在确认时固化 repository ID 范围。
-- 集合写入使用持久化逐关系账本，成功项保留，失败项分类并可恢复重试。历史账本仍含只读的标签关系记录。
-- 选中仓库可导出 JSON 部分备份、CSV 清单或 Markdown 可读归档。新版 JSON 只写集合与笔记。
-- 浏览器内 `multilingual-e5-small` embedding 支撑隐形混合搜索与 Related Stars；向量按用户存于 `user_repo_embeddings`，不写 canonical。
-- 不提供服务端 Generation、BYOK Connection、AI 草稿或 Organization Task；历史 AI 执行形成的普通组织关系继续保留，并已由 ADR 0035 迁入 Collection。
-
-完成判据：重度用户可完成可访问、可恢复的手动批量整理，并在 embedding 不可用时无损降级到关键词搜索；全过程不扩大 GitHub OAuth 写权限，不保存 AI Provider credential。
-
-## Phase 2.2 · Collection Dial（已退役）
-
-目标曾是把 ADR 0033 接受的 Browse 直接整理体验重建为生产能力。#30–#34 已交付后，ADR 0036 于 2026-08-27 完整退役该用户面与专用 schema / RPC。整理入口回到 Quick Look 与批量整理对话框；受信 relation head 保留。
-
-完成判据：Browse 无 Grip / 集合盘；`create_bulk_operation` 只接受 `bulk_dialog`；Dial Undo RPC 与 `undo_*` 列不存在；canonical `collection_repos` 不回滚。
-
-## Tag 退役 cutover（ADR 0035）
-
-目标：删除用户自定义 Tag，把成员关系迁入 Collection，并让 Browse / Quick Look / 批量 / 索引按单一组织概念工作。
-
-里程碑：
-
-- 数据迁移：Tag → 同名 Collection，同名合并，关系幂等，baseline head，然后删表。
-- Browse 集合筛选、卡片集合名称、Quick Look 与批量不再出现 Tag。
-- Collections 索引可搜索，选择器在约 100 个集合时仍可用。
-- 导出 v2 只写 Collection；导入兼容 v1 tags。
-
-完成判据：用户面没有 Tag；既有成员关系可在 Collection 中找到；四道工程门禁全绿。已于 2026-08-19 落地；本机无 Docker，pgTAP 与本地 migration apply 未执行。
-
-## Phase 3 · 浏览器扩展（Extension）
-
-目标：把已经成熟的 Web 核心能力带到浏览网页的即时场景。
-
-里程碑：
-
-- WXT（MV3）popup：快速搜索已 star 的仓库。
-- content-script：在 GitHub 仓库页内直接加入集合 / 记笔记。
-- 共享会话：复用 Supabase 会话或 `chrome.identity.launchWebAuthFlow`，与 Web 端数据互通。
-- 扩展专属 i18n：MV3 `_locales` 提供 en / zh-CN。
-
-完成判据：扩展可登录并与 Web 端共享同一份用户数据，可快速搜索，并在 GitHub 页内即时加入集合 / 写笔记。不得实现用户自定义 Tag。
-
-## Phase 4 · 桌面（Desktop）
-
-目标：提供原生桌面体验。
-
-里程碑：
-
-- Tauri 2 套壳复用 Web 前端。
-- 桌面端打包与分发流程。
-
-完成判据：桌面应用可安装运行，复用既有 Web 能力与共享包。
+浏览器扩展（WXT）和桌面端（Tauri 2）骨架保留，不删除、不继续扩展。它们必须在 Memory / Retrieval 基础稳定后重新定义用户任务；不得沿用旧路线仅复制 Star Manager 的 Collection / Note 入口。

@@ -4,7 +4,7 @@
 
 ## System Architecture · 系统架构
 
-多端客户端共享 `core` / `ui` / `db` 三个包，统一对接 Supabase（Auth / Postgres / Edge Functions）；GitHub GraphQL / REST API 是上游数据源。
+多端客户端共享 `core` / `ui` / `db` 三个包，统一对接 Supabase（Auth / Postgres / Edge Functions）；GitHub GraphQL / REST API 是首个上游数据源。当前运行表面仍是 Web；Extension / Desktop 在 Memory Foundation 与统一 Retrieval 稳定后再恢复实施。
 
 ```mermaid
 flowchart TD
@@ -14,7 +14,7 @@ flowchart TD
     desktop[Desktop / Tauri 2]
   end
   subgraph shared [共享包 packages]
-    core[core: GitHub API/同步/模型]
+    core[core: GitHub API/同步/Memory 领域模型]
     ui[ui: shadcn组件+Tailwind]
     db[db: Supabase客户端+查询]
   end
@@ -89,7 +89,7 @@ asterism/
 
 ## Data Flow · 数据流
 
-核心数据流：以 GitHub 为上游、Postgres 为唯一持久化权威源、显式查询为客户端收敛边界、TanStack Query 提供会话内请求缓存。
+核心数据流：以 GitHub Stars 为首个 Memory 来源、Postgres 为唯一持久化权威源、显式查询为客户端收敛边界、TanStack Query 提供会话内请求缓存。
 
 ```mermaid
 sequenceDiagram
@@ -104,14 +104,14 @@ sequenceDiagram
   C->>Fn: 2. 触发同步（用户 JWT + provider_token）
   Fn->>GH: 3. GraphQL 拉取 starred（全量 / 增量）
   GH-->>Fn: 仓库数据
-  Fn->>SB: 4. service role 幂等写入 repos + user_stars（source-of-truth）
+  Fn->>SB: 4. service role 幂等写入 repos + user_stars + 基础 memories
   SB-->>C: 5. 客户端按查询边界读取（RLS：repos 全局读 / user_stars 按 user）
 ```
 
 1. **OAuth 登录**：经 Supabase GitHub provider 获取会话与 `provider_token`（GitHub 访问令牌）。
 2. **触发同步**：客户端调用 Edge Function `sync-stars`，带上用户 JWT 与 `provider_token`。
 3. **GraphQL pull stars**：函数调 GitHub GraphQL API 拉取 starred（支持增量）；纯查询/映射逻辑在 `core`。
-4. **Postgres source-of-truth**：函数用 **service role** 幂等写入 `repos`（全局）与该用户 `user_stars`。`repos` RLS 仅允许受信路径写（见 `data-model.md`），故写入集中在函数，客户端不直写。
+4. **Postgres source-of-truth**：函数用 **service role** 幂等写入 `repos`（全局）与该用户 `user_stars`；Memory Foundation 落地后同时只创建缺失的基础 `memories`，不得覆盖用户填写的 `why_saved` 或 `note`。`repos` RLS 仅允许受信路径写（见 `data-model.md`），故写入集中在函数，客户端不直写。
 5. **读取 / 会话收敛**：客户端按 RLS 读取结果（`repos` 全局可读、`user_stars` 按 `user_id`）；进入页面、查询刷新、完成本地操作或重新连接后重新读取 Postgres。多个在线会话不承诺主动推送收敛。
 6. **请求缓存**：客户端使用 TanStack Query 做会话内去重与新鲜度管理；不建立浏览器持久缓存，也不承诺离线读取。
 
@@ -122,6 +122,12 @@ sequenceDiagram
 > 语义能力保持纯浏览器内边界：浏览器生成 repository/query embedding，只把用户向量存入本人 RLS 隔离的 `user_repo_embeddings`，用于隐形混合搜索与 Related Stars；它不经过 BYOK，不自动修改 canonical。ADR 0036 已退役 Collection Dial，embedding 不再用于集合盘候选排序。
 
 README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML 仅有 5 分钟会话内缓存，也不建立搜索索引。
+
+### Memory Foundation boundary
+
+ADR 0037 把 Memory 设为用户与 Repo 的一等关系。#37 是实现这一目标的唯一当前功能 issue：`@asterism/core` 定义领域类型，`@asterism/db` 作为读取与保存的唯一入口，`sync-stars` 幂等创建基础记录，Web Quick Look 编辑个人上下文。#37 完成前现有 `notes` 运行时继续有效；本架构目标不表示 schema 已提前落地。
+
+Collection、混合搜索、Related Stars、embedding、同步与可靠写入保持为可复用能力。统一 Retrieval、Snapshot、Research、MCP 与其他长期能力没有运行时授权。
 
 ### README 实时读取
 

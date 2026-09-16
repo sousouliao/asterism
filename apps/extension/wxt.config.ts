@@ -5,7 +5,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: 'Asterism',
-    description: 'Organize your GitHub stars into a meaningful constellation.',
+    description: 'Your private memory for open-source software.',
   },
   vite: () => ({
     plugins: [tailwindcss()],

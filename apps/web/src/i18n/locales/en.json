@@ -1,8 +1,7 @@
 {
   "app": {
     "name": "Asterism",
-    "tagline": "Organize your GitHub stars into a meaningful constellation.",
-    "coreVersion": "Core version: {{version}}"
+    "tagline": "Your private memory for open-source software."
   },
   "auth": {
     "loading": "Checking session…",
@@ -47,8 +46,8 @@
     "toggle": "Toggle theme"
   },
   "login": {
-    "brandTagline": "Your starred repos,\nfinally organized.",
-    "brandSubtitle": "Turn hundreds of scattered GitHub stars into a searchable personal knowledge base.",
+    "brandTagline": "Remember the software\nthat mattered to you.",
+    "brandSubtitle": "Sync your GitHub Stars into a private, searchable memory you control.",
     "features": {
       "tagging": "Collections for grouping stars",
       "search": "Search repository names and descriptions",

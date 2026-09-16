@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo '@asterism/desktop placeholder — the Tauri 2 desktop shell lands in Phase 4 (see README).'"
+    "build": "echo '@asterism/desktop placeholder - the Tauri 2 desktop shell is deferred until Memory and Retrieval are stable.'"
   }
 }
