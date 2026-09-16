@@ -11,6 +11,7 @@ GitHub: #38
 - 将 README corpus lab 的 lazy import 收进 DEV-only route factory；生产构建不再输出 `readme-corpus-lab` chunk。
 - 测试环境会实际探测 `localStorage` 可写性，不再误用 Node 暴露但不可工作的 storage。
 - 删除无消费者的 `CORE_VERSION` 与 locale key，并把 Desktop placeholder 输出改为跨 Windows code page 的 ASCII 文案。
+- 将 CI 的 `checkout` / `setup-node` / `pnpm/action-setup` 升级到当前官方 major，消除 GitHub runner 的 Node 20 action runtime 弃用注解。
 
 ## Verification
 
