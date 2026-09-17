@@ -4,7 +4,13 @@
 
 ## 当前 frontier
 
-- [ ] **完成 Memory + Why I saved this 真实运行验收与 Issue 结项（GitHub #37）**：本地代码、自动化测试、桌面/手机视觉 QA、远端 Supabase migration (`20260917120000_memory_foundation.sql`) 推送与 `sync-stars` Edge Function 部署已完成。验证真实会话后关闭 #37。按 ADR 0038 不迁移旧 Note，也不兼容 v1/v2 JSON。
+- [ ] **统一检索引擎（GitHub #39）**：`feat(retrieval): unified search engine with memory awareness and match explanation`。将用户的 `why_saved` 与 `note` 内容整合进检索流，提供统一检索抽象与可解释匹配理由，演进 Related Stars。
+- [ ] **沉睡记忆唤醒与主页推荐流（GitHub #40）**：`feat(memory): resurface inactive stars and contextual memory streams`。基于端侧可解释规则唤醒长期未访问的项目，新增“值得重温”与“待补全记忆”卡片流并支持用户反馈。由 #39 阻塞。
+- [ ] **个人私有知识问答（GitHub #41）**：`feat(ask): private and grounded repository Q&A (Ask Asterism)`。基于 #39 统一检索做 Grounding 问答，严格限定个人库，附带可追溯证据链。由 #39 阻塞。
+
+## 已完成近期 frontier
+
+- [x] **完成 Memory + Why I saved this 交付（GitHub #37）**：本地代码、自动化测试、桌面/手机视觉 QA、远端 Supabase migration (`20260917120000_memory_foundation.sql`) 推送、`sync-stars` Edge Function 部署与 GitHub Issue #37 已全部完成关闭。按 ADR 0038 不迁移旧 Note，也不兼容 v1/v2 JSON。
 
 ## 延后但保留
 

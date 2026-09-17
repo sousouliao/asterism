@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR 0037）。GitHub Stars 是首个 Memory 来源；Collection 保留为次级人工组织能力。GitHub #37 **Memory Foundation · Why I saved this** 已完成本地实现，当前等待真实 Supabase 验收。
+Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR 0037）。GitHub Stars 是首个 Memory 来源；Collection 保留为次级人工组织能力。GitHub #37 **Memory Foundation · Why I saved this** 已交付并完成线上部署，正式结项。
 
 | 阶段 | 状态 | 结果 / 边界 |
 | --- | --- | --- |
@@ -13,8 +13,8 @@ Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR
 | Phase 2 · Reliable organization + semantic retrieval | Done（2026-08-05） | 可靠批量整理、混合搜索、Related Stars；服务端 AI 整理已退役 |
 | Phase 2.2 · Collection Dial | Retired（ADR 0036） | 专用用户面、账本与 Undo 已删除 |
 | Product Repositioning | Done（ADR 0037） | Personal Open Source Memory 成为正式定位 |
-| Memory Foundation | **Local implementation done; remote validation pending** | #37：一对一 Memory 与 “Why I saved this” 完整纵向切片 |
-| Unified Retrieval | Not approved | 等 Memory 数据与反馈形成后另行立项 |
+| Memory Foundation | **Done（2026-09-17）** | #37：一对一 Memory 与 “Why I saved this” 完整纵向切片已部署上线 |
+| Unified Retrieval | Candidate | 等真实 Memory 数据与反馈形成后立项并创建 issue |
 | Browser Extension / Desktop | Deferred | Memory / Retrieval 基础稳定后重新排期 |
 
 ## 已交付基础
