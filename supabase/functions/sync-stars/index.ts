@@ -8,6 +8,7 @@
 // 因 Supabase Edge（Deno）与 workspace 打包边界，这里就近内联一份实现。
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { ensureUserMemories } from './memory-sync.ts';
 
 const GITHUB_GRAPHQL_ENDPOINT = 'https://api.github.com/graphql';
 const STARRED_PAGE_SIZE = 100;
@@ -214,6 +215,30 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Invalid or expired session' }, 401);
   }
   const userId = userData.user.id;
+  const memoryStore = {
+    listUserStars: async (targetUserId: string, from: number, to: number) => {
+      const { data, error } = await admin
+        .from('user_stars')
+        .select('repo_id, starred_at')
+        .eq('user_id', targetUserId)
+        .order('id', { ascending: true })
+        .range(from, to);
+      return { data, error };
+    },
+    insertMissingMemories: async (
+      memoryRows: Array<{
+        user_id: string;
+        repo_id: string;
+        source: 'github_star';
+        source_created_at: string | null;
+      }>,
+    ) => {
+      const { error } = await admin
+        .from('memories')
+        .upsert(memoryRows, { onConflict: 'user_id,repo_id', ignoreDuplicates: true });
+      return { error };
+    },
+  };
 
   // 增量界：该用户已有的最新 starredAt。
   const { data: latest, error: latestError } = await admin
@@ -259,6 +284,11 @@ Deno.serve(async (req: Request) => {
   }
 
   if (rows.length === 0) {
+    try {
+      await ensureUserMemories(memoryStore, userId);
+    } catch (cause) {
+      return json({ error: (cause as Error).message }, 500);
+    }
     return json({
       total: 0,
       upserted: 0,
@@ -309,6 +339,12 @@ Deno.serve(async (req: Request) => {
       return json({ error: `Failed to link user stars: ${starError.message}` }, 500);
     }
     starsLinked += batch.length;
+  }
+
+  try {
+    await ensureUserMemories(memoryStore, userId);
+  } catch (cause) {
+    return json({ error: (cause as Error).message }, 500);
   }
 
   return json({

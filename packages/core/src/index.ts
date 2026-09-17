@@ -10,14 +10,11 @@ export { normalizeImportData, parseImportJson } from './data-port/import';
 export type {
   ExportCollection,
   ExportCollectionRepo,
-  ExportNote,
+  ExportMemory,
   ExportPayload,
-  ExportPayloadV1,
-  ExportPayloadV2,
+  ExportPayloadV3,
   ExportRepo,
-  ExportRepoTag,
   ExportSnapshot,
-  ExportTag,
   ImportPayload,
   NormalizedImportData,
   ParsedImportPayload,
@@ -61,7 +58,7 @@ export {
   STARRED_REPOS_QUERY,
 } from './github/stars';
 export type { Collection, CollectionId } from './models/collection';
-export type { Note } from './models/note';
+export type { Memory, MemorySource } from './models/memory';
 export type { Repo, RepoId } from './models/repo';
 export { repoFullName } from './models/repo';
 export type {

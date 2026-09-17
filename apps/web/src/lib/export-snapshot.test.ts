@@ -46,10 +46,28 @@ const source: ExportSourceData = {
   starredRepos: [record('r1', 'vercel/next.js'), record('r2', 'denoland/deno')],
   collections,
   collectionRepos,
-  notes: [
-    { repoId: 'r1', body: 'Great docs' },
-    { repoId: 'r2', body: 'Rust runtime' },
-    { repoId: 'ghost', body: 'orphan note' },
+  memories: [
+    {
+      repoId: 'r1',
+      source: 'github_star',
+      sourceCreatedAt: '2024-01-01T00:00:00Z',
+      whySaved: 'React framework research',
+      note: 'Great docs',
+    },
+    {
+      repoId: 'r2',
+      source: 'github_star',
+      sourceCreatedAt: '2024-02-01T00:00:00Z',
+      whySaved: null,
+      note: 'Rust runtime',
+    },
+    {
+      repoId: 'ghost',
+      source: 'github_star',
+      sourceCreatedAt: null,
+      whySaved: 'orphan context',
+      note: null,
+    },
   ],
 };
 
@@ -62,16 +80,16 @@ describe('buildExportSnapshot', () => {
       { collectionName: 'Web', fullName: 'vercel/next.js' },
       { collectionName: 'Infra', fullName: 'denoland/deno' },
     ]);
-    expect(snapshot.notes).toEqual([
-      { fullName: 'vercel/next.js', body: 'Great docs' },
-      { fullName: 'denoland/deno', body: 'Rust runtime' },
+    expect(snapshot.memories.map((memory) => memory.fullName)).toEqual([
+      'vercel/next.js',
+      'denoland/deno',
     ]);
   });
 
-  it('drops notes and links that reference repositories outside the library', () => {
+  it('drops Memories and links that reference repositories outside the library', () => {
     const snapshot = buildExportSnapshot(source);
 
-    expect(snapshot.notes.some((note) => note.body === 'orphan note')).toBe(false);
+    expect(snapshot.memories.some((memory) => memory.whySaved === 'orphan context')).toBe(false);
   });
 });
 
@@ -84,7 +102,15 @@ describe('buildSelectedExportSnapshot', () => {
     expect(snapshot.collectionRepos).toEqual([
       { collectionName: 'Web', fullName: 'vercel/next.js' },
     ]);
-    expect(snapshot.notes).toEqual([{ fullName: 'vercel/next.js', body: 'Great docs' }]);
+    expect(snapshot.memories).toEqual([
+      {
+        fullName: 'vercel/next.js',
+        source: 'github_star',
+        sourceCreatedAt: '2024-01-01T00:00:00Z',
+        whySaved: 'React framework research',
+        note: 'Great docs',
+      },
+    ]);
   });
 
   it('returns an empty snapshot when the scope is empty', () => {

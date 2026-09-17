@@ -12,7 +12,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { useSession } from '../auth/use-session';
 import { supabase } from '../lib/supabase';
-import { collectionKeys, collectionRepoKeys, noteKeys, repoKeys } from './keys';
+import { collectionKeys, collectionRepoKeys, memoryKeys, repoKeys } from './keys';
 
 const NO_USER = 'NO_USER';
 
@@ -44,7 +44,7 @@ export function useImportUserData() {
       }
       void queryClient.invalidateQueries({ queryKey: collectionKeys.list(userId) });
       void queryClient.invalidateQueries({ queryKey: collectionRepoKeys.list(userId) });
-      void queryClient.invalidateQueries({ queryKey: noteKeys.all });
+      void queryClient.invalidateQueries({ queryKey: memoryKeys.all });
       void queryClient.invalidateQueries({ queryKey: repoKeys.starred(userId) });
     },
   });

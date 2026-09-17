@@ -17,9 +17,9 @@ import { getBrowseView, useBrowseViewStore } from '../stores/browse-view';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
 import { useReadmeReturnRestore } from './use-readme-return-restore';
 
-vi.mock('../data/use-note', () => ({
-  useNote: () => ({ data: '', isLoading: false }),
-  useSaveNote: () => ({ mutateAsync: vi.fn(), isPending: false }),
+vi.mock('../data/use-memory', () => ({
+  useMemory: () => ({ data: null, isLoading: false }),
+  useSaveMemory: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock('../data/use-collections', () => ({

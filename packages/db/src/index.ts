@@ -47,7 +47,12 @@ export {
   searchRepoEmbeddings,
   upsertRepoEmbedding,
 } from './queries/embeddings';
-export { getNote, listNoteRepoIds, listNotes, saveNote } from './queries/notes';
+export {
+  getMemory,
+  listMemories,
+  listMemoryNoteRepoIds,
+  saveMemory,
+} from './queries/memories';
 export type { StarredRepoRecord } from './queries/repos';
 export { getLatestStarredAt, listStarredRepos, mapRepoRow } from './queries/repos';
 export type { RepoReadmeOutcome, RepoReadmeRequest, RepoReadmeSuccess } from './readme';

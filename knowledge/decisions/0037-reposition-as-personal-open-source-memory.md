@@ -22,7 +22,7 @@ Asterism 的产品定义调整为：**your private memory for open-source softwa
 - **当前 frontier 是 Memory Foundation。** 浏览器扩展与桌面端保留为未来客户端，但延后到 Memory / Retrieval 基础稳定以后。
 - **Contracts 优先于提案。** 长期 Transformation Roadmap 只保存方向背景；Accepted ADR、Contracts 和具体 issue 才授权实现。
 
-当前没有真实用户数据，因此 Memory Foundation 采用一次性干净 cutover：迁移旧 Note，退役旧表与查询，不建立 feature flag、双写或长期兼容层。导入格式兼容属于数据可携带性，不属于双写。
+当前没有真实用户数据，因此 Memory Foundation 采用一次性干净 cutover。ADR 0038 进一步确认不迁移旧 Note、不兼容旧 JSON 导入，直接退役旧表与查询，也不建立 feature flag、双写或长期兼容层。
 
 ## Near-term non-goals
 
@@ -32,5 +32,5 @@ Memory Foundation 期间不实现 AI Chat、联网搜索、RepoSnapshot、Resear
 
 - 产品和 UI 文案以“记住、找回和理解曾关注的软件”为中心，而不是以分类数量或整理效率作为终点。
 - Repo Quick Look 的下一次功能改造必须把 Memory 作为主要个人上下文；原因为空时明确显示未记录，不进行 AI 补全。
-- 现有 Collection、Search、Related Stars、embedding、Notes 与同步链路是迁移资产，不因定位调整而删除。
+- 现有 Collection、Search、Related Stars、embedding 与同步链路是迁移资产；Note 的产品能力并入 Memory，不保留独立模型。
 - 远期阶段只保留在提案中；在前置能力产生真实证据前不创建实现 issue。

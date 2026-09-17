@@ -1,4 +1,4 @@
-import { type ExportSnapshot, scopeExportSnapshot } from '@asterism/core';
+import { type ExportSnapshot, type Memory, scopeExportSnapshot } from '@asterism/core';
 import type { CollectionRepoLink, CollectionWithMeta, StarredRepoRecord } from '@asterism/db';
 
 /** 构建导出快照所需的原始查询数据（均为 TanStack Query 已缓存的最新结果）。 */
@@ -6,12 +6,12 @@ export interface ExportSourceData {
   starredRepos: readonly StarredRepoRecord[];
   collections: readonly CollectionWithMeta[];
   collectionRepos: readonly CollectionRepoLink[];
-  notes: readonly { repoId: string; body: string }[];
+  memories: readonly Memory[];
 }
 
 /**
  * 把按 repoId 关联的查询数据映射为按 fullName 关联的导出快照。
- * 关联到库外仓库的集合/笔记会被丢弃，保证快照自洽。
+ * 关联到库外仓库的集合/Memory 会被丢弃，保证快照自洽。
  */
 export function buildExportSnapshot(source: ExportSourceData): ExportSnapshot {
   const collectionNameById = new Map(
@@ -39,9 +39,19 @@ export function buildExportSnapshot(source: ExportSourceData): ExportSnapshot {
       const fullName = fullNameByRepoId.get(link.repoId);
       return collectionName && fullName ? [{ collectionName, fullName }] : [];
     }),
-    notes: source.notes.flatMap((note) => {
-      const fullName = fullNameByRepoId.get(note.repoId);
-      return fullName && note.body.trim() ? [{ fullName, body: note.body }] : [];
+    memories: source.memories.flatMap((memory) => {
+      const fullName = fullNameByRepoId.get(memory.repoId);
+      return fullName
+        ? [
+            {
+              fullName,
+              source: memory.source,
+              sourceCreatedAt: memory.sourceCreatedAt,
+              whySaved: memory.whySaved,
+              note: memory.note,
+            },
+          ]
+        : [];
     }),
   };
 }

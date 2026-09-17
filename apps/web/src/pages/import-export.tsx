@@ -22,7 +22,7 @@ import {
   serializeExport,
   useImportUserData,
 } from '../data/use-import-export';
-import { useNotesList } from '../data/use-notes-list';
+import { useMemoriesList } from '../data/use-memories-list';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { buildExportSnapshot } from '../lib/export-snapshot';
 
@@ -41,10 +41,10 @@ export function ImportExportPage() {
   const { data: starredRepos, isLoading: starredReposLoading } = useStarredRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
-  const { data: notesList, isLoading: notesLoading } = useNotesList();
+  const { data: memories, isLoading: memoriesLoading } = useMemoriesList();
   const importData = useImportUserData();
   const isLoading =
-    starredReposLoading || collectionsLoading || collectionReposLoading || notesLoading;
+    starredReposLoading || collectionsLoading || collectionReposLoading || memoriesLoading;
 
   const snapshot = useMemo(
     (): ExportSnapshot =>
@@ -52,9 +52,9 @@ export function ImportExportPage() {
         starredRepos: starredRepos ?? [],
         collections: collections ?? [],
         collectionRepos: collectionRepos ?? [],
-        notes: notesList ?? [],
+        memories: memories ?? [],
       }),
-    [starredRepos, collections, collectionRepos, notesList],
+    [starredRepos, collections, collectionRepos, memories],
   );
 
   const hasData = (starredRepos?.length ?? 0) > 0;
@@ -80,7 +80,7 @@ export function ImportExportPage() {
         description: t('importExport.importSummary', {
           collections: result.imported.collections,
           collectionRepos: result.imported.collectionRepos,
-          notes: result.imported.notes,
+          memories: result.imported.memories,
         }),
       });
       if (result.skipped.length > 0) {

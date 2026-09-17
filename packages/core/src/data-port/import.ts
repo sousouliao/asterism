@@ -1,11 +1,7 @@
-import { normalizeClassificationName } from '../classifications/name';
 import type {
-  ExportCollection,
   ExportCollectionRepo,
-  ExportNote,
+  ExportMemory,
   ExportRepo,
-  ExportRepoTag,
-  ExportTag,
   ImportIssue,
   ImportPayload,
   ImportVersion,
@@ -22,6 +18,13 @@ function readString(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
 }
 
+function readNullableString(value: unknown): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return typeof value === 'string' ? value : undefined;
+}
+
 function readStringArray(value: unknown): string[] | null {
   if (!Array.isArray(value)) {
     return null;
@@ -36,7 +39,7 @@ function isImportVersion(value: unknown): value is ImportVersion {
   return IMPORT_VERSIONS.some((version) => version === value);
 }
 
-/** 解析并校验 v1 / v2 JSON 导入 payload。v1 的 tags 在此折叠进 collections。 */
+/** 解析并校验 v3 JSON 导入 payload。 */
 export function parseImportJson(raw: string): ParsedImportPayload {
   let parsed: unknown;
   try {
@@ -59,31 +62,18 @@ export function parseImportJson(raw: string): ParsedImportPayload {
     issues.push({ kind: 'warning', message: 'Missing exportedAt' });
   }
 
-  const tags =
-    parsed.version === 1
-      ? parseTags(parsed.tags, issues)
-      : Array.isArray(parsed.tags)
-        ? parseTags(parsed.tags, issues)
-        : [];
   const collections = parseCollections(parsed.collections, issues);
   const repos = parseRepos(parsed.repos, issues);
-  const repoTags =
-    parsed.version === 1
-      ? parseRepoTags(parsed.repoTags, issues)
-      : Array.isArray(parsed.repoTags)
-        ? parseRepoTags(parsed.repoTags, issues)
-        : [];
   const collectionRepos = parseCollectionRepos(parsed.collectionRepos, issues);
-  const notes = parseNotes(parsed.notes, issues);
-  const folded = foldTagsIntoCollections(tags, collections, repoTags, collectionRepos);
+  const memories = parseMemories(parsed.memories, issues);
 
   const payload: ImportPayload = {
     version: parsed.version,
     exportedAt: exportedAt ?? new Date().toISOString(),
-    collections: folded.collections,
+    collections,
     repos,
-    collectionRepos: folded.collectionRepos,
-    notes,
+    collectionRepos,
+    memories,
   };
 
   if (issues.some((issue) => issue.kind === 'error')) {
@@ -98,73 +88,10 @@ export function normalizeImportData(payload: ImportPayload): NormalizedImportDat
   return {
     collections: payload.collections,
     collectionRepos: payload.collectionRepos,
-    notes: payload.notes.filter((note) => note.body.trim().length > 0),
+    memories: payload.memories.filter(
+      (memory) => Boolean(memory.whySaved?.trim()) || Boolean(memory.note?.trim()),
+    ),
   };
-}
-
-export function foldTagsIntoCollections(
-  tags: readonly ExportTag[],
-  collections: readonly ExportCollection[],
-  repoTags: readonly ExportRepoTag[],
-  collectionRepos: readonly ExportCollectionRepo[],
-): { collections: ExportCollection[]; collectionRepos: ExportCollectionRepo[] } {
-  const byNorm = new Map<string, ExportCollection>();
-  for (const collection of collections) {
-    const key = normalizeClassificationName(collection.name);
-    if (!byNorm.has(key)) {
-      byNorm.set(key, collection);
-    }
-  }
-  for (const tag of tags) {
-    const key = normalizeClassificationName(tag.name);
-    if (!byNorm.has(key)) {
-      byNorm.set(key, { name: tag.name, description: null });
-    }
-  }
-
-  const links: ExportCollectionRepo[] = [];
-  const seen = new Set<string>();
-  const pushLink = (collectionName: string, fullName: string) => {
-    const collection = byNorm.get(normalizeClassificationName(collectionName));
-    if (!collection) {
-      return;
-    }
-    const dedupe = `${normalizeClassificationName(collection.name)}\0${fullName.toLowerCase()}`;
-    if (seen.has(dedupe)) {
-      return;
-    }
-    seen.add(dedupe);
-    links.push({ collectionName: collection.name, fullName });
-  };
-
-  for (const link of collectionRepos) {
-    pushLink(link.collectionName, link.fullName);
-  }
-  for (const link of repoTags) {
-    pushLink(link.tagName, link.fullName);
-  }
-
-  return { collections: [...byNorm.values()], collectionRepos: links };
-}
-
-function parseTags(value: unknown, issues: ImportIssue[]) {
-  if (!Array.isArray(value)) {
-    issues.push({ kind: 'error', message: 'tags must be an array' });
-    return [];
-  }
-  const tags = [];
-  for (const item of value) {
-    if (!isRecord(item)) {
-      continue;
-    }
-    const name = readString(item.name)?.trim();
-    if (!name) {
-      continue;
-    }
-    const color = item.color === null ? null : readString(item.color);
-    tags.push({ name, color });
-  }
-  return tags;
 }
 
 function parseCollections(value: unknown, issues: ImportIssue[]) {
@@ -217,25 +144,6 @@ function parseRepos(value: unknown, issues: ImportIssue[]) {
   return repos;
 }
 
-function parseRepoTags(value: unknown, issues: ImportIssue[]) {
-  if (!Array.isArray(value)) {
-    issues.push({ kind: 'error', message: 'repoTags must be an array' });
-    return [];
-  }
-  const links: ExportRepoTag[] = [];
-  for (const item of value) {
-    if (!isRecord(item)) {
-      continue;
-    }
-    const fullName = readString(item.fullName)?.trim();
-    const tagName = readString(item.tagName)?.trim();
-    if (fullName && tagName) {
-      links.push({ fullName, tagName });
-    }
-  }
-  return links;
-}
-
 function parseCollectionRepos(value: unknown, issues: ImportIssue[]) {
   if (!Array.isArray(value)) {
     issues.push({ kind: 'error', message: 'collectionRepos must be an array' });
@@ -255,21 +163,30 @@ function parseCollectionRepos(value: unknown, issues: ImportIssue[]) {
   return links;
 }
 
-function parseNotes(value: unknown, issues: ImportIssue[]) {
+function parseMemories(value: unknown, issues: ImportIssue[]): ExportMemory[] {
   if (!Array.isArray(value)) {
-    issues.push({ kind: 'error', message: 'notes must be an array' });
+    issues.push({ kind: 'error', message: 'memories must be an array' });
     return [];
   }
-  const notes: ExportNote[] = [];
+
+  const memories: ExportMemory[] = [];
   for (const item of value) {
     if (!isRecord(item)) {
       continue;
     }
     const fullName = readString(item.fullName)?.trim();
-    const body = readString(item.body);
-    if (fullName && body != null) {
-      notes.push({ fullName, body });
+    const sourceCreatedAt = readNullableString(item.sourceCreatedAt);
+    const whySaved = readNullableString(item.whySaved);
+    const note = readNullableString(item.note);
+    if (
+      fullName &&
+      item.source === 'github_star' &&
+      sourceCreatedAt !== undefined &&
+      whySaved !== undefined &&
+      note !== undefined
+    ) {
+      memories.push({ fullName, source: 'github_star', sourceCreatedAt, whySaved, note });
     }
   }
-  return notes;
+  return memories;
 }

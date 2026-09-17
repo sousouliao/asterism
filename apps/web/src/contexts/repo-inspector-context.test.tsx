@@ -12,11 +12,18 @@ import { RepoInspectorProvider, useRepoInspector } from './repo-inspector-contex
 
 const mocks = vi.hoisted(() => ({
   mutateAsync: vi.fn(),
+  memory: {
+    repoId: 'repo-1',
+    source: 'github_star' as const,
+    sourceCreatedAt: null,
+    whySaved: 'saved reason',
+    note: 'saved note',
+  },
 }));
 
-vi.mock('../data/use-note', () => ({
-  useNote: () => ({ data: 'saved note', isLoading: false }),
-  useSaveNote: () => ({ mutateAsync: mocks.mutateAsync, isPending: false }),
+vi.mock('../data/use-memory', () => ({
+  useMemory: () => ({ data: mocks.memory, isLoading: false }),
+  useSaveMemory: () => ({ mutateAsync: mocks.mutateAsync, isPending: false }),
 }));
 
 vi.mock('../data/use-collections', () => ({
@@ -57,8 +64,14 @@ function Harness() {
         data-testid="prepare"
         onClick={() => {
           controller.requestOpen(record, { sourceKey: 'browse', records: [record] });
-          controller.syncNote(record.repoId, 'saved note');
-          controller.setNoteBody('draft note');
+          controller.syncMemory(record.repoId, {
+            repoId: record.repoId,
+            source: 'github_star',
+            sourceCreatedAt: null,
+            whySaved: 'saved reason',
+            note: 'saved note',
+          });
+          controller.setMemoryNote('draft note');
         }}
       />
       <button
@@ -98,6 +111,21 @@ async function clickLabeledControl(label: string) {
   await act(async () => control?.click());
 }
 
+async function fillTextarea(label: string, value: string) {
+  const labelElement = [...document.querySelectorAll<HTMLLabelElement>('label')].find(
+    (candidate) => candidate.textContent === label,
+  );
+  const textarea = labelElement?.htmlFor
+    ? (document.getElementById(labelElement.htmlFor) as HTMLTextAreaElement | null)
+    : null;
+  expect(textarea, `textarea labeled "${label}"`).toBeDefined();
+  await act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+    setter?.call(textarea, value);
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
 async function prepareDirtyNavigation(readLabel: string) {
   await clickTestButton('prepare');
   await clickVisibleButton(readLabel);
@@ -116,7 +144,13 @@ async function setLocale(locale: (typeof localeCases)[number][0]) {
 
 beforeEach(async () => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  mocks.mutateAsync.mockReset().mockResolvedValue(undefined);
+  mocks.mutateAsync.mockReset().mockResolvedValue({
+    repoId: 'repo-1',
+    source: 'github_star',
+    sourceCreatedAt: null,
+    whySaved: 'saved reason',
+    note: 'draft note',
+  });
   useRepoInspectorStore.setState({ record: null, context: null });
   container = document.createElement('div');
   document.body.append(container);
@@ -143,7 +177,49 @@ afterEach(async () => {
   container.remove();
 });
 
-describe('README navigation with an unsaved note', () => {
+describe('README navigation with an unsaved Memory', () => {
+  it('can leave an unchanged Memory edit without closing Quick Look', async () => {
+    await setLocale('en');
+    await clickTestButton('prepare');
+    await clickVisibleButton('Edit');
+    await clickVisibleButton('Cancel');
+    await clickVisibleButton('Edit');
+
+    const save = [...document.querySelectorAll<HTMLButtonElement>('button')].find((candidate) =>
+      candidate.textContent?.includes('Save memory'),
+    );
+    expect(save?.disabled).toBe(true);
+
+    await clickVisibleButton('Cancel');
+
+    expect(document.body.textContent).toContain('saved reason');
+    expect(document.querySelector('textarea')).toBeNull();
+    expect(useRepoInspectorStore.getState().record?.repoId).toBe('repo-1');
+  });
+
+  it('edits and saves Why saved and Note as one draft', async () => {
+    await setLocale('en');
+    await clickTestButton('prepare');
+    await clickVisibleButton('Edit');
+    await fillTextarea('Why I saved this', 'Local-first memory research');
+    await fillTextarea('Note', 'Compare this with sqlite-vec');
+    mocks.mutateAsync.mockResolvedValueOnce({
+      ...mocks.memory,
+      whySaved: 'Local-first memory research',
+      note: 'Compare this with sqlite-vec',
+    });
+
+    await clickVisibleButton('Save memory');
+
+    expect(mocks.mutateAsync).toHaveBeenCalledWith({
+      repoId: 'repo-1',
+      whySaved: 'Local-first memory research',
+      note: 'Compare this with sqlite-vec',
+    });
+    expect(document.body.textContent).toContain('Local-first memory research');
+    expect(document.body.textContent).toContain('Compare this with sqlite-vec');
+  });
+
   it('refuses pickup-style close requests while retaining the draft and inspector', async () => {
     await setLocale('en');
     await clickTestButton('prepare');
@@ -161,7 +237,11 @@ describe('README navigation with an unsaved note', () => {
     await prepareDirtyNavigation(read);
     await clickVisibleButton(save);
 
-    expect(mocks.mutateAsync).toHaveBeenCalledWith({ repoId: 'repo-1', body: 'draft note' });
+    expect(mocks.mutateAsync).toHaveBeenCalledWith({
+      repoId: 'repo-1',
+      whySaved: 'saved reason',
+      note: 'draft note',
+    });
     expect(text('path')).toBe('/repos/openai/codex/readme');
   });
 

@@ -125,7 +125,7 @@ README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML
 
 ### Memory Foundation boundary
 
-ADR 0037 把 Memory 设为用户与 Repo 的一等关系。#37 是实现这一目标的唯一当前功能 issue：`@asterism/core` 定义领域类型，`@asterism/db` 作为读取与保存的唯一入口，`sync-stars` 幂等创建基础记录，Web Quick Look 编辑个人上下文。#37 完成前现有 `notes` 运行时继续有效；本架构目标不表示 schema 已提前落地。
+ADR 0037 把 Memory 设为用户与 Repo 的一等关系；ADR 0038 明确采用无旧数据兼容的干净切换。`@asterism/core` 定义领域类型，`@asterism/db` 是读取与保存的唯一入口，`sync-stars` 通过幂等 repair pass 创建缺失基础记录，Web Quick Look 编辑个人上下文。旧 `notes` 运行时与查询接口不再保留。
 
 Collection、混合搜索、Related Stars、embedding、同步与可靠写入保持为可复用能力。统一 Retrieval、Snapshot、Research、MCP 与其他长期能力没有运行时授权。
 

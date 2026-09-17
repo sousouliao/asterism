@@ -46,7 +46,7 @@ import { useTranslation } from 'react-i18next';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useCollectionRepos, useToggleCollectionRepo } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
-import { useNote } from '../data/use-note';
+import { useMemory } from '../data/use-memory';
 import { useSemanticNeighborhood } from '../data/use-semantic-neighborhood';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
@@ -76,17 +76,26 @@ import { SearchInputIcon } from './search-input-icon';
 function ControlButton({
   label,
   children,
+  tooltip = true,
   ...props
-}: { label: string; children: ReactNode } & React.ComponentProps<typeof Button>) {
-  return (
+}: {
+  label: string;
+  children: ReactNode;
+  tooltip?: boolean;
+} & React.ComponentProps<typeof Button>) {
+  const button = (
+    <Button type="button" variant="ghost" size="icon-sm" aria-label={label} {...props}>
+      {children}
+    </Button>
+  );
+
+  return tooltip ? (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={label} {...props}>
-          {children}
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent sideOffset={6}>{label}</TooltipContent>
     </Tooltip>
+  ) : (
+    button
   );
 }
 
@@ -289,7 +298,7 @@ export function RepoInspector() {
       <SheetContent
         id="repo-inspector"
         side="bottom"
-        className="@container/inspector h-[min(90svh,52rem)] gap-0 overflow-hidden rounded-t-lg border-x border-t p-0 [&>button.absolute]:hidden"
+        className="@container/inspector max-h-[min(90svh,52rem)] gap-0 overflow-y-auto rounded-t-lg border-x border-t p-0 [&>button.absolute]:hidden"
       >
         <SheetTitle className="sr-only">{t('drawer.title')}</SheetTitle>
         {record ? (
@@ -660,7 +669,7 @@ function InspectorBody({
     <div
       className={cn(
         'flex min-h-0 flex-col text-card-foreground',
-        mobile ? 'h-full bg-card' : 'max-h-[min(46rem,calc(100svh-3rem))] bg-transparent',
+        mobile ? 'bg-card' : 'max-h-[min(46rem,calc(100svh-3rem))] bg-transparent',
       )}
     >
       {mobile ? (
@@ -700,8 +709,9 @@ function InspectorBody({
           <div className="flex shrink-0 items-center gap-1">
             <ControlButton
               data-window-control
-              label={t('common.cancel')}
-              className="cursor-pointer"
+              label={t('common.close')}
+              tooltip={!mobile}
+              className={cn('cursor-pointer', mobile && '-m-1.5 size-11')}
               onClick={onClose}
             >
               <XIcon className="size-4" />
@@ -716,32 +726,38 @@ function InspectorBody({
           <div className="flex items-center gap-1">
             <ControlButton
               label={t('drawer.previous')}
+              className={cn(mobile && '-my-1.5 size-11')}
               disabled={!hasPrevious}
               onClick={onPrevious}
             >
               <ChevronLeftIcon className="size-4" />
             </ControlButton>
-            <ControlButton label={t('drawer.next')} disabled={!hasNext} onClick={onNext}>
+            <ControlButton
+              label={t('drawer.next')}
+              className={cn(mobile && '-my-1.5 size-11')}
+              disabled={!hasNext}
+              onClick={onNext}
+            >
               <ChevronRightIcon className="size-4" />
             </ControlButton>
           </div>
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+      <div className={cn('px-6 py-5', !mobile && 'min-h-0 flex-1 overflow-y-auto')}>
         <div
           key={record.repoId}
           className="animate-in fade-in-0 duration-[120ms] motion-reduce:animate-none"
         >
           <Overview record={record} onReadReadme={onReadReadme} />
           <div className="mt-6 flex flex-col gap-5">
+            <MemorySection record={record} />
             <RelatedStarsSection record={record} />
             <CollectionsSection repoId={record.repoId} />
-            <NotesSection repoId={record.repoId} />
           </div>
         </div>
       </div>
-      <UnsavedNoteDialog />
+      <UnsavedMemoryDialog />
     </div>
   );
 }
@@ -1035,112 +1051,155 @@ function CollectionsSection({ repoId }: { repoId: string }) {
   );
 }
 
-function NotesSection({ repoId }: { repoId: string }) {
-  const { t } = useTranslation();
-  const { data: serverBody, isLoading } = useNote(repoId);
+function MemorySection({ record }: { record: StarredRepoRecord }) {
+  const { t, i18n } = useTranslation();
+  const { data: memory, isLoading } = useMemory(record.repoId);
   const {
-    noteDraft,
-    syncNote,
-    setNoteBody,
-    setNoteEditing,
-    saveNote,
-    discardNote,
+    memoryDraft,
+    syncMemory,
+    setWhySaved,
+    setMemoryNote,
+    setMemoryEditing,
+    saveMemory,
+    discardMemory,
     confirmPending,
   } = useRepoInspector();
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (serverBody !== undefined) {
-      syncNote(repoId, serverBody);
+    if (memory !== undefined) {
+      syncMemory(record.repoId, memory);
     }
-  }, [repoId, serverBody, syncNote]);
+  }, [memory, record.repoId, syncMemory]);
 
-  if (isLoading || !noteDraft || noteDraft.repoId !== repoId) {
-    return <Skeleton className="h-24 w-full" />;
+  if (isLoading || !memoryDraft || memoryDraft.repoId !== record.repoId) {
+    return <Skeleton className="h-44 w-full" />;
   }
-  const dirty = noteDraft.body !== noteDraft.serverBody;
+  const dirty =
+    memoryDraft.whySaved !== memoryDraft.serverWhySaved ||
+    memoryDraft.note !== memoryDraft.serverNote;
+  const sourceCreatedAt = memory?.sourceCreatedAt ?? record.starredAt;
+  const savedTime = formatRelativeTime(sourceCreatedAt, i18n.language);
+  const whySavedId = `memory-why-saved-${record.repoId}`;
+  const noteId = `memory-note-${record.repoId}`;
 
   return (
-    <section className="flex min-w-0 flex-col gap-2">
+    <section className="flex min-w-0 flex-col gap-3 border-b pb-5">
       <div className="flex items-center justify-between gap-3">
-        <SectionLabel>{t('drawer.notes')}</SectionLabel>
-        {!noteDraft.editing && noteDraft.serverBody ? (
+        <div>
+          <SectionLabel>{t('drawer.memory')}</SectionLabel>
+          <p className="mt-1 text-micro text-muted-foreground">
+            {savedTime
+              ? t('drawer.savedFromGitHub', { time: savedTime })
+              : t('drawer.savedFromGitHubWithoutTime')}
+          </p>
+        </div>
+        {!memoryDraft.editing ? (
           <Button
             type="button"
             variant="link"
-            className="h-auto p-0 text-caption text-link"
-            onClick={() => setNoteEditing(true)}
+            className="h-auto p-0 text-caption text-link max-md:-my-2 max-md:-mr-2 max-md:min-h-11 max-md:px-2"
+            onClick={() => setMemoryEditing(true)}
           >
             {t('common.edit')}
           </Button>
         ) : null}
       </div>
-      {noteDraft.editing || !noteDraft.serverBody ? (
+      {memoryDraft.editing ? (
         <>
-          <Textarea
-            value={noteDraft.body}
-            onChange={(event) => {
-              setError(false);
-              setNoteBody(event.target.value);
-            }}
-            placeholder={t('drawer.notesPlaceholder')}
-            rows={4}
-            disabled={confirmPending}
-            className="min-h-24 rounded-md text-body"
-          />
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor={whySavedId} className="font-medium text-caption text-foreground">
+              {t('drawer.whySaved')}
+            </label>
+            <Textarea
+              id={whySavedId}
+              value={memoryDraft.whySaved}
+              onChange={(event) => {
+                setError(false);
+                setWhySaved(event.target.value);
+              }}
+              placeholder={t('drawer.whySavedPlaceholder')}
+              rows={3}
+              disabled={confirmPending}
+              className="min-h-20 rounded-md text-body"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor={noteId} className="font-medium text-caption text-foreground">
+              {t('drawer.note')}
+            </label>
+            <Textarea
+              id={noteId}
+              value={memoryDraft.note}
+              onChange={(event) => {
+                setError(false);
+                setMemoryNote(event.target.value);
+              }}
+              placeholder={t('drawer.notePlaceholder')}
+              rows={4}
+              disabled={confirmPending}
+              className="min-h-24 rounded-md text-body"
+            />
+          </div>
           {error ? (
             <p role="alert" className="text-caption text-destructive">
-              {t('drawer.noteSaveError')}
+              {t('drawer.memorySaveError')}
             </p>
           ) : null}
-          {dirty ? (
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={confirmPending}
-                onClick={() => {
-                  discardNote();
-                  setNoteEditing(false);
-                }}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                size="sm"
-                disabled={confirmPending}
-                aria-busy={confirmPending}
-                onClick={async () => {
-                  try {
-                    await saveNote();
-                  } catch {
-                    setError(true);
-                  }
-                }}
-              >
-                <PendingActionContent
-                  pending={confirmPending}
-                  idleLabel={t('drawer.saveNote')}
-                  pendingLabel={t('common.saving')}
-                />
-              </Button>
-            </div>
-          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={confirmPending}
+              onClick={() => {
+                discardMemory();
+              }}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!dirty || confirmPending}
+              aria-busy={confirmPending}
+              onClick={async () => {
+                try {
+                  await saveMemory();
+                } catch {
+                  setError(true);
+                }
+              }}
+            >
+              <PendingActionContent
+                pending={confirmPending}
+                idleLabel={t('drawer.saveMemory')}
+                pendingLabel={t('common.saving')}
+              />
+            </Button>
+          </div>
         </>
       ) : (
-        <button
-          type="button"
-          onClick={() => setNoteEditing(true)}
-          className="w-full rounded-md bg-background p-3 text-left text-body text-muted-foreground transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {noteDraft.serverBody}
-        </button>
+        <div className="flex flex-col gap-4">
+          <div>
+            <p className="font-medium text-caption text-foreground">{t('drawer.whySaved')}</p>
+            <p className="mt-1 whitespace-pre-wrap text-body text-muted-foreground">
+              {memoryDraft.serverWhySaved || t('drawer.notRecordedYet')}
+            </p>
+          </div>
+          <div>
+            <p className="font-medium text-caption text-foreground">{t('drawer.note')}</p>
+            <p className="mt-1 whitespace-pre-wrap text-body text-muted-foreground">
+              {memoryDraft.serverNote || t('drawer.noNoteYet')}
+            </p>
+          </div>
+        </div>
       )}
     </section>
   );
 }
 
-function UnsavedNoteDialog() {
+function UnsavedMemoryDialog() {
   const { t } = useTranslation();
   const {
     confirmOpen,
@@ -1172,7 +1231,7 @@ function UnsavedNoteDialog() {
           <DialogDescription>{t('drawer.unsavedDescription')}</DialogDescription>
           {confirmError ? (
             <p role="alert" className="text-caption text-destructive">
-              {t('drawer.noteSaveError')}
+              {t('drawer.memorySaveError')}
             </p>
           ) : null}
         </DialogHeader>

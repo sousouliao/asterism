@@ -4,7 +4,7 @@
 
 ## 当前 frontier
 
-- [ ] **Memory + Why I saved this（GitHub #37）**：首个完整纵向功能，覆盖一对一 Memory、Notes cutover、Stars sync、Repo Quick Look、失败恢复、i18n、JSON v3、自动化与真实 Supabase smoke。#36 / #38 完成且 CI 绿色后方可开始；不得拆成无法独立验收的横切票。
+- [ ] **完成 Memory + Why I saved this 真实运行验收与 Issue 结项（GitHub #37）**：本地代码、自动化测试、桌面/手机视觉 QA、远端 Supabase migration (`20260917120000_memory_foundation.sql`) 推送与 `sync-stars` Edge Function 部署已完成。验证真实会话后关闭 #37。按 ADR 0038 不迁移旧 Note，也不兼容 v1/v2 JSON。
 
 ## 延后但保留
 

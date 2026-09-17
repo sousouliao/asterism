@@ -35,7 +35,7 @@ Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库
 - **GitHub metadata**：仓库的客观属性（语言、topics、归档、时间、star 数），不是用户组织概念。
 - **Memory**：用户与 Repo 的私有关系记录。首版每个用户与仓库一条，保存来源、来源时间、收藏原因与自由文本笔记。
 - **Why saved**：用户本人记录的收藏原因；缺失时必须明确显示未记录，不得由 AI 推断。
-- **Note**：Memory 中的自由文本字段。独立 Note 模型只在 #37 cutover 前作为现有实现存在。
+- **Note**：Memory 中的自由文本字段。独立 Note 模型已由 #37 cutover 直接退役。
 - 避免对用户说 Tag / Label / 分类 来表示第二套组织关系。
 
 各阶段交付节奏见 `../roadmap.md`。
@@ -93,7 +93,7 @@ Phase 1 必须提供可执行的 self-deployment runbook，覆盖 migrations、G
 
 ### 6. 标签（Tags）— ADR 0035 接受退役
 
-Phase 1 已交付自定义标签，下列验收保持为历史完成记录。ADR 0035 已落地：用户命名的组织关系只保留 Collection。不再提供创建、筛选或展示 Tag，`/tags` 重定向到 `/collections`。Tag color 不迁移。旧 JSON 中的 tags 仅作为导入兼容并转换成 Collection。
+Phase 1 已交付自定义标签，下列验收保持为历史完成记录。ADR 0035 已落地：用户命名的组织关系只保留 Collection。不再提供创建、筛选或展示 Tag，`/tags` 重定向到 `/collections`。Tag color 不迁移；ADR 0038 后不再接受含旧 Tag 模型的 v1/v2 JSON。
 
 - [x] 用户可创建 / 重命名 / 删除自定义标签。
 - [x] 可给单个仓库添加 / 移除多个标签。
@@ -109,7 +109,7 @@ Phase 1 已交付自定义标签，下列验收保持为历史完成记录。ADR
 
 Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文，并在约 100 个集合时保持可搜索；这些是 ADR 0035 实现验收，不是 Phase 1 阻断项。
 
-### 8. 笔记（Notes，Memory Foundation 前的现有实现）
+### 8. 笔记（Notes，Memory Foundation 前的历史实现）
 
 - [x] 用户可为单个仓库撰写 / 编辑 / 删除笔记。
 - [x] 笔记持久化到 Postgres，并在后续查询时从 source-of-truth 读取最新状态。
@@ -123,13 +123,13 @@ Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文�
 ### 10. 导入 / 导出
 
 - [x] JSON 支持完整备份与恢复。
-- [x] CSV 可导出仓库清单，Markdown 可按集合、标签与笔记形成可读归档。
+- [x] CSV 可导出仓库清单，Markdown 可按集合与个人 Memory 形成可读归档。
 - [x] CSV / Markdown 明确为只导出格式，不承诺恢复。
 
 ### 11. 写失败恢复（Write Failure Recovery）
 
 - [x] 创建、重命名与删除集合（cutover 前含标签）失败时，操作目标与表单输入保持可见，提供双语错误反馈并允许原位重试或取消。
-- [x] 笔记保存失败时保留草稿与 Inspector 上下文，不关闭面板，并提供双语错误反馈与重试路径。
+- [x] Memory 保存失败时保留 `whySaved`、`note` 草稿与 Inspector 上下文，不关闭面板，并提供双语错误反馈与重试路径。
 - [x] 集合关联失败时恢复服务器状态并明确通告失败；不得让界面暗示未持久化的关系已经成功。cutover 前标签关联遵守同一规则。
 - [x] 写操作 pending 期间阻止重复提交与误关闭。Phase 1 不采用 optimistic mutation，不要求通用 rollback 框架。
 
@@ -140,18 +140,18 @@ Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文�
 以下能力不属于 MVP，按路线图分阶段交付，验收标准在对应阶段细化。
 
 > **ADR 0032 退役 AI 整理**：Asterism 保留手动批量整理与浏览器内语义检索，不再提供 BYOK Generation、AI 草稿、Organization Task 或同步后整理机会。历史执行结果继续作为普通 canonical 数据保留。
-- **Memory Foundation（当前 frontier，GitHub #37）**：以每个 `user × repo` 一条 Memory 替代独立 Note，承载 `whySaved` 与 `note`；Stars 同步幂等创建基础记录，旧 Note 安全迁移，Quick Look 提供完整编辑与失败恢复，导出格式升级并兼容旧 Notes 导入。
+- **Memory Foundation（GitHub #37，本地实现完成、远端验收待办）**：以每个 `user × repo` 一条 Memory 替代独立 Note，承载 `whySaved` 与 `note`；Stars 同步幂等创建基础记录，Quick Look 提供完整编辑与失败恢复，导入导出使用 JSON v3 Memory 格式。ADR 0038 明确不迁移旧 Note，也不兼容 v1/v2 JSON。
 - **统一 Retrieval（尚未立项）**：复用现有关键词/语义混合搜索、Related Stars 与浏览器内 embedding，在 Memory Foundation 产生真实数据与使用反馈后另行定义。它不是 #37 的隐含范围。
-- **退役用户自定义 Tag（ADR 0035）**：cutover 已把每个 Tag 转为或合并进同名 Collection，删除 Tag 用户面与表。Browse 增加集合筛选；Quick Look 与批量只留 Collection + Notes；Collections 索引 / 选择器可搜索并支撑约 100 个集合；新导出只写 Collection，v1 JSON 的 tags 导入时转换。Tag color 不迁移。实现规格见 `logs/2026-08-19-retire-user-tags.md`，落地记录见 `logs/2026-08-19-retire-user-tags-cutover.md`。
+- **退役用户自定义 Tag（ADR 0035）**：cutover 已把每个 Tag 转为或合并进同名 Collection，删除 Tag 用户面与表。Browse 增加集合筛选；Quick Look 与批量只留 Collection + Memory；Collections 索引 / 选择器可搜索并支撑约 100 个集合；新导出只写 Collection。ADR 0038 之后导入仅接受 v3，不再保留 v1 Tag 转换入口。Tag color 不迁移。实现规格见 `logs/2026-08-19-retire-user-tags.md`，落地记录见 `logs/2026-08-19-retire-user-tags-cutover.md`。
 - **失效仓库检测**：识别已删除 / 已归档 / 长期无更新的仓库并提示。
-- **批量整理**（Phase 2）：多选仓库后批量加入/移出集合、导出选中仓库；只修改 Asterism 私有数据，不执行 GitHub star/unstar，也不申请 `public_repo` scope。ADR 0035 cutover 前确认层仍可同时配置标签与集合；cutover 后只配置集合。用户执行“全选当前筛选结果”时，系统立即把当时匹配的仓库固化为一个**选择范围快照**（repository ID 集合）；后续筛选变化或同步新增仓库不得悄然改变该批工作的对象，界面持续显示准确数量，用户可清空后重新选择。批量关系写入以一条“仓库 × 集合 × 添加或移除动作”为最小执行与重试单位（cutover 前历史账本仍可能含标签关系）：成功项保留，失败项单独报告且只重试失败关系；重复添加已有关系或移除不存在的关系视为成功，确保重试幂等。执行前尚未确认的勾选只属于当前会话；用户确认后必须形成持久化的**批量操作记录**，保存稳定的选择范围、动作和逐关系结果，使页面刷新、关闭或网络中断后仍可继续查看并重试。失败关系分为**可重试失败**（网络、超时或临时服务故障）与**终止失败**（目标已删除、权限/归属不成立或请求无效）；终止失败不得原样反复重试。批量操作只有在全部关系成功，或剩余终止失败被用户明确结束后，才进入完成状态。选中仓库导出复用现有格式：JSON 是包含所选仓库及其集合、笔记的可恢复部分备份（cutover 前仍含标签；新版导出只写集合），导入时只合并对应数据而不删除库中其他内容，旧备份中的标签按 ADR 0035 转成集合；CSV 是所选仓库清单，Markdown 是包含组织信息的可读归档，二者仍不承诺恢复。导出按固定 repository ID 范围读取下载时的最新 Postgres 权威数据；导出不写数据，因此不建立批量操作记录，失败后原位重新生成。
+- **批量整理**（Phase 2）：多选仓库后批量加入/移出集合、导出选中仓库；只修改 Asterism 私有数据，不执行 GitHub star/unstar，也不申请 `public_repo` scope。ADR 0035 cutover 前确认层仍可同时配置标签与集合；cutover 后只配置集合。用户执行“全选当前筛选结果”时，系统立即把当时匹配的仓库固化为一个**选择范围快照**（repository ID 集合）；后续筛选变化或同步新增仓库不得悄然改变该批工作的对象，界面持续显示准确数量，用户可清空后重新选择。批量关系写入以一条“仓库 × 集合 × 添加或移除动作”为最小执行与重试单位（cutover 前历史账本仍可能含标签关系）：成功项保留，失败项单独报告且只重试失败关系；重复添加已有关系或移除不存在的关系视为成功，确保重试幂等。执行前尚未确认的勾选只属于当前会话；用户确认后必须形成持久化的**批量操作记录**，保存稳定的选择范围、动作和逐关系结果，使页面刷新、关闭或网络中断后仍可继续查看并重试。失败关系分为**可重试失败**（网络、超时或临时服务故障）与**终止失败**（目标已删除、权限/归属不成立或请求无效）；终止失败不得原样反复重试。批量操作只有在全部关系成功，或剩余终止失败被用户明确结束后，才进入完成状态。选中仓库导出复用现有格式：JSON v3 是包含所选仓库及其 Collection、Memory 的可恢复部分备份，导入时只合并对应数据而不删除库中其他内容；CSV 是所选仓库清单，Markdown 是包含个人上下文的可读归档，二者仍不承诺恢复。导出按固定 repository ID 范围读取下载时的最新 Postgres 权威数据；导出不写数据，因此不建立批量操作记录，失败后原位重新生成。
 - **退役集合盘（Collection Dial，ADR 0036）**：Browse 不再提供拖拽 Grip、底部半圆盘或 Dial Undo。加入或移出集合只走 Quick Look 与批量整理对话框。已经由 Dial 写入的 `collection_repos` 作为 canonical 数据保留；受信 `collection_relation_heads` 与 collection mutation RPC 继续服务 Quick Look / 导入 / 批量执行。若未来重新提出 Browse 直接整理，必须新开 ADR，不得复活本次删除的状态机或 `collection_dial` interaction。
 - **保存视图 / 查询历史**（Phase 2 之后按需评估）：Phase 2 的批量整理只作用于当前手动选择或当前筛选结果，不持久化命名筛选，也不保存关键词或语义查询历史。
 - **语义搜索 / 相关收藏**：ADR 0026（Accepted）确立**检索优先范式**；ADR 0027 基于真实 518 条个人 Star 验证，用保守的局部语义邻域取代全库涌现簇；ADR 0028 进一步移除没有独占用户任务的二维语义星图。浏览器内 embedding（默认 `multilingual-e5-small`，非 BYOK）支撑隐形混合搜索和 Repo Quick Look 中最多 5 条互为 Top-12 近邻的相关收藏；无可信结果时不展示。向量按用户存于 `user_repo_embeddings`（derived 数据，永不写 canonical）。
 
 ## Extension-Specific · 浏览器扩展专属能力
 
-浏览器扩展不是当前 frontier；以下能力延后到 Memory / Retrieval 基础稳定后重新验收，不能在 #37 前启动。
+浏览器扩展不是当前 frontier；以下能力延后到 Memory / Retrieval 基础稳定后重新验收。
 
 - **GitHub 仓库页内加入集合 / 写笔记**：通过 content script，在 GitHub 仓库页面内直接把当前仓库加入集合或写笔记，无需切回应用。不提供用户自定义 Tag。
 - **Popup 快搜**：点击扩展图标弹出快速搜索面板，秒搜已收藏仓库。

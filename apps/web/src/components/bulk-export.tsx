@@ -18,7 +18,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { downloadText, type ExportFormat, serializeExport } from '../data/use-import-export';
-import { useNotesList } from '../data/use-notes-list';
+import { useMemoriesList } from '../data/use-memories-list';
 import { buildSelectedExportSnapshot } from '../lib/export-snapshot';
 
 const FORMAT_OPTIONS: { id: ExportFormat; icon: typeof FileJsonIcon; ext: string; mime: string }[] =
@@ -45,7 +45,7 @@ export function BulkExportDialog({
   collectionRepos: CollectionRepoLink[];
 }) {
   const { t } = useTranslation();
-  const notes = useNotesList({ enabled: open });
+  const memories = useMemoriesList({ enabled: open });
   const [downloadFailed, setDownloadFailed] = useState(false);
 
   useEffect(() => {
@@ -57,15 +57,15 @@ export function BulkExportDialog({
   const snapshot = useMemo(
     () =>
       buildSelectedExportSnapshot(
-        { starredRepos, collections, collectionRepos, notes: notes.data ?? [] },
+        { starredRepos, collections, collectionRepos, memories: memories.data ?? [] },
         selectedRepoIds,
       ),
-    [starredRepos, collections, collectionRepos, notes.data, selectedRepoIds],
+    [starredRepos, collections, collectionRepos, memories.data, selectedRepoIds],
   );
   const repoCount = snapshot.repos.length;
 
-  const notesPending = open && notes.isLoading;
-  const hasError = downloadFailed || (open && notes.isError);
+  const memoriesPending = open && memories.isLoading;
+  const hasError = downloadFailed || (open && memories.isError);
 
   const handleDownload = (option: (typeof FORMAT_OPTIONS)[number]) => {
     try {
@@ -80,8 +80,8 @@ export function BulkExportDialog({
 
   const handleRetry = () => {
     setDownloadFailed(false);
-    if (notes.isError) {
-      void notes.refetch();
+    if (memories.isError) {
+      void memories.refetch();
     }
   };
 
@@ -125,10 +125,10 @@ export function BulkExportDialog({
                   size="sm"
                   className="w-full sm:w-auto"
                   aria-describedby={descriptionId}
-                  disabled={notesPending || repoCount === 0}
+                  disabled={memoriesPending || repoCount === 0}
                   onClick={() => handleDownload(option)}
                 >
-                  {notesPending ? (
+                  {memoriesPending ? (
                     <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />
                   ) : (
                     <DownloadIcon className="size-4" />

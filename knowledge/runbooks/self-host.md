@@ -41,7 +41,7 @@ where schemaname = 'public'
 order by tablename;
 ```
 
-`repos`、`user_stars`、`collections`、`collection_repos`、`notes` 应全部显示 `rowsecurity = true`。
+`repos`、`user_stars`、`collections`、`collection_repos`、`memories` 应全部显示 `rowsecurity = true`。
 
 ## 3. 配置 GitHub OAuth
 

@@ -1,29 +1,29 @@
-import type { ExportPayloadV2, ExportSnapshot } from './types';
+import type { ExportPayloadV3, ExportSnapshot } from './types';
 import { EXPORT_VERSION } from './types';
 
-/** 组装 v2 JSON 导出 payload。 */
+/** 组装 v3 JSON 导出 payload。 */
 export function buildExportPayload(
   snapshot: ExportSnapshot,
   exportedAt: string = new Date().toISOString(),
-): ExportPayloadV2 {
+): ExportPayloadV3 {
   return {
     version: EXPORT_VERSION,
     exportedAt,
     counts: {
       repos: snapshot.repos.length,
       collections: snapshot.collections.length,
-      notes: snapshot.notes.length,
+      memories: snapshot.memories.length,
     },
     collections: snapshot.collections,
     repos: snapshot.repos,
     collectionRepos: snapshot.collectionRepos,
-    notes: snapshot.notes,
+    memories: snapshot.memories,
   };
 }
 
 /**
  * 按固定的仓库范围裁剪导出快照：只保留在 `repoFullNames` 内的仓库，以及
- * 与之相关的集合 / 关联 / 笔记。范围外的名字会被忽略，不会扩大导出。
+ * 与之相关的集合 / 关联 / Memory。范围外的名字会被忽略，不会扩大导出。
  */
 export function scopeExportSnapshot(
   snapshot: ExportSnapshot,
@@ -33,17 +33,17 @@ export function scopeExportSnapshot(
   const collectionRepos = snapshot.collectionRepos.filter((link) =>
     repoFullNames.has(link.fullName),
   );
-  const notes = snapshot.notes.filter((note) => repoFullNames.has(note.fullName));
+  const memories = snapshot.memories.filter((memory) => repoFullNames.has(memory.fullName));
   const usedCollectionNames = new Set(collectionRepos.map((link) => link.collectionName));
   const collections = snapshot.collections.filter((collection) =>
     usedCollectionNames.has(collection.name),
   );
 
-  return { collections, repos, collectionRepos, notes };
+  return { collections, repos, collectionRepos, memories };
 }
 
 /** 序列化为格式化 JSON 字符串。 */
-export function serializeExportJson(payload: ExportPayloadV2): string {
+export function serializeExportJson(payload: ExportPayloadV3): string {
   return `${JSON.stringify(payload, null, 2)}\n`;
 }
 
@@ -85,13 +85,13 @@ export function serializeExportCsv(snapshot: ExportSnapshot): string {
   return `${lines.join('\n')}\n`;
 }
 
-/** 可读 Markdown 导出：按集合分组列出仓库与笔记。 */
+/** 可读 Markdown 导出：按集合分组列出仓库与个人 Memory。 */
 export function serializeExportMarkdown(snapshot: ExportSnapshot): string {
   const lines: string[] = ['# Asterism Export', ''];
   lines.push(`Exported: ${new Date().toISOString()}`, '');
   lines.push(`- Repositories: ${snapshot.repos.length}`);
   lines.push(`- Collections: ${snapshot.collections.length}`);
-  lines.push(`- Notes: ${snapshot.notes.length}`, '');
+  lines.push(`- Memories: ${snapshot.memories.length}`, '');
 
   if (snapshot.collections.length > 0) {
     lines.push('## Collections', '');
@@ -115,11 +115,19 @@ export function serializeExportMarkdown(snapshot: ExportSnapshot): string {
     }
   }
 
-  const notesWithBody = snapshot.notes.filter((note) => note.body.trim().length > 0);
-  if (notesWithBody.length > 0) {
-    lines.push('## Notes', '');
-    for (const note of notesWithBody) {
-      lines.push(`### ${note.fullName}`, '', note.body.trim(), '');
+  const memoriesWithContext = snapshot.memories.filter(
+    (memory) => memory.whySaved?.trim() || memory.note?.trim(),
+  );
+  if (memoriesWithContext.length > 0) {
+    lines.push('## Memories', '');
+    for (const memory of memoriesWithContext) {
+      lines.push(`### ${memory.fullName}`, '');
+      if (memory.whySaved?.trim()) {
+        lines.push('**Why I saved this**', '', memory.whySaved.trim(), '');
+      }
+      if (memory.note?.trim()) {
+        lines.push('**Note**', '', memory.note.trim(), '');
+      }
     }
   }
 

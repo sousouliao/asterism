@@ -1,3 +1,4 @@
+import type { Memory } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import {
   createContext,
@@ -10,7 +11,7 @@ import {
   useState,
 } from 'react';
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
-import { useSaveNote } from '../data/use-note';
+import { useSaveMemory } from '../data/use-memory';
 import type { ReadmeRouteState } from '../lib/readme-navigation';
 import { finalizeReadmeDeparture } from '../lib/readme-return-coordinator';
 import {
@@ -39,10 +40,12 @@ type DeferredIntent =
   | { type: 'close' }
   | { type: 'route'; to: string; state: ReadmeRouteState };
 
-type NoteDraft = {
+type MemoryDraft = {
   repoId: string;
-  serverBody: string;
-  body: string;
+  serverWhySaved: string;
+  serverNote: string;
+  whySaved: string;
+  note: string;
   editing: boolean;
 };
 
@@ -56,12 +59,13 @@ type RepoInspectorController = {
   requestNavigate: (direction: -1 | 1) => void;
   requestClose: () => boolean;
   requestRoute: (to: string, state: ReadmeRouteState) => void;
-  syncNote: (repoId: string, serverBody: string) => void;
-  noteDraft: NoteDraft | null;
-  setNoteBody: (body: string) => void;
-  setNoteEditing: (editing: boolean) => void;
-  saveNote: () => Promise<void>;
-  discardNote: () => void;
+  syncMemory: (repoId: string, memory: Memory | null) => void;
+  memoryDraft: MemoryDraft | null;
+  setWhySaved: (value: string) => void;
+  setMemoryNote: (value: string) => void;
+  setMemoryEditing: (editing: boolean) => void;
+  saveMemory: () => Promise<void>;
+  discardMemory: () => void;
   dirty: boolean;
   openModality: RepoOpenModality;
   closeSignal: number;
@@ -83,15 +87,17 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
   const setSelection = useRepoInspectorStore((state) => state.setSelection);
   const setContext = useRepoInspectorStore((state) => state.setContext);
   const close = useRepoInspectorStore((state) => state.close);
-  const saveMutation = useSaveNote();
-  const [draft, setDraft] = useState<NoteDraft | null>(null);
+  const saveMutation = useSaveMemory();
+  const [draft, setDraft] = useState<MemoryDraft | null>(null);
   const [deferred, setDeferred] = useState<DeferredIntent | null>(null);
   const [confirmError, setConfirmError] = useState(false);
   const [openModality, setOpenModality] = useState<RepoOpenModality>('pointer');
   const [closeSignal, setCloseSignal] = useState(0);
   const previousPath = useRef(location.pathname);
   const allowRouteRef = useRef(false);
-  const dirty = Boolean(draft && draft.body !== draft.serverBody);
+  const dirty = Boolean(
+    draft && (draft.whySaved !== draft.serverWhySaved || draft.note !== draft.serverNote),
+  );
   const blocker = useBlocker(
     useCallback(
       ({ currentLocation, nextLocation }) =>
@@ -178,39 +184,77 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
     [request],
   );
 
-  const syncNote = useCallback((repoId: string, serverBody: string) => {
+  const syncMemory = useCallback((repoId: string, memory: Memory | null) => {
+    const serverWhySaved = memory?.whySaved ?? '';
+    const serverNote = memory?.note ?? '';
     setDraft((current) => {
       if (!current || current.repoId !== repoId) {
-        return { repoId, serverBody, body: serverBody, editing: !serverBody };
+        return {
+          repoId,
+          serverWhySaved,
+          serverNote,
+          whySaved: serverWhySaved,
+          note: serverNote,
+          editing: false,
+        };
       }
-      if (current.body === current.serverBody && current.serverBody !== serverBody) {
-        return { ...current, serverBody, body: serverBody };
+      const currentDirty =
+        current.whySaved !== current.serverWhySaved || current.note !== current.serverNote;
+      if (!currentDirty) {
+        return {
+          ...current,
+          serverWhySaved,
+          serverNote,
+          whySaved: serverWhySaved,
+          note: serverNote,
+        };
       }
       return current;
     });
   }, []);
 
-  const setNoteBody = useCallback((body: string) => {
-    setDraft((current) => (current ? { ...current, body } : current));
+  const setWhySaved = useCallback((whySaved: string) => {
+    setDraft((current) => (current ? { ...current, whySaved } : current));
   }, []);
-  const setNoteEditing = useCallback((editing: boolean) => {
+  const setMemoryNote = useCallback((note: string) => {
+    setDraft((current) => (current ? { ...current, note } : current));
+  }, []);
+  const setMemoryEditing = useCallback((editing: boolean) => {
     setDraft((current) => (current ? { ...current, editing } : current));
   }, []);
 
-  const saveNote = useCallback(async () => {
+  const saveMemory = useCallback(async () => {
     if (!draft) {
       return;
     }
-    await saveMutation.mutateAsync({ repoId: draft.repoId, body: draft.body });
+    const saved = await saveMutation.mutateAsync({
+      repoId: draft.repoId,
+      whySaved: draft.whySaved,
+      note: draft.note,
+    });
     setDraft((current) =>
-      current ? { ...current, serverBody: current.body, editing: false } : current,
+      current
+        ? {
+            ...current,
+            serverWhySaved: saved.whySaved ?? '',
+            serverNote: saved.note ?? '',
+            whySaved: saved.whySaved ?? '',
+            note: saved.note ?? '',
+            editing: false,
+          }
+        : current,
     );
   }, [draft, saveMutation]);
 
-  const discardNote = useCallback(() => {
+  const discardMemory = useCallback(() => {
     setDraft((current) =>
       current
-        ? { ...current, body: current.serverBody, editing: Boolean(!current.serverBody) }
+        ? {
+            ...current,
+            whySaved: current.serverWhySaved,
+            note: current.serverNote,
+            editing: false,
+          }
         : current,
     );
   }, []);
@@ -227,18 +271,18 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
 
   const saveAndContinue = useCallback(async () => {
     try {
-      await saveNote();
+      await saveMemory();
       setConfirmError(false);
       finishDeferred();
     } catch {
       setConfirmError(true);
     }
-  }, [finishDeferred, saveNote]);
+  }, [finishDeferred, saveMemory]);
 
   const discardAndContinue = useCallback(() => {
-    discardNote();
+    discardMemory();
     finishDeferred();
-  }, [discardNote, finishDeferred]);
+  }, [discardMemory, finishDeferred]);
 
   const continueEditing = useCallback(() => {
     setDeferred(null);
@@ -292,12 +336,13 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
       requestNavigate,
       requestClose,
       requestRoute,
-      syncNote,
-      noteDraft: draft,
-      setNoteBody,
-      setNoteEditing,
-      saveNote,
-      discardNote,
+      syncMemory,
+      memoryDraft: draft,
+      setWhySaved,
+      setMemoryNote,
+      setMemoryEditing,
+      saveMemory,
+      discardMemory,
       dirty,
       openModality,
       closeSignal,
@@ -316,7 +361,7 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
       deferred,
       dirty,
       discardAndContinue,
-      discardNote,
+      discardMemory,
       draft,
       openModality,
       registerContext,
@@ -326,10 +371,11 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
       requestOpen,
       saveAndContinue,
       saveMutation.isPending,
-      saveNote,
-      setNoteBody,
-      setNoteEditing,
-      syncNote,
+      saveMemory,
+      setMemoryEditing,
+      setMemoryNote,
+      setWhySaved,
+      syncMemory,
     ],
   );
 

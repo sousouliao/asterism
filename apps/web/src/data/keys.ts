@@ -15,11 +15,11 @@ export const collectionRepoKeys = {
   list: (userId: string) => ['collection-repos', userId] as const,
 };
 
-export const noteKeys = {
-  all: ['note'] as const,
-  list: (userId: string) => ['note', userId, 'list'] as const,
-  repoIds: (userId: string) => ['note', userId, 'repo-ids'] as const,
-  detail: (userId: string, repoId: string) => ['note', userId, repoId] as const,
+export const memoryKeys = {
+  all: ['memory'] as const,
+  list: (userId: string) => ['memory', userId, 'list'] as const,
+  noteRepoIds: (userId: string) => ['memory', userId, 'note-repo-ids'] as const,
+  detail: (userId: string, repoId: string) => ['memory', userId, repoId] as const,
 };
 
 export const bulkOperationKeys = {

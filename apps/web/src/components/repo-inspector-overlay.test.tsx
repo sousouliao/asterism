@@ -24,9 +24,9 @@ const semanticMocks = vi.hoisted(() => ({
   ],
 }));
 
-vi.mock('../data/use-note', () => ({
-  useNote: () => ({ data: '', isLoading: false }),
-  useSaveNote: () => ({ mutateAsync: vi.fn(), isPending: false }),
+vi.mock('../data/use-memory', () => ({
+  useMemory: () => ({ data: null, isLoading: false }),
+  useSaveMemory: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock('../data/use-collections', () => ({

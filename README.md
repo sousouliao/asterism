@@ -6,12 +6,12 @@
 software. GitHub Stars are its first source: sync the projects you once noticed,
 keep private context about them, and retrieve the right repository when it matters.
 
-> Status: **Memory Foundation is the current frontier.** The responsive Web app,
-> real Supabase flows, recoverable manual bulk workflows, invisible hybrid search,
-> Related Stars, Collections, and Notes are implemented. Issue #37 will establish
-> Memory as the first-class personal context model. Browser extension and desktop
-> remain planned, after the Memory and Retrieval foundations are stable. Contracts
-> and roadmap live in
+> Status: **Memory Foundation is implemented locally and awaiting remote Supabase
+> validation.** The responsive Web app now treats one Memory per repository as the
+> first-class personal context model, with “Why I saved this,” free-form notes,
+> JSON v3 import/export, invisible hybrid search, Related Stars, and Collections.
+> Browser extension and desktop remain planned, after the Memory and Retrieval
+> foundations are stable. Contracts and roadmap live in
 > [`knowledge/`](knowledge/).
 
 ---
@@ -30,8 +30,8 @@ A short overview — see [`knowledge/contracts/product.md`](knowledge/contracts/
 for the authoritative feature scope and acceptance criteria.
 
 - **Sync your stars** from GitHub and keep them up to date.
-- **Private context** through Collections and Notes today, evolving into one Memory
-  per repository in the current foundation phase.
+- **Private context** through one Memory per repository, with “Why I saved this,”
+  free-form notes, and optional Collections.
 - **Search & filtering** across repository name/description, language, topics,
   collections, star count, update time, and archive status.
 - **Stats dashboard** to understand your stars at a glance.
@@ -95,10 +95,10 @@ asterism/
 **Asterism** 是一个开源、可自部署的个人开源软件记忆库。GitHub Stars 是首个来源：
 同步曾经关注的项目，保存只有自己知道的上下文，并在真正需要时重新找到它们。
 
-> 当前状态：**Memory Foundation 是当前开发 frontier。** 响应式 Web、真实 Supabase
-> 核心链路、可恢复手动批量操作、隐形混合搜索、Related Stars、Collection 与 Note 已落地；
-> #37 将把 Memory 建立为一等个人上下文。浏览器扩展和桌面端保留，但延后到 Memory / Retrieval
-> 基础稳定之后。架构与路线图见 [`knowledge/`](knowledge/)。
+> 当前状态：**Memory Foundation 已完成本地实现，等待真实 Supabase 验收。** 响应式 Web
+> 已把每个仓库一条 Memory 作为一等个人上下文，支持「为什么保存」、自由笔记、JSON v3、
+> 隐形混合搜索、Related Stars 与 Collection。浏览器扩展和桌面端保留，但延后到 Memory /
+> Retrieval 基础稳定之后。架构与路线图见 [`knowledge/`](knowledge/)。
 
 - 功能、技术栈与目录结构详见上文英文部分，权威功能范围见
   [`knowledge/contracts/product.md`](knowledge/contracts/product.md)。

@@ -219,7 +219,7 @@ Browse 列表是紧凑生产力视图，不是 GitHub 元数据表格的复刻�
 
 Repo Quick Look 是 Browse 与集合详情共享的瞬时、非模态详情层。它服务于快速扫读与轻量整理，不是持久工作区；打开前后主内容的位置与宽度必须完全不变。
 
-ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。#37 落地后，主体顺序调整为 Overview → Memory → Related Stars（有可信结果时）→ Collections；Memory 同时呈现 “Why I saved this” 与自由文本 Note。原因缺失时显示明确的双语 “Not recorded yet / 尚未记录”，不得由 AI 生成或猜测。Collection 保留为次级人工组织区，不新增管理能力。#37 完成前现有 Notes 交互继续作为过渡实现。
+ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。主体顺序为 Overview → Memory → Related Stars（有可信结果时）→ Collections；Memory 同时呈现 “Why I saved this” 与自由文本 Note。原因缺失时显示明确的双语 “Not recorded yet / 尚未记录”，不得由 AI 生成或猜测。Collection 保留为次级人工组织区，不新增管理能力。
 
 - 自适应呈现：`≥768px` 通过 body portal 默认固定在右侧与底部各 `24px`，宽 `480px`；高度随内容收缩，最大为 `min(46rem, 100svh - 48px)`，超过上限时仅主体内部滚动，不允许用固定高度制造空白。悬浮层无遮罩、焦点锁定或布局占位。`<768px` 使用底部 Sheet，最大高度 `90svh`。
 - 表面与动效：悬浮层使用 Graphite Glass overlay、`12px` 圆角与既有 `--glass-shadow`，不得添加装饰性玻璃或更大阴影。打开与关闭从当前可见 repo trigger 以 `220ms` ease-out 位移和轻微缩放展开/收回；trigger 不可见时退化为淡入淡出。相邻仓库切换只对内容做 `120ms` crossfade，窗口不移动；reduced motion 下直接切换。

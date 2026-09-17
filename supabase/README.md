@@ -29,6 +29,7 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260818150000_fix_collection_dial_undo_apply.sql` | 修正 `apply_collection_relation_mutation` 中 Undo 收据查找的 PL/pgSQL 变量 / SQL 别名碰撞，使 remove 能真正落到 matching membership |
 | `20260819120000_retire_user_tags.sql` | ADR 0035：按规范化名把 Tag 转为或合并进 Collection，幂等写入 `collection_repos` 与 baseline `collection_relation_heads`，然后删除 `tags` / `repo_tags`；新建 bulk operation 只接受 `collection` |
 | `20260827000000_retire_collection_dial.sql` | ADR 0036：删除 Collection Dial 账本行、Undo RPC / 列与 item 子集 overload；`create_bulk_operation` 只接受 `bulk_dialog`；`apply_collection_relation_mutation` 直接调用 unchecked。canonical `collection_repos` 与 relation head 保留 |
+| `20260917120000_memory_foundation.sql` | ADR 0037 / 0038：新增 owner-only `memories`（每用户每仓库一条），直接退役 `notes`，不保留旧数据迁移或兼容层 |
 
 > 2026-08-05 之前的 AI / Organization migration 是已部署环境必须重放的历史；
 > 新环境仍按文件名顺序应用，最终由 `20260805120000_remove_ai_organization.sql` 收敛。
@@ -65,12 +66,12 @@ select tablename, rowsecurity from pg_tables where schemaname = 'public' order b
 ```
 
 `repos / user_stars / collections / collection_repos /
-collection_relation_heads / notes / bulk_operations / bulk_operation_items /
+collection_relation_heads / memories / bulk_operations / bulk_operation_items /
 user_repo_embeddings` 的
 `rowsecurity` 应均为 `true`。
 
-> 检索优先向量表 `user_repo_embeddings` 的 owner-only 隔离与 `notes` 同构
-> （`user_repo_embeddings_owner_all`：`user_id = auth.uid()` 同时约束 using / with check）。
+> 检索优先向量表 `user_repo_embeddings` 与 `memories` 均采用 owner-only 隔离；
+> `user_id = auth.uid()` 同时约束 using / with check。
 > 真实环境冒烟：以用户 A 的会话写入一行向量，再以用户 B 的会话对该行 `select` /
 > `update` / `delete` 应命中 0 行（跨用户读写被拒）；客户端读写始终按 `user_id` 收窄
 > 的回归由 `packages/db` 单测守护。

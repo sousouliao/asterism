@@ -1,12 +1,7 @@
-export const EXPORT_VERSION = 2 as const;
-export const IMPORT_VERSIONS = [1, 2] as const;
+export const EXPORT_VERSION = 3 as const;
+export const IMPORT_VERSIONS = [3] as const;
 
 export type ImportVersion = (typeof IMPORT_VERSIONS)[number];
-
-export interface ExportTag {
-  name: string;
-  color: string | null;
-}
 
 export interface ExportCollection {
   name: string;
@@ -25,59 +20,40 @@ export interface ExportRepo {
   pushedAt: string | null;
 }
 
-export interface ExportRepoTag {
-  fullName: string;
-  tagName: string;
-}
-
 export interface ExportCollectionRepo {
   collectionName: string;
   fullName: string;
 }
 
-export interface ExportNote {
+export interface ExportMemory {
   fullName: string;
-  body: string;
+  source: 'github_star';
+  sourceCreatedAt: string | null;
+  whySaved: string | null;
+  note: string | null;
 }
 
-export interface ExportPayloadV1 {
-  version: 1;
-  exportedAt: string;
-  counts: {
-    repos: number;
-    tags: number;
-    collections: number;
-    notes: number;
-  };
-  tags: ExportTag[];
-  collections: ExportCollection[];
-  repos: ExportRepo[];
-  repoTags: ExportRepoTag[];
-  collectionRepos: ExportCollectionRepo[];
-  notes: ExportNote[];
-}
-
-export interface ExportPayloadV2 {
+export interface ExportPayloadV3 {
   version: typeof EXPORT_VERSION;
   exportedAt: string;
   counts: {
     repos: number;
     collections: number;
-    notes: number;
+    memories: number;
   };
   collections: ExportCollection[];
   repos: ExportRepo[];
   collectionRepos: ExportCollectionRepo[];
-  notes: ExportNote[];
+  memories: ExportMemory[];
 }
 
-export type ExportPayload = ExportPayloadV2;
+export type ExportPayload = ExportPayloadV3;
 
 export interface ExportSnapshot {
   collections: ExportCollection[];
   repos: ExportRepo[];
   collectionRepos: ExportCollectionRepo[];
-  notes: ExportNote[];
+  memories: ExportMemory[];
 }
 
 export interface ImportPayload {
@@ -86,7 +62,7 @@ export interface ImportPayload {
   collections: ExportCollection[];
   repos: ExportRepo[];
   collectionRepos: ExportCollectionRepo[];
-  notes: ExportNote[];
+  memories: ExportMemory[];
 }
 
 export interface ParsedImportPayload {
@@ -101,5 +77,5 @@ export interface ImportIssue {
 export interface NormalizedImportData {
   collections: ExportCollection[];
   collectionRepos: ExportCollectionRepo[];
-  notes: ExportNote[];
+  memories: ExportMemory[];
 }

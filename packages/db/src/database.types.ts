@@ -260,12 +260,15 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['collection_relation_heads']['Insert']>;
         Relationships: [];
       };
-      notes: {
+      memories: {
         Row: {
           id: string;
           user_id: string;
           repo_id: string;
-          body: string | null;
+          source: 'github_star';
+          source_created_at: string | null;
+          why_saved: string | null;
+          note: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -273,14 +276,17 @@ export interface Database {
           id?: string;
           user_id: string;
           repo_id: string;
-          body?: string | null;
+          source?: 'github_star';
+          source_created_at?: string | null;
+          why_saved?: string | null;
+          note?: string | null;
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database['public']['Tables']['notes']['Insert']>;
+        Update: Partial<Database['public']['Tables']['memories']['Insert']>;
         Relationships: [
           {
-            foreignKeyName: 'notes_repo_id_fkey';
+            foreignKeyName: 'memories_repo_id_fkey';
             columns: ['repo_id'];
             isOneToOne: false;
             referencedRelation: 'repos';

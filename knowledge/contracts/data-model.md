@@ -39,7 +39,7 @@
 - `is_fork` — 是否为 fork（boolean，可选）
 - `synced_at` — 本系统最近一次同步该仓库元数据的时间
 
-关系：被 `user_stars`、`collection_repos` 与目标模型 `memories` 引用；#37 cutover 前仍被现有 `notes` 引用。
+关系：被 `user_stars`、`collection_repos` 与 `memories` 引用。
 
 ### `user_stars` — 用户的 star 关系
 
@@ -72,7 +72,7 @@ Cutover migration `20260819120000_retire_user_tags.sql` 已按 `normalize_classi
 
 约束：`(collection_id, repo_id)` 唯一。
 
-### `memories` — 用户与仓库的个人记忆（Memory Foundation 目标）
+### `memories` — 用户与仓库的个人记忆
 
 - `user_id` → `auth.users(id)`
 - `repo_id` → `repos(id)`
@@ -83,15 +83,7 @@ Cutover migration `20260819120000_retire_user_tags.sql` 已按 `normalize_classi
 
 约束：`(user_id, repo_id)` 唯一。清空个人字段写为 `null`，不删除基础 Memory；Stars 重复同步不得覆盖用户字段。
 
-### `notes` — 过渡中的现有仓库笔记
-
-- `user_id` → `auth.users(id)`
-- `repo_id` → `repos(id)`
-- `body` — 笔记正文（markdown 文本）
-
-约束：当前实现为 `(user_id, repo_id)` 唯一。#37 将把内容迁入 `memories.note` 后删除本表与旧查询接口；迁移必须保留开发环境已有内容。
-
-> 实现状态：ADR 0037 已接受目标模型，但 schema cutover 只由 GitHub #37 授权。#37 完成前，migration 与运行时仍以 `notes` 为准。
+ADR 0038 采用无旧数据兼容的干净切换：`notes` 表与旧查询已经删除，不迁移旧 Note，也不保留双写或接口 alias。
 
 ---
 
@@ -160,7 +152,6 @@ Cutover migration `20260819120000_retire_user_tags.sql` 已按 `normalize_classi
 - **`user_stars` / `memories` / `collections` / `user_repo_embeddings`**
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
-  - #37 cutover 前同一规则继续适用于现有 `notes`；完成后 `notes` 删除。
   - `tags` / `repo_tags` 已由 ADR 0035 cutover 删除。
 
 - **`collection_repos` / `collection_relation_heads`**

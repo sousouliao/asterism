@@ -3,7 +3,7 @@ import type { SupabaseClient } from '../client';
 import type { Tables } from '../database.types';
 
 export interface StarredRepoRecord {
-  /** repos 表主键（uuid），用于 tags/collections/notes 等关联写入。 */
+  /** repos 表主键（uuid），用于 collections/memories 等关联写入。 */
   repoId: string;
   repo: Repo;
   starredAt: string | null;

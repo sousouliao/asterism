@@ -2,7 +2,7 @@ import { type NormalizedImportData, normalizeClassificationName } from '@asteris
 import type { SupabaseClient } from './client';
 import { mutateCollectionRelation } from './queries/collection-repos';
 import { createCollection, listCollections } from './queries/collections';
-import { saveNote } from './queries/notes';
+import { saveMemory } from './queries/memories';
 import { listStarredRepos } from './queries/repos';
 
 export interface ImportUserDataResult {
@@ -10,7 +10,7 @@ export interface ImportUserDataResult {
   imported: {
     collections: number;
     collectionRepos: number;
-    notes: number;
+    memories: number;
   };
   skipped: string[];
   errors: string[];
@@ -26,7 +26,7 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 /**
- * 按依赖顺序导入组织数据（collections → 关联 → notes）。
+ * 按依赖顺序导入组织数据（collections → 关联 → memories）。
  * 仓库须已存在于 user_stars；按 fullName 匹配，无法匹配则跳过。
  */
 export async function importUserData(
@@ -40,7 +40,7 @@ export async function importUserData(
   const imported = {
     collections: 0,
     collectionRepos: 0,
-    notes: 0,
+    memories: 0,
   };
 
   const starred = await listStarredRepos(client, userId);
@@ -108,17 +108,22 @@ export async function importUserData(
     }
   }
 
-  for (const note of data.notes) {
-    const repoId = repoByFullName.get(note.fullName.toLowerCase());
+  for (const memory of data.memories) {
+    const repoId = repoByFullName.get(memory.fullName.toLowerCase());
     if (!repoId) {
-      skipped.push(`Repo not starred: ${note.fullName}`);
+      skipped.push(`Repo not starred: ${memory.fullName}`);
       continue;
     }
     try {
-      await saveNote(client, { userId, repoId, body: note.body });
-      imported.notes += 1;
+      await saveMemory(client, {
+        userId,
+        repoId,
+        whySaved: memory.whySaved ?? '',
+        note: memory.note ?? '',
+      });
+      imported.memories += 1;
     } catch {
-      errors.push(`Note failed: ${note.fullName}`);
+      errors.push(`Memory failed: ${memory.fullName}`);
     }
   }
 

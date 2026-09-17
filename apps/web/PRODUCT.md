@@ -15,7 +15,7 @@ Context: developers, at their desk, mid-workflow — trying to recover why a rep
 
 Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库**。GitHub Stars 是首个来源；产品帮助用户保留私人上下文，并在需要时重新找到和理解曾关注的软件。
 
-`apps/web` is the current primary surface，覆盖登录、同步、浏览、多维筛选、隐形混合搜索、Related Stars、Collection、Note、手动批量整理、统计与导入导出。ADR 0037 把 Memory Foundation 设为当前 frontier；success = 用户能在需要时找回相关软件，并理解它为什么曾经值得保存。Collection 保留为次级人工组织能力，不再是产品中心。
+`apps/web` is the current primary surface，覆盖登录、同步、浏览、多维筛选、隐形混合搜索、Related Stars、Memory、Collection、手动批量整理、统计与导入导出。Memory Foundation 已在本地实现，等待真实 Supabase 验收；success = 用户能在需要时找回相关软件，并理解它为什么曾经值得保存。Collection 保留为次级人工组织能力，不再是产品中心。
 
 ## Brand Personality
 
