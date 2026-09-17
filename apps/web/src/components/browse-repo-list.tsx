@@ -1,3 +1,4 @@
+import type { MatchExplanation } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { memo, useEffect, useState } from 'react';
 import type { BulkSelectionController } from '../lib/bulk-selection';
@@ -14,6 +15,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   semanticStartIndex,
   collectionsByRepo,
   noteRepoIds,
+  explanations,
   selectedRepoId,
   onSelect,
   scrollElement,
@@ -24,6 +26,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   semanticStartIndex?: number | null;
   collectionsByRepo?: Map<string, RepoCardCollection[]>;
   noteRepoIds?: Set<string>;
+  explanations?: Map<string, MatchExplanation>;
   selectedRepoId?: string;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
@@ -53,6 +56,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
               view={mode}
               collectionsByRepo={collectionsByRepo}
               noteRepoIds={noteRepoIds}
+              explanations={explanations}
               selectedRepoId={selectedRepoId}
               onSelect={onSelect}
               scrollElement={mode === view ? scrollElement : null}

@@ -1,4 +1,4 @@
-import { deriveRepoFacets, hasActiveFilter, rankHybridRepos } from '@asterism/core';
+import { deriveRepoFacets, hasActiveFilter, type Memory } from '@asterism/core';
 import { Button, cn, GlassControlRow } from '@asterism/ui';
 import {
   AlertTriangleIcon,
@@ -29,10 +29,11 @@ import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
+import { useMemoriesList } from '../data/use-memories-list';
 import { useMemoryNoteRepoIds } from '../data/use-memory-note-repo-ids';
-import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from '../data/use-semantic-search';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
+import { useUnifiedRetrieval } from '../data/use-unified-retrieval';
 import { useBrowseView } from '../hooks/use-browse-view';
 import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
 import {
@@ -71,6 +72,14 @@ function BrowseDataPage() {
   const { data: bulkOperations } = useBulkOperations();
   const bulkActions = useBulkOperationActions();
   const { data: noteRepoIds, isLoading: memoriesLoading } = useMemoryNoteRepoIds();
+  const { data: memoriesList } = useMemoriesList();
+  const memoriesByRepoId = useMemo(() => {
+    const map = new Map<string, Memory>();
+    for (const m of memoriesList ?? []) {
+      map.set(m.repoId, m);
+    }
+    return map;
+  }, [memoriesList]);
   const isLoading = reposLoading || collectionReposLoading || collectionsLoading || memoriesLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
@@ -130,7 +139,7 @@ function BrowseDataPage() {
   const semanticEnabled =
     embeddingBootstrap.optedIn &&
     (embeddingBootstrap.phase === 'ready' || embeddingBootstrap.backend !== null);
-  const { distanceByRepoId } = useSemanticNeighbors(deferredQuery, { enabled: semanticEnabled });
+
   const deferredFilter = useMemo(
     () => ({
       query: deferredQuery,
@@ -152,22 +161,18 @@ function BrowseDataPage() {
     ],
   );
 
-  const hybrid = useMemo(
-    () =>
-      rankHybridRepos({
-        items: records,
-        filter: deferredFilter,
-        sort: filters.sort,
-        now: Date.now(),
-        collectionsByRepoId,
-        distanceByRepoId,
-        semanticLimit: SEMANTIC_MATCH_COUNT,
-      }),
-    [records, deferredFilter, filters.sort, collectionsByRepoId, distanceByRepoId],
-  );
-  const visible = useMemo(() => [...hybrid.primary, ...hybrid.semantic], [hybrid]);
-  // 语义近邻起始下标：关键词命中之后的第一条；无近邻时为 null（不渲染分隔线）。
-  const semanticStartIndex = hybrid.semantic.length > 0 ? hybrid.primary.length : null;
+  const retrieval = useUnifiedRetrieval({
+    records,
+    filter: deferredFilter,
+    sort: filters.sort,
+    collectionsByRepoId,
+    memoriesByRepoId,
+    semanticEnabled,
+  });
+
+  const visible = retrieval.visible;
+  const semanticStartIndex = retrieval.semanticStartIndex;
+  const explanations = retrieval.explanations;
   const visibleRepoIds = useMemo(() => visible.map((record) => record.repoId), [visible]);
 
   const inspectorContext = useMemo(() => ({ sourceKey: 'browse', records: visible }), [visible]);
@@ -315,6 +320,7 @@ function BrowseDataPage() {
       semanticStartIndex={semanticStartIndex}
       collectionsByRepo={collectionsByRepo}
       noteRepoIds={noteRepoIdSet}
+      explanations={explanations}
       selectedRepoId={selectedRepoId}
       onSelect={openInspector}
       scrollElement={repoScrollElement}

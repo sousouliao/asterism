@@ -1,4 +1,9 @@
-import { DEFAULT_EMBEDDING_MODEL, repoContentHash } from '@asterism/core';
+import {
+  DEFAULT_EMBEDDING_MODEL,
+  type EmbeddableRepo,
+  type Memory,
+  repoContentHash,
+} from '@asterism/core';
 import {
   deleteAllRepoEmbeddings,
   listReposToEmbed,
@@ -46,7 +51,10 @@ const INITIAL_STATE: EmbeddingBootstrapState = {
   error: null,
 };
 
-export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
+export function useEmbeddingBootstrap(
+  records: readonly StarredRepoRecord[],
+  memoriesByRepoId?: Map<string, Memory>,
+) {
   const { session } = useSession();
   const userId = session?.user.id;
   const queryClient = useQueryClient();
@@ -64,8 +72,21 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
   } | null>(null);
   const completedSignatureRef = useRef<string | null>(null);
   const signature = useMemo(
-    () => records.map((record) => `${record.repoId}:${repoContentHash(record.repo)}`).join('|'),
-    [records],
+    () =>
+      records
+        .map((record) => {
+          const memory = memoriesByRepoId?.get(record.repoId);
+          const embeddable: EmbeddableRepo = {
+            fullName: record.repo.fullName,
+            description: record.repo.description,
+            topics: record.repo.topics,
+            whySaved: memory?.whySaved,
+            note: memory?.note,
+          };
+          return `${record.repoId}:${repoContentHash(embeddable)}`;
+        })
+        .join('|'),
+    [records, memoriesByRepoId],
   );
   const signatureRef = useRef(signature);
   signatureRef.current = signature;
@@ -118,6 +139,7 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
           > | null = null;
           const result = await runRepositoryEmbeddingBootstrap({
             records,
+            memoriesByRepoId,
             listPending: (desired) =>
               listReposToEmbed(supabase, {
                 userId,
@@ -189,7 +211,7 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
       runningRef.current = { generation, promise: task, userId };
       return task;
     },
-    [queryClient, records, signature, userId],
+    [memoriesByRepoId, queryClient, records, signature, userId],
   );
 
   const rebuild = useCallback(async () => {

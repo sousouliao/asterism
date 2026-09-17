@@ -1,5 +1,7 @@
+import type { Memory } from '@asterism/core';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 import { useEmbeddingBootstrap } from '../data/use-embedding-bootstrap';
+import { useMemoriesList } from '../data/use-memories-list';
 import { useStarredRepos } from '../data/use-starred-repos';
 
 type EmbeddingBootstrapContextValue = ReturnType<typeof useEmbeddingBootstrap> & {
@@ -11,7 +13,16 @@ const EmbeddingBootstrapContext = createContext<EmbeddingBootstrapContextValue |
 export function EmbeddingBootstrapProvider({ children }: { children: ReactNode }) {
   const { data } = useStarredRepos();
   const records = useMemo(() => data ?? [], [data]);
-  const bootstrap = useEmbeddingBootstrap(records);
+  const { data: memoriesList } = useMemoriesList();
+  const memoriesByRepoId = useMemo(() => {
+    const map = new Map<string, Memory>();
+    for (const item of memoriesList ?? []) {
+      map.set(item.repoId, item);
+    }
+    return map;
+  }, [memoriesList]);
+
+  const bootstrap = useEmbeddingBootstrap(records, memoriesByRepoId);
   const value = useMemo(
     () => ({ ...bootstrap, repositoryCount: records.length }),
     [bootstrap, records.length],

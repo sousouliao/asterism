@@ -1,3 +1,4 @@
+import type { MatchExplanation } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { Badge, Card, cn, Tooltip, TooltipContent, TooltipTrigger } from '@asterism/ui';
 import { ArchiveIcon, CheckIcon, GitForkIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
@@ -8,6 +9,7 @@ import type { BulkSelectionController } from '../lib/bulk-selection';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import type { RepoOpenModality } from '../stores/repo-inspector';
+import { MatchExplanationBadge } from './match-explanation-badge';
 import { OverflowChipRow } from './overflow-chip-row';
 import {
   buildRepoContextItems,
@@ -61,6 +63,7 @@ function ContextChip({ item }: { item: RepoContextItem }) {
 export const RepoCard = memo(function RepoCard({
   record,
   collections,
+  explanation,
   hasNote = false,
   selected = false,
   onSelect,
@@ -69,6 +72,7 @@ export const RepoCard = memo(function RepoCard({
 }: {
   record: StarredRepoRecord;
   collections?: RepoCardCollection[];
+  explanation?: MatchExplanation;
   hasNote?: boolean;
   selected?: boolean;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
@@ -201,6 +205,12 @@ export const RepoCard = memo(function RepoCard({
             </TruncatedDescription>
           ) : null}
         </div>
+
+        {explanation ? (
+          <div className="flex min-w-0 items-center pointer-events-auto">
+            <MatchExplanationBadge explanation={explanation} />
+          </div>
+        ) : null}
 
         <div className="flex min-h-6 min-w-0 items-center gap-2">
           <div className="min-w-0 flex-1">

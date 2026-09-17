@@ -1,3 +1,4 @@
+import type { MatchExplanation } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { Badge, cn } from '@asterism/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -9,6 +10,7 @@ import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } fr
 import { languageColor } from '../lib/language-colors';
 import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
 import type { RepoOpenModality } from '../stores/repo-inspector';
+import { MatchExplanationBadge } from './match-explanation-badge';
 import { OverflowChipRow } from './overflow-chip-row';
 import {
   buildRepoContextItems,
@@ -137,6 +139,7 @@ function RepoContext({
 export const RepoTableRow = memo(function RepoTableRow({
   record,
   collections = [],
+  explanation,
   hasNote = false,
   onSelect,
   selected = false,
@@ -148,6 +151,7 @@ export const RepoTableRow = memo(function RepoTableRow({
 }: {
   record: StarredRepoRecord;
   collections?: RepoCardCollection[];
+  explanation?: MatchExplanation;
   hasNote?: boolean;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   selected?: boolean;
@@ -282,6 +286,13 @@ export const RepoTableRow = memo(function RepoTableRow({
               {t('browse.archived')}
             </Badge>
           ) : null}
+          {explanation ? (
+            <MatchExplanationBadge
+              explanation={explanation}
+              showSnippet={false}
+              className="shrink-0"
+            />
+          ) : null}
         </div>
         <div className="flex min-w-0 items-center gap-3">
           {repo.description ? (
@@ -396,6 +407,7 @@ export const RepoTable = memo(function RepoTable({
   semanticStartIndex,
   collectionsByRepo,
   noteRepoIds,
+  explanations,
   selectedRepoId,
   onSelect,
   scrollElement,
@@ -405,6 +417,7 @@ export const RepoTable = memo(function RepoTable({
   semanticStartIndex?: number | null;
   collectionsByRepo?: Map<string, RepoCardCollection[]>;
   noteRepoIds?: Set<string>;
+  explanations?: Map<string, MatchExplanation>;
   selectedRepoId?: string;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
@@ -489,6 +502,7 @@ export const RepoTable = memo(function RepoTable({
               record={record}
               collections={collectionsByRepo?.get(record.repoId)}
               hasNote={noteRepoIds?.has(record.repoId)}
+              explanation={explanations?.get(record.repoId)}
               selected={record.repoId === selectedRepoId}
               layout={layout}
               onSelect={onSelect}
@@ -522,6 +536,7 @@ export const RepoTable = memo(function RepoTable({
                 record={record}
                 collections={collectionsByRepo?.get(record.repoId)}
                 hasNote={noteRepoIds?.has(record.repoId)}
+                explanation={explanations?.get(record.repoId)}
                 selected={record.repoId === selectedRepoId}
                 layout={layout}
                 onSelect={onSelect}

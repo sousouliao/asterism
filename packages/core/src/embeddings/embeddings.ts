@@ -21,6 +21,8 @@ export interface EmbeddableRepo {
   fullName: string;
   description: string | null;
   topics: string[];
+  whySaved?: string | null;
+  note?: string | null;
 }
 
 /**
@@ -40,6 +42,16 @@ export function embeddableRepoText(repo: EmbeddableRepo): string {
   const topics = repo.topics.map((topic) => topic.trim()).filter((topic) => topic.length > 0);
   if (topics.length > 0) {
     segments.push(topics.join(' '));
+  }
+
+  const whySaved = repo.whySaved?.trim();
+  if (whySaved) {
+    segments.push(whySaved);
+  }
+
+  const note = repo.note?.trim();
+  if (note) {
+    segments.push(note);
   }
 
   return segments.join('\n');

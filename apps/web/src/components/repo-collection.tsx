@@ -1,3 +1,4 @@
+import type { MatchExplanation } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { memo, useEffect, useRef, useState } from 'react';
@@ -20,6 +21,7 @@ type RepoCollectionProps = {
   semanticStartIndex?: number | null;
   collectionsByRepo?: Map<string, RepoCardCollection[]>;
   noteRepoIds?: Set<string>;
+  explanations?: Map<string, MatchExplanation>;
   selectedRepoId?: string;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
@@ -58,6 +60,7 @@ const RepoGridView = memo(function RepoGridView({
   semanticStartIndex,
   collectionsByRepo,
   noteRepoIds,
+  explanations,
   selectedRepoId,
   onSelect,
   scrollElement,
@@ -118,6 +121,7 @@ const RepoGridView = memo(function RepoGridView({
                     record={record}
                     collections={collectionsByRepo?.get(record.repoId)}
                     hasNote={noteRepoIds?.has(record.repoId)}
+                    explanation={explanations?.get(record.repoId)}
                     selected={record.repoId === selectedRepoId}
                     onSelect={onSelect}
                     bulkSelection={bulkSelection}
@@ -142,6 +146,7 @@ const RepoGridView = memo(function RepoGridView({
                 record={record}
                 collections={collectionsByRepo?.get(record.repoId)}
                 hasNote={noteRepoIds?.has(record.repoId)}
+                explanation={explanations?.get(record.repoId)}
                 selected={record.repoId === selectedRepoId}
                 onSelect={onSelect}
                 bulkSelection={bulkSelection}
@@ -159,6 +164,7 @@ const RepoListView = memo(function RepoListView({
   semanticStartIndex,
   collectionsByRepo,
   noteRepoIds,
+  explanations,
   selectedRepoId,
   onSelect,
   scrollElement,
@@ -170,6 +176,7 @@ const RepoListView = memo(function RepoListView({
       semanticStartIndex={semanticStartIndex}
       collectionsByRepo={collectionsByRepo}
       noteRepoIds={noteRepoIds}
+      explanations={explanations}
       selectedRepoId={selectedRepoId}
       onSelect={onSelect}
       scrollElement={scrollElement}
@@ -186,6 +193,7 @@ export const RepoCollection = memo(function RepoCollection({
   view,
   collectionsByRepo,
   noteRepoIds,
+  explanations,
   selectedRepoId,
   onSelect,
   scrollElement,
@@ -198,6 +206,7 @@ export const RepoCollection = memo(function RepoCollection({
         semanticStartIndex={semanticStartIndex}
         collectionsByRepo={collectionsByRepo}
         noteRepoIds={noteRepoIds}
+        explanations={explanations}
         selectedRepoId={selectedRepoId}
         onSelect={onSelect}
         scrollElement={scrollElement}
@@ -212,6 +221,7 @@ export const RepoCollection = memo(function RepoCollection({
       semanticStartIndex={semanticStartIndex}
       collectionsByRepo={collectionsByRepo}
       noteRepoIds={noteRepoIds}
+      explanations={explanations}
       selectedRepoId={selectedRepoId}
       onSelect={onSelect}
       scrollElement={scrollElement}

@@ -1,3 +1,4 @@
+import type { Memory } from '../models/memory';
 import type { Repo } from '../models/repo';
 
 /** 列表项：仓库 + 当前用户对它的收藏时间（用于按 starredAt 排序）。 */
@@ -44,8 +45,16 @@ const EMPTY_FILTER: Required<Omit<RepoFilter, 'language' | 'topic'>> & {
   collectionIds: [],
 };
 
-function matchesQuery(repo: Repo, query: string): boolean {
-  const haystack = [repo.fullName, repo.owner, repo.name, repo.description ?? '', ...repo.topics]
+function matchesQuery(repo: Repo, query: string, memory?: Memory): boolean {
+  const haystack = [
+    repo.fullName,
+    repo.owner,
+    repo.name,
+    repo.description ?? '',
+    ...repo.topics,
+    memory?.whySaved ?? '',
+    memory?.note ?? '',
+  ]
     .join('\n')
     .toLowerCase();
   return haystack.includes(query);
@@ -70,6 +79,7 @@ export function filterStarredRepos<T extends StarredRepoLike>(
   filter: RepoFilter,
   now: number = Date.now(),
   collectionsByRepoId?: Map<string, string[]>,
+  memoriesByRepoId?: Map<string, Memory>,
 ): T[] {
   const f = {
     ...EMPTY_FILTER,
@@ -82,9 +92,8 @@ export function filterStarredRepos<T extends StarredRepoLike>(
   const collectionFilter = f.collectionIds.length > 0;
 
   return items.filter((item) => {
-    const { repo } = item;
+    const { repo, repoId } = item;
     if (collectionFilter) {
-      const repoId = item.repoId;
       if (!repoId) {
         return false;
       }
@@ -93,7 +102,8 @@ export function filterStarredRepos<T extends StarredRepoLike>(
         return false;
       }
     }
-    if (query && !matchesQuery(repo, query)) {
+    const memory = repoId ? memoriesByRepoId?.get(repoId) : undefined;
+    if (query && !matchesQuery(repo, query, memory)) {
       return false;
     }
     if (f.language && repo.language !== f.language) {

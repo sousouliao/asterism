@@ -78,4 +78,26 @@ describe('RepoCard bulk selection', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  it('renders match explanation when provided', async () => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () =>
+      root.render(
+        <RepoCard
+          record={record}
+          explanation={{
+            repoId: record.repoId,
+            primaryReason: { kind: 'why_saved', snippet: '替换微服务网关' },
+            reasons: [{ kind: 'why_saved', snippet: '替换微服务网关' }],
+          }}
+        />,
+      ),
+    );
+
+    expect(container.textContent).toContain('替换微服务网关');
+  });
 });

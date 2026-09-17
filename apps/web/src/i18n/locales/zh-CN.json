@@ -166,6 +166,16 @@
     "noResultsTitle": "没有匹配的仓库",
     "noResultsDescription": "试试调整筛选条件或搜索关键词。",
     "semanticSectionLabel": "语义相关",
+    "matchReasons": {
+      "whySaved": "命中收藏原因",
+      "note": "命中笔记",
+      "name": "命中仓库名称",
+      "description": "命中仓库描述",
+      "topic": "命中主题：{{topic}}",
+      "semanticMemory": "与你的笔记意图相近",
+      "semanticRepo": "与仓库内容语义相近",
+      "additionalMatches": "其他命中条件"
+    },
     "table": {
       "label": "仓库列表",
       "repository": "仓库",

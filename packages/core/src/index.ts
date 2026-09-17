@@ -88,7 +88,21 @@ export {
 export type { HybridRankInput, HybridRankResult } from './repos/hybrid-search';
 export { rankHybridRepos } from './repos/hybrid-search';
 export type {
+  MatchExplanation,
+  MatchReason,
+  MatchReasonKind,
+  RetrieveInput,
+  RetrieveResult,
+} from './repos/retrieval';
+export { extractSnippet, retrieveRepos } from './repos/retrieval';
+export type {
+  FallbackNeighbor,
+  KeywordFallbackNeighborInput,
+  MutualNeighborsOptions,
   RepoSemanticVector,
   SemanticNeighbor,
 } from './repos/semantic-neighborhood';
-export { findMutualSemanticNeighbors } from './repos/semantic-neighborhood';
+export {
+  findKeywordFallbackNeighbors,
+  findMutualSemanticNeighbors,
+} from './repos/semantic-neighborhood';

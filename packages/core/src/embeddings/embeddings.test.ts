@@ -49,6 +49,30 @@ describe('embeddableRepoText', () => {
       }),
     ).toBe('owner/name\nhi\na b');
   });
+
+  it('incorporates whySaved and note when provided', () => {
+    const text = embeddableRepoText({
+      fullName: 'owner/name',
+      description: 'desc',
+      topics: ['topic'],
+      whySaved: 'Replacing our legacy gateway',
+      note: 'Need to benchmark performance with pool',
+    });
+    expect(text).toBe(
+      'owner/name\ndesc\ntopic\nReplacing our legacy gateway\nNeed to benchmark performance with pool',
+    );
+  });
+
+  it('omits empty or whitespace-only whySaved and note', () => {
+    const text = embeddableRepoText({
+      fullName: 'owner/name',
+      description: 'desc',
+      topics: [],
+      whySaved: '   ',
+      note: null,
+    });
+    expect(text).toBe('owner/name\ndesc');
+  });
 });
 
 describe('computeContentHash', () => {

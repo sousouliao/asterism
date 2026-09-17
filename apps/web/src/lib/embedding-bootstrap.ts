@@ -1,7 +1,9 @@
 import {
   DEFAULT_EMBEDDING_MODEL,
   type DesiredRepoEmbedding,
+  type EmbeddableRepo,
   type EmbeddingBackfillProgress,
+  type Memory,
   type RepoEmbeddingBackfillItem,
   repoContentHash,
   runEmbeddingBackfill,
@@ -21,8 +23,19 @@ export interface RepositoryEmbeddingBootstrapResult extends EmbeddingBackfillPro
   backend: EmbeddingRuntimeBackend | null;
 }
 
+function toEmbeddableRepo(record: StarredRepoRecord, memory?: Memory): EmbeddableRepo {
+  return {
+    fullName: record.repo.fullName,
+    description: record.repo.description,
+    topics: record.repo.topics,
+    whySaved: memory?.whySaved,
+    note: memory?.note,
+  };
+}
+
 export async function runRepositoryEmbeddingBootstrap(input: {
   records: readonly StarredRepoRecord[];
+  memoriesByRepoId?: Map<string, Memory>;
   listPending: (desired: readonly DesiredRepoEmbedding[]) => Promise<RepoEmbeddingBackfillItem[]>;
   prepare: (onProgress?: (progress: number) => void) => Promise<{
     backend: EmbeddingRuntimeBackend;
@@ -35,10 +48,14 @@ export async function runRepositoryEmbeddingBootstrap(input: {
   onBackfillProgress?: (progress: EmbeddingBackfillProgress) => void;
 }): Promise<RepositoryEmbeddingBootstrapResult> {
   const recordsById = new Map(input.records.map((record) => [record.repoId, record]));
-  const desired = input.records.map((record) => ({
-    repoId: record.repoId,
-    contentHash: repoContentHash(record.repo),
-  }));
+  const desired = input.records.map((record) => {
+    const memory = input.memoriesByRepoId?.get(record.repoId);
+    const embeddable = toEmbeddableRepo(record, memory);
+    return {
+      repoId: record.repoId,
+      contentHash: repoContentHash(embeddable),
+    };
+  });
   const pending = await input.listPending(desired);
   input.onPending?.(pending.length);
   if (pending.length === 0) {
@@ -47,15 +64,18 @@ export async function runRepositoryEmbeddingBootstrap(input: {
 
   const targets = pending.flatMap((item) => {
     const record = recordsById.get(item.repoId);
-    return record
-      ? [
-          {
-            repoId: record.repoId,
-            contentHash: repoContentHash(record.repo),
-            input: toPassageInput(record.repo),
-          },
-        ]
-      : [];
+    if (!record) {
+      return [];
+    }
+    const memory = input.memoriesByRepoId?.get(record.repoId);
+    const embeddable = toEmbeddableRepo(record, memory);
+    return [
+      {
+        repoId: record.repoId,
+        contentHash: repoContentHash(embeddable),
+        input: toPassageInput(embeddable),
+      },
+    ];
   });
   const { backend } = await input.prepare(input.onModelProgress);
   input.onPrepared?.(backend, targets.length);

@@ -166,6 +166,16 @@
     "noResultsTitle": "No matching repositories",
     "noResultsDescription": "Try adjusting your filters or search keywords.",
     "semanticSectionLabel": "Related by meaning",
+    "matchReasons": {
+      "whySaved": "Matches saved reason",
+      "note": "Matches note",
+      "name": "Matches repo name",
+      "description": "Matches description",
+      "topic": "Matches topic: {{topic}}",
+      "semanticMemory": "Semantically related to your note intent",
+      "semanticRepo": "Semantically related repository",
+      "additionalMatches": "Additional matches"
+    },
     "table": {
       "label": "Repository list",
       "repository": "Repository",
