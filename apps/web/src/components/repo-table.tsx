@@ -345,7 +345,7 @@ export const RepoTableRow = memo(function RepoTableRow({
 
       <td
         className={cn(
-          'flex min-w-0 flex-col justify-center self-center whitespace-nowrap text-micro text-muted-foreground',
+          'flex min-w-0 flex-col justify-center gap-y-1 self-center whitespace-nowrap text-micro text-muted-foreground',
           layout === 'mobile' ? 'items-end' : 'items-start px-3',
         )}
       >
