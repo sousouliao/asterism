@@ -123,7 +123,7 @@
   "embeddings": {
     "prepareTitle": "Search by meaning",
     "discoveryDescription": "Find repositories even when your search uses different words.",
-    "prepareDescription": "About 120 MB once, processed in your browser",
+    "prepareDescription": "About 120 MB once. Repository metadata and your Memory are processed in this browser; only derived vectors are stored in your RLS-protected database.",
     "prepareAction": "Enable",
     "prepareDismiss": "Not now",
     "preparing": "Preparing semantic search",
@@ -172,9 +172,9 @@
       "name": "Matches repo name",
       "description": "Matches description",
       "topic": "Matches topic: {{topic}}",
-      "semanticMemory": "Semantically related to your note intent",
       "semanticRepo": "Semantically related repository",
-      "additionalMatches": "Additional matches"
+      "additionalMatches": "Additional matches",
+      "details": "Show match details: {{reason}}"
     },
     "table": {
       "label": "Repository list",
@@ -402,7 +402,7 @@
     "languageDescription": "Switch interface language.",
     "search": "Search",
     "semanticSearch": "Semantic search",
-    "semanticSearchDescription": "Find repositories by meaning. The model runs locally in this browser.",
+    "semanticSearchDescription": "Find repositories by meaning. Repository metadata and your Memory are processed locally; only derived vectors are stored in your RLS-protected database.",
     "enableSemanticSearch": "Enable semantic search",
     "preparingSearch": "Preparing {{progress}}%",
     "searchReady": "Ready",

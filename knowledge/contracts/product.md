@@ -21,10 +21,10 @@ Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库
 
 ## Scope · 范围
 
-- **阶段顺序**：已交付响应式 Web、可靠批量整理与浏览器内语义检索；当前进入 Memory Foundation，之后依据真实 Memory 使用证据推进统一 Retrieval。浏览器扩展与桌面端保留，但延后到这两层基础稳定以后。
+- **阶段顺序**：已交付响应式 Web、可靠批量整理、Memory Foundation 与统一 Retrieval；当前推进基于个人记忆的 Resurface。浏览器扩展与桌面端保留，但延后到 Memory / Retrieval 稳定以后。
 - **数据源**：用户自己的 GitHub starred 仓库是首个 Memory 来源（通过 GitHub GraphQL API 拉取）；近期不接入外部互联网发现或其他 Provider。
 - **后端**：Supabase（Auth + Postgres source-of-truth + Edge Functions），TanStack Query 提供会话内请求缓存。当前不承诺离线浏览；多个客户端会话不主动推送收敛，进入页面、查询刷新、完成本地操作或重新连接后读取最新状态。
-- **语义能力**：隐形混合搜索与 Related Stars 使用浏览器内 embedding，向量按用户存于 `user_repo_embeddings`；它不依赖 BYOK，也不写入集合或笔记。
+- **语义能力**：隐形混合搜索与 Related Stars 使用浏览器内 embedding；被嵌文本由仓库元数据与用户自己的 `whySaved` / `note` 组成，原文只在浏览器内处理，派生向量按用户存于 RLS 隔离的 `user_repo_embeddings`。它不依赖 BYOK，也不修改集合或 Memory canonical。
 - **AI 整理退役**：产品不再提供服务端 Generation、BYOK Connection、AI 整理草稿或 Organization Task。历史 AI 执行已经形成的普通组织关系继续作为 canonical 用户数据保留。
 - **Memory 模型（ADR 0037）**：每个用户与 Repo 首版恰好一条 Memory，承载来源、来源时间、`whySaved` 与自由文本 `note`。Star 是初始来源，不是产品终点；系统不得猜测 `whySaved`。
 - **组织模型（ADR 0035）**：用户自定义组织关系只保留 Collection。Collection 是次级人工组织能力，保留既有功能但暂停新增 Collection Management；GitHub Language / Topics / Archived / 时间承担客观筛选。
@@ -141,7 +141,7 @@ Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文�
 
 > **ADR 0032 退役 AI 整理**：Asterism 保留手动批量整理与浏览器内语义检索，不再提供 BYOK Generation、AI 草稿、Organization Task 或同步后整理机会。历史执行结果继续作为普通 canonical 数据保留。
 - **Memory Foundation（GitHub #37，本地实现完成、远端验收待办）**：以每个 `user × repo` 一条 Memory 替代独立 Note，承载 `whySaved` 与 `note`；Stars 同步幂等创建基础记录，Quick Look 提供完整编辑与失败恢复，导入导出使用 JSON v3 Memory 格式。ADR 0038 明确不迁移旧 Note，也不兼容 v1/v2 JSON。
-- **统一 Retrieval（尚未立项）**：复用现有关键词/语义混合搜索、Related Stars 与浏览器内 embedding，在 Memory Foundation 产生真实数据与使用反馈后另行定义。它不是 #37 的隐含范围。
+- **统一 Retrieval（GitHub #39，已交付）**：`@asterism/core` 统一处理仓库元数据与 Memory 的词法召回、个人意图优先排序、语义扩展与可验证的 Match Explanation；Browse 与 Related Stars 共用浏览器内 embedding，弱设备或运行时失败时保持关键词检索与可信的本地 Related Stars 降级。
 - **退役用户自定义 Tag（ADR 0035）**：cutover 已把每个 Tag 转为或合并进同名 Collection，删除 Tag 用户面与表。Browse 增加集合筛选；Quick Look 与批量只留 Collection + Memory；Collections 索引 / 选择器可搜索并支撑约 100 个集合；新导出只写 Collection。ADR 0038 之后导入仅接受 v3，不再保留 v1 Tag 转换入口。Tag color 不迁移。实现规格见 `logs/2026-08-19-retire-user-tags.md`，落地记录见 `logs/2026-08-19-retire-user-tags-cutover.md`。
 - **失效仓库检测**：识别已删除 / 已归档 / 长期无更新的仓库并提示。
 - **批量整理**（Phase 2）：多选仓库后批量加入/移出集合、导出选中仓库；只修改 Asterism 私有数据，不执行 GitHub star/unstar，也不申请 `public_repo` scope。ADR 0035 cutover 前确认层仍可同时配置标签与集合；cutover 后只配置集合。用户执行“全选当前筛选结果”时，系统立即把当时匹配的仓库固化为一个**选择范围快照**（repository ID 集合）；后续筛选变化或同步新增仓库不得悄然改变该批工作的对象，界面持续显示准确数量，用户可清空后重新选择。批量关系写入以一条“仓库 × 集合 × 添加或移除动作”为最小执行与重试单位（cutover 前历史账本仍可能含标签关系）：成功项保留，失败项单独报告且只重试失败关系；重复添加已有关系或移除不存在的关系视为成功，确保重试幂等。执行前尚未确认的勾选只属于当前会话；用户确认后必须形成持久化的**批量操作记录**，保存稳定的选择范围、动作和逐关系结果，使页面刷新、关闭或网络中断后仍可继续查看并重试。失败关系分为**可重试失败**（网络、超时或临时服务故障）与**终止失败**（目标已删除、权限/归属不成立或请求无效）；终止失败不得原样反复重试。批量操作只有在全部关系成功，或剩余终止失败被用户明确结束后，才进入完成状态。选中仓库导出复用现有格式：JSON v3 是包含所选仓库及其 Collection、Memory 的可恢复部分备份，导入时只合并对应数据而不删除库中其他内容；CSV 是所选仓库清单，Markdown 是包含个人上下文的可读归档，二者仍不承诺恢复。导出按固定 repository ID 范围读取下载时的最新 Postgres 权威数据；导出不写数据，因此不建立批量操作记录，失败后原位重新生成。

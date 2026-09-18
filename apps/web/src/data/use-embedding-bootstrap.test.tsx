@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import type { Memory } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act } from 'react';
@@ -55,12 +56,21 @@ let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 let queryClient: QueryClient;
 
-function Harness({ records }: { records: readonly StarredRepoRecord[] }) {
-  useEmbeddingBootstrap(records);
+function Harness({
+  records,
+  memoriesByRepoId,
+}: {
+  records: readonly StarredRepoRecord[];
+  memoriesByRepoId?: Map<string, Memory>;
+}) {
+  useEmbeddingBootstrap(records, memoriesByRepoId);
   return null;
 }
 
-async function render(records: readonly StarredRepoRecord[]) {
+async function render(
+  records: readonly StarredRepoRecord[],
+  memoriesByRepoId?: Map<string, Memory>,
+) {
   if (!container) {
     container = document.createElement('div');
     document.body.append(container);
@@ -69,7 +79,7 @@ async function render(records: readonly StarredRepoRecord[]) {
   await act(async () => {
     root?.render(
       <QueryClientProvider client={queryClient}>
-        <Harness records={records} />
+        <Harness records={records} memoriesByRepoId={memoriesByRepoId} />
       </QueryClientProvider>,
     );
     await Promise.resolve();
@@ -135,6 +145,34 @@ describe('useEmbeddingBootstrap', () => {
 
     expect(mocks.listReposToEmbed).toHaveBeenCalledTimes(2);
     expect(mocks.listReposToEmbed.mock.calls[1]?.[1]?.desired).toHaveLength(2);
+  });
+
+  it('queues a fresh embedding pass when Memory changes', async () => {
+    localStorage.setItem(embeddingOptInStorageKey('user-a'), 'enabled');
+    mocks.listReposToEmbed.mockResolvedValue([]);
+    const records = [record('repo-1')];
+
+    await render(records, new Map());
+    await vi.waitFor(() => expect(mocks.listReposToEmbed).toHaveBeenCalledTimes(1));
+
+    const memories = new Map<string, Memory>([
+      [
+        'repo-1',
+        {
+          repoId: 'repo-1',
+          source: 'github_star',
+          sourceCreatedAt: null,
+          whySaved: '用于检索回归验证',
+          note: null,
+        },
+      ],
+    ]);
+    await render(records, memories);
+
+    await vi.waitFor(() => expect(mocks.listReposToEmbed).toHaveBeenCalledTimes(2));
+    const firstHash = mocks.listReposToEmbed.mock.calls[0]?.[1]?.desired[0]?.contentHash;
+    const secondHash = mocks.listReposToEmbed.mock.calls[1]?.[1]?.desired[0]?.contentHash;
+    expect(secondHash).not.toBe(firstHash);
   });
 
   it('invalidates the embedding list after a preparation pass completes', async () => {

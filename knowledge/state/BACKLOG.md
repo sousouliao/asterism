@@ -4,17 +4,16 @@
 
 ## 当前 frontier
 
-- [ ] **统一检索引擎（GitHub #39）**：`feat(retrieval): unified search engine with memory awareness and match explanation`。将用户的 `why_saved` 与 `note` 内容整合进检索流，提供统一检索抽象与可解释匹配理由，演进 Related Stars。
-- [ ] **沉睡记忆唤醒与主页推荐流（GitHub #40）**：`feat(memory): resurface inactive stars and contextual memory streams`。基于端侧可解释规则唤醒长期未访问的项目，新增“值得重温”与“待补全记忆”卡片流并支持用户反馈。由 #39 阻塞。
-- [ ] **个人私有知识问答（GitHub #41）**：`feat(ask): private and grounded repository Q&A (Ask Asterism)`。基于 #39 统一检索做 Grounding 问答，严格限定个人库，附带可追溯证据链。由 #39 阻塞。
+- [ ] **沉睡记忆唤醒与主页推荐流（GitHub #40）**：`feat(memory): resurface inactive stars and contextual memory streams`。基于端侧可解释规则唤醒长期未访问的项目，新增“值得重温”与“待补全记忆”卡片流并支持用户反馈。
+- [ ] **个人私有知识问答（GitHub #41）**：`feat(ask): private and grounded repository Q&A (Ask Asterism)`。基于统一检索做 Grounding 问答，严格限定个人库，附带可追溯证据链。
 
 ## 已完成近期 frontier
 
 - [x] **完成 Memory + Why I saved this 交付（GitHub #37）**：本地代码、自动化测试、桌面/手机视觉 QA、远端 Supabase migration (`20260917120000_memory_foundation.sql`) 推送、`sync-stars` Edge Function 部署与 GitHub Issue #37 已全部完成关闭。按 ADR 0038 不迁移旧 Note，也不兼容 v1/v2 JSON。
+- [x] **统一检索引擎（GitHub #39）**：Memory-aware 词法 / 语义检索、可验证 Match Explanation、可信 Related Stars 降级和 consent v2 已完成；代码复核发现的问题已修正并通过全量门禁。
 
 ## 延后但保留
 
-- [ ] **统一 Retrieval**：等待 #37 完成、产生真实 Memory 数据与使用反馈后再定义并创建 issue。当前混合搜索、Related Stars 与 embedding 继续作为基础能力维护。
 - [ ] **浏览器扩展**：保留 WXT 骨架；Memory / Retrieval 稳定后重新定义 popup、GitHub 页面入口、共享会话与 en / zh-CN i18n，不沿用旧 Star Manager 路线直接扩建。
 - [ ] **桌面端**：保留 Tauri 2 骨架；在 Web 的 Memory / Retrieval 任务稳定后再排期。
 - [ ] **自定义公共域名**：非功能阻断；绑定时同步 README、runbook 与 Supabase Auth URL。
@@ -23,4 +22,4 @@
 
 ## 未获授权的长期方向
 
-AI Chat / Ask、联网搜索、RepoSnapshot、Resurface、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 与星图 UI 仅存在于 `proposals/asterism-transformation-roadmap.md`，不是 backlog，也不得提前实现。
+联网搜索、RepoSnapshot、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 与星图 UI 仅存在于 `proposals/asterism-transformation-roadmap.md`，不是 backlog，也不得提前实现。Resurface 与 Ask Asterism 已分别由 GitHub #40 / #41 授权，以上方 frontier 为准。

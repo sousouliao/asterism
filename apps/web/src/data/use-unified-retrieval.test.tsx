@@ -160,6 +160,6 @@ describe('useUnifiedRetrieval', () => {
 
     expect(latest?.explanations.get('r1')?.primaryReason.kind).toBe('description');
     expect(latest?.explanations.get('r2')?.primaryReason.kind).toBe('semantic_repo');
-    expect(latest?.explanations.get('r3')?.primaryReason.kind).toBe('semantic_memory');
+    expect(latest?.explanations.get('r3')?.primaryReason.kind).toBe('semantic_repo');
   });
 });

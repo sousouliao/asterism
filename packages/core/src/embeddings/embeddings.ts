@@ -14,8 +14,8 @@ export const DEFAULT_EMBEDDING_MODEL = 'multilingual-e5-small';
 export const DEFAULT_EMBEDDING_DIMENSIONS = 384;
 
 /**
- * 参与语义嵌入的仓库字段：仅公共元数据（`full_name` + `description` + `topics`），
- * 绝不含笔记等用户私有内容。
+ * 参与语义嵌入的字段：公共仓库元数据（`full_name` + `description` + `topics`）
+ * 与当前用户明确记录的 `whySaved` / `note`。模型在浏览器内运行，派生向量按用户 RLS 隔离存储。
  */
 export interface EmbeddableRepo {
   fullName: string;
@@ -26,7 +26,7 @@ export interface EmbeddableRepo {
 }
 
 /**
- * 组装被嵌文本（ADR 0026 §3）：`full_name` + `description` + `topics`。
+ * 组装被嵌文本（ADR 0039）：`full_name` + `description` + `topics` + 可选 Memory。
  * 确定性：同一输入恒定产出，供 content-hash 与嵌入运行时共用。
  * 不加 e5 的 `query:` / `passage:` 前缀——前缀是嵌入运行时（检索 / 回填）的关注点，
  * 与内容无关，不进哈希。

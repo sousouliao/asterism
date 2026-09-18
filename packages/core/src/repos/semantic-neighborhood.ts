@@ -11,17 +11,10 @@ export interface SemanticNeighbor {
   similarity: number;
 }
 
-export interface MutualNeighborsOptions {
-  /** 仓库 ID 到 Memory 意图的映射；若传入，双方都具有个人记忆时给予意图权重加成。 */
-  memoriesByRepoId?: Map<string, Memory>;
-  /** 意图共鸣的相似度增益，默认 0.03。 */
-  memoryWeightBonus?: number;
-}
-
 export interface FallbackNeighbor {
   repoId: string;
   score: number;
-  matchedReason: 'topic' | 'language' | 'memory';
+  matchedReason: 'topic' | 'memory';
 }
 
 export interface KeywordFallbackNeighborInput {
@@ -63,22 +56,17 @@ function compareNeighbors(left: SemanticNeighbor, right: SemanticNeighbor): numb
   return right.similarity - left.similarity || left.repoId.localeCompare(right.repoId);
 }
 
-function hasPersonalMemory(memory?: Memory): boolean {
-  return Boolean(memory?.whySaved?.trim() || memory?.note?.trim());
-}
-
 /**
  * Returns a conservative local semantic neighborhood.
  *
  * A candidate is accepted only when both repositories appear in each other's
  * nearest-neighbor pool. The relationship may legitimately be empty.
- * When memoriesByRepoId is provided, repositories with personal memories receive
- * an intentional alignment bonus to reinforce mutual affinity.
+ * Memory participates through the vectors themselves; no extra bonus is applied merely
+ * because a repository has a non-empty Memory.
  */
 export function findMutualSemanticNeighbors(
   vectors: readonly RepoSemanticVector[],
   anchorRepoId: string,
-  options?: MutualNeighborsOptions,
 ): SemanticNeighbor[] {
   const uniqueVectors = new Map<string, readonly number[]>();
   for (const item of vectors) {
@@ -96,30 +84,25 @@ export function findMutualSemanticNeighbors(
     norms.set(repoId, vectorNorm(vector));
   }
 
-  const memories = options?.memoriesByRepoId;
-  const memoryBonus = options?.memoryWeightBonus ?? 0.03;
-
   const nearestFor = (repoId: string): SemanticNeighbor[] => {
     const source = uniqueVectors.get(repoId);
     const sourceNorm = norms.get(repoId) ?? 0;
     if (!source || sourceNorm === 0) {
       return [];
     }
-    const sourceHasMemory = memories ? hasPersonalMemory(memories.get(repoId)) : false;
     const nearest: SemanticNeighbor[] = [];
 
     for (const [candidateId, candidate] of uniqueVectors) {
       if (candidateId === repoId) {
         continue;
       }
-      let similarity = cosineSimilarity(source, candidate, sourceNorm, norms.get(candidateId) ?? 0);
+      const similarity = cosineSimilarity(
+        source,
+        candidate,
+        sourceNorm,
+        norms.get(candidateId) ?? 0,
+      );
       if (Number.isFinite(similarity)) {
-        if (sourceHasMemory && memories && hasPersonalMemory(memories.get(candidateId))) {
-          // 意图共鸣加成：当双方都有用户个人 Memory 且相似度为正时适度放大，强化意图互为近邻
-          if (similarity > 0) {
-            similarity = Math.min(1.0, similarity + memoryBonus);
-          }
-        }
         nearest.push({ repoId: candidateId, similarity });
       }
     }
@@ -188,7 +171,8 @@ export function findKeywordFallbackNeighbors({
     }
     const repo = item.repo;
     let score = 0;
-    let bestReason: 'topic' | 'language' | 'memory' = 'topic';
+    let topicScore = 0;
+    let memoryScore = 0;
 
     // 1. Topic 重叠：每个交集记 2.0 分
     let topicOverlapCount = 0;
@@ -198,16 +182,13 @@ export function findKeywordFallbackNeighbors({
       }
     }
     if (topicOverlapCount > 0) {
-      score += topicOverlapCount * 2.0;
-      bestReason = 'topic';
+      topicScore = topicOverlapCount * 2.0;
+      score += topicScore;
     }
 
     // 2. 编程语言相同：记 1.0 分
     if (anchorLang && repo.language?.toLowerCase().trim() === anchorLang) {
       score += 1.0;
-      if (topicOverlapCount === 0) {
-        bestReason = 'language';
-      }
     }
 
     // 3. Memory 意图词重叠匹配
@@ -220,17 +201,18 @@ export function findKeywordFallbackNeighbors({
       if (candidateMemoryText) {
         const hasOverlap = anchorKeywords.some((keyword) => candidateMemoryText.includes(keyword));
         if (hasOverlap) {
-          score += 2.5;
-          bestReason = 'memory';
+          memoryScore = 2.5;
+          score += memoryScore;
         }
       }
     }
 
-    if (score > 0) {
+    // 相同语言只能作为排序加成，不能单独构成可信的 Related Stars 关系。
+    if (topicScore > 0 || memoryScore > 0) {
       candidates.push({
         repoId: item.repoId,
         score,
-        matchedReason: bestReason,
+        matchedReason: memoryScore > topicScore ? 'memory' : 'topic',
       });
     }
   }

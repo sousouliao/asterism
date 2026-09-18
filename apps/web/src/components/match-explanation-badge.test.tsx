@@ -35,6 +35,12 @@ describe('MatchExplanationBadge', () => {
 
     expect(container.textContent).toContain('命中收藏原因');
     expect(container.textContent).toContain('用于替换旧网关');
+    const trigger = container.querySelector('button');
+    expect(trigger?.getAttribute('aria-label')).toContain('查看匹配详情');
+    await act(async () => {
+      trigger?.focus();
+    });
+    expect(document.activeElement).toBe(trigger);
 
     // 切换到英文
     await act(async () => {
@@ -42,30 +48,6 @@ describe('MatchExplanationBadge', () => {
     });
 
     expect(container.textContent).toContain('Matches saved reason');
-
-    await act(async () => root.unmount());
-    container.remove();
-  });
-
-  it('renders semantic_memory match reason', async () => {
-    const explanation: MatchExplanation = {
-      repoId: 'r2',
-      primaryReason: {
-        kind: 'semantic_memory',
-        snippet: '数据库连接池实现',
-      },
-      reasons: [{ kind: 'semantic_memory', snippet: '数据库连接池实现' }],
-    };
-
-    const container = document.createElement('div');
-    document.body.append(container);
-    const root = createRoot(container);
-
-    await act(async () => {
-      root.render(<MatchExplanationBadge explanation={explanation} />);
-    });
-
-    expect(container.textContent).toContain('与你的笔记意图相近');
 
     await act(async () => root.unmount());
     container.remove();

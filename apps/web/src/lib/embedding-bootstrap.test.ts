@@ -95,7 +95,7 @@ describe('runRepositoryEmbeddingBootstrap', () => {
 describe('embeddingOptInStorageKey', () => {
   it('versions consent per user and model so a future model upgrade asks again', () => {
     expect(embeddingOptInStorageKey('user-1')).toBe(
-      `asterism:embedding-bootstrap:v1:user-1:${DEFAULT_EMBEDDING_MODEL}`,
+      `asterism:embedding-bootstrap:v2:user-1:${DEFAULT_EMBEDDING_MODEL}`,
     );
   });
 });

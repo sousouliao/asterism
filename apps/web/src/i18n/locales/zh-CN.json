@@ -123,7 +123,7 @@
   "embeddings": {
     "prepareTitle": "按含义查找仓库",
     "discoveryDescription": "即使搜索词不同，也能找到含义相关的仓库。",
-    "prepareDescription": "一次下载约 120 MB，仅在浏览器中处理",
+    "prepareDescription": "一次下载约 120 MB。仓库元数据和你的 Memory 仅在当前浏览器处理，只有派生向量会写入受 RLS 保护的个人数据库。",
     "prepareAction": "启用",
     "prepareDismiss": "暂不",
     "preparing": "正在准备语义搜索",
@@ -172,9 +172,9 @@
       "name": "命中仓库名称",
       "description": "命中仓库描述",
       "topic": "命中主题：{{topic}}",
-      "semanticMemory": "与你的笔记意图相近",
       "semanticRepo": "与仓库内容语义相近",
-      "additionalMatches": "其他命中条件"
+      "additionalMatches": "其他命中条件",
+      "details": "查看匹配详情：{{reason}}"
     },
     "table": {
       "label": "仓库列表",
@@ -402,7 +402,7 @@
     "languageDescription": "切换界面语言。",
     "search": "搜索",
     "semanticSearch": "语义搜索",
-    "semanticSearchDescription": "按含义查找仓库；模型仅在当前浏览器中运行。",
+    "semanticSearchDescription": "按含义查找仓库；仓库元数据和你的 Memory 在本地处理，只有派生向量会写入受 RLS 保护的个人数据库。",
     "enableSemanticSearch": "启用语义搜索",
     "preparingSearch": "正在准备 {{progress}}%",
     "searchReady": "已就绪",

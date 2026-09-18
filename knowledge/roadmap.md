@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR 0037）。GitHub Stars 是首个 Memory 来源；Collection 保留为次级人工组织能力。GitHub #37 **Memory Foundation · Why I saved this** 已交付并完成线上部署，正式结项。
+Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR 0037）。GitHub Stars 是首个 Memory 来源；Collection 保留为次级人工组织能力。GitHub #37 **Memory Foundation · Why I saved this** 与 #39 **Unified Retrieval** 已交付，当前 frontier 是 #40 Resurface。
 
 | 阶段 | 状态 | 结果 / 边界 |
 | --- | --- | --- |
@@ -14,7 +14,8 @@ Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR
 | Phase 2.2 · Collection Dial | Retired（ADR 0036） | 专用用户面、账本与 Undo 已删除 |
 | Product Repositioning | Done（ADR 0037） | Personal Open Source Memory 成为正式定位 |
 | Memory Foundation | **Done（2026-09-17）** | #37：一对一 Memory 与 “Why I saved this” 完整纵向切片已部署上线 |
-| Unified Retrieval | Candidate | 等真实 Memory 数据与反馈形成后立项并创建 issue |
+| Unified Retrieval | **Done（2026-09-18）** | #39：Memory-aware 词法 / 语义检索、可验证解释与可信 Related Stars 降级 |
+| Resurface | Active | #40：沉睡记忆唤醒与主页推荐流 |
 | Browser Extension / Desktop | Deferred | Memory / Retrieval 基础稳定后重新排期 |
 
 ## 已交付基础
@@ -44,11 +45,11 @@ GitHub #37 的本地实现已覆盖：
 
 剩余完成判据是 linked Supabase migration、更新后的 `sync-stars` 部署，以及真实 migration / RLS / repair smoke；通过前 #37 保持开放。
 
-## Memory Foundation 之后
+## 当前 frontier
 
-下一候选方向是统一 Retrieval：把现有关键词匹配、语义近邻、Related Stars 与用户 Memory 组合成面向意图的检索。只有在 #37 完成并产生真实 Memory 数据和使用反馈后，才创建对应 issue 和验收标准。
+统一 Retrieval 已把关键词匹配、语义近邻、Related Stars 与用户 Memory 组合成面向个人意图的检索，并以可信解释和本地降级作为边界。下一活动方向是 GitHub #40 Resurface；#41 Ask Asterism 在其后推进。
 
-以下方向只保存在长期提案中，尚未获得实现授权：AI Chat / Ask、联网搜索、RepoSnapshot、Resurface、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 与星图 UI。
+以下方向只保存在长期提案中，尚未获得实现授权：联网搜索、RepoSnapshot、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 与星图 UI。Resurface 与 Ask Asterism 已分别进入 GitHub #40 / #41，不再属于未授权方向。
 
 ## 延后客户端
 

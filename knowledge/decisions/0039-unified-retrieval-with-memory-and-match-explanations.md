@@ -18,13 +18,15 @@
 1. **Memory 深度融入向量空间与内容签名**：
    - 扩充 `EmbeddableRepo` 支持 `whySaved` 与 `note`，生成 passage input 时结构化合并个人动机与笔记；
    - `repoContentHash` 覆盖 Memory 内容，任何记忆保存与修改自动令旧签名失效，并通过 `useEmbeddingBootstrap` 触发增量重嵌。
+   - 模型只在浏览器内处理原文，数据库只保存本人 RLS 隔离的派生向量；Memory-aware embedding 使用 consent v2，不静默沿用旧的公共元数据授权。
 2. **在 `@asterism/core` 建立统一检索接口（`retrieveRepos`）**：
    - 统一收拢词法多字段倒排匹配（记忆动机、笔记、仓库名、描述、主题）、分面筛选、时间排序与语义扩展；
    - 匹配结果按个人意图优先排序（`why_saved` > `note` > `name` > `description` > `topic`）；
    - 输出结构化 `MatchExplanation`（含 primaryReason、所有命中 reasons 与上下文高亮 snippet），由前台组件呈现给用户。
 3. **意图共鸣与优雅降级的 Related Stars**：
-   - `findMutualSemanticNeighbors` 引入意图共鸣权重：当两个仓库均沉淀有用户个人记忆且处于正向语义距离时，给予微量意图加成，使具有个人关联思考的项目更易成为互为近邻；
-   - 引入 `findKeywordFallbackNeighbors`：在语义向量模型未就绪、无向量数据或弱设备（unsupported）上，综合利用 Topics、语言与 Memory 关键词交集，提供轻量可靠的降级推荐。
+   - Memory 直接进入 repository embedding，由实际向量相似度表达意图关系；不因双方仅仅存在非空 Memory 就追加固定 bonus，避免把填写完整度误当成共鸣；
+   - 引入 `findKeywordFallbackNeighbors`：在语义向量运行时降级、无向量数据、无互为近邻或向量读取失败时，综合利用 Topics 与 Memory 关键词交集提供轻量可靠的降级推荐；同语言只能作为排序加成，不能单独构成推荐。
+   - 合并向量无法证明相似性具体来自 Memory 或仓库元数据，因此语义扩展使用中性解释；只有词法字段命中才能声明具体的 Memory 匹配理由。
 4. **克制优雅的前端可解释性 UI（基于 `/impeccable` 原则）**：
    - 设计 `MatchExplanationBadge`，卡片与列表均支持紧凑徽章与丰富 Tooltip 查看命中详情；
    - 严格支持中英双语（i18n）与无障碍标准（ARIA、键盘焦点），不给用户造成认知负担与视觉喧扰。

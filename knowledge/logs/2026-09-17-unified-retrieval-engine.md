@@ -5,6 +5,8 @@ GitHub: #39
 Status: Implementation and verification complete  
 Decision: ADR 0039
 
+> 2026-09-18 correction: 后续代码复核发现原记录中的 Memory 存在加成、同语言独立降级候选与语义字段归因并不可靠，且降级分支存在类型错误。最终行为与门禁结果以 `2026-09-18-unified-retrieval-review-remediation.md` 为准。
+
 ## Outcome
 
 - **Memory 融入向量空间与签名机制**：
@@ -16,9 +18,9 @@ Decision: ADR 0039
   - 支持多字段词法倒排与个人记忆优先匹配（`why_saved` > `note` > `name` > `description` > `topic`）；
   - 输出结构化 `MatchExplanation`（含 primaryReason、所有命中 reasons 与高亮上下文片段 `snippet`）；
   - 保证无语义向量数据时的优雅词法降级，有语义数据时无缝追加限定配额的 `semantic` 近邻扩展。
-- **意图加成与降级推荐的 Related Stars**：
-  - `findMutualSemanticNeighbors` 引入用户记忆意图共鸣加成：当两个仓库均沉淀了个人记忆且语义相似为正时，给予意图对齐增益；
-  - 引入 `findKeywordFallbackNeighbors`：在 WebGPU/WASM 不可用或向量空间无互为近邻时，利用 Topics、同语言与 Memory 意图词交集，平滑降级生成相关推荐。
+- **Memory-aware 与降级推荐的 Related Stars**：
+  - Memory 通过每个仓库的合并本地向量自然参与语义近邻，不再根据“双方都有 Memory”给予无法证明内容相关的固定加成；
+  - `findKeywordFallbackNeighbors` 在运行时降级或向量空间无互为近邻时，仅以 Topic / Memory 关键词交集建立候选；同语言只作为同级排序信号。
 - **优雅克制的可解释性 UI（遵循 `/impeccable` 原则）**：
   - 实现 `MatchExplanationBadge`，卡片与列表均支持直观紧凑徽章与丰富 Tooltip 展开；
   - 完全遵循 Graphite Glass 设计规范、中英双语国际化（`en` / `zh-CN`）与无障碍标准（ARIA / 键盘交互）。
@@ -29,7 +31,4 @@ Decision: ADR 0039
 
 ## Verification
 
-- `pnpm lint` 格式与静态检查 282 个文件全部无任何 warning/error。
-- `pnpm test` 全工作区 7 个包，全套单元测试与集成测试（包括 core、db、supabase-functions、web）100% 绿灯通过。
-- `pnpm build` 成功完成全包编译（包含 web vite 构建与 extension 构建）。
-- 验证了为什么被收藏（whySaved）、笔记（note）、仓库名、描述、主题及语义意图相近的全部场景解释徽章展示与 Tooltip。
+- 本记录所述门禁结果在后续复核中被不可达分支的 `TS2367` 推翻；修正后的全量验证见 2026-09-18 follow-up log。

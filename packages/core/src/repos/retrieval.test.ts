@@ -227,6 +227,50 @@ describe('retrieveRepos', () => {
     expect(explanation?.reasons.map((r) => r.kind)).toContain('description');
   });
 
+  it('ranks personal-intent matches before objective metadata matches', () => {
+    const metadataMatch = item(
+      {
+        githubId: 98,
+        fullName: 'popular/proxy',
+        name: 'proxy',
+        description: 'A popular proxy',
+        stargazers: 100_000,
+      },
+      'r98',
+    );
+    const intentMatch = item(
+      {
+        githubId: 99,
+        fullName: 'small/tool',
+        name: 'tool',
+        description: 'An internal utility',
+        stargazers: 1,
+      },
+      'r99',
+    );
+    const memories = new Map([
+      [
+        'r99',
+        {
+          repoId: 'r99',
+          source: 'github_star' as const,
+          sourceCreatedAt: null,
+          whySaved: 'proxy replacement for our gateway',
+          note: null,
+        },
+      ],
+    ]);
+
+    const result = retrieveRepos({
+      items: [metadataMatch, intentMatch],
+      filter: { query: 'proxy' },
+      sort: 'stars',
+      memoriesByRepoId: memories,
+    });
+
+    expect(result.primary.map((entry) => entry.repoId)).toEqual(['r99', 'r98']);
+  });
+
   it('smoothly degrades to keyword search when distance map is absent or empty', () => {
     const result = retrieveRepos({
       items: dataset,
@@ -235,11 +279,11 @@ describe('retrieveRepos', () => {
       now: NOW,
       distanceByRepoId: undefined,
     });
-    expect(result.primary.map((r) => r.repoId)).toEqual(['r1', 'r2']);
+    expect(result.primary.map((r) => r.repoId)).toEqual(['r2', 'r1']);
     expect(result.semantic).toEqual([]);
   });
 
-  it('recommends semantic neighbors and assigns semantic_memory or semantic_repo explanations', () => {
+  it('recommends semantic neighbors with neutral explanations when field attribution is unknown', () => {
     // Query 'application proxy' matches r1 in keyword
     // r3 has personal memory and is in distance map
     // r4 has no matching keyword, is in distance map
@@ -260,13 +304,12 @@ describe('retrieveRepos', () => {
     expect(result.primary.map((r) => r.repoId)).toEqual(['r1']);
     expect(result.semantic.map((r) => r.repoId)).toEqual(['r3', 'r4']);
 
-    // r3 has memory -> semantic_memory
+    // A combined vector cannot prove whether similarity came from Memory or repository metadata.
     const r3Exp = result.explanations.get('r3');
-    expect(r3Exp?.primaryReason.kind).toBe('semantic_memory');
+    expect(r3Exp?.primaryReason.kind).toBe('semantic_repo');
 
-    // r4 has memory as well
     const r4Exp = result.explanations.get('r4');
-    expect(r4Exp?.primaryReason.kind).toBe('semantic_memory');
+    expect(r4Exp?.primaryReason.kind).toBe('semantic_repo');
 
     // test repo without memory
     const datasetWithNoMemoryRepo = [

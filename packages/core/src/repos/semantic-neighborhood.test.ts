@@ -86,45 +86,6 @@ describe('findMutualSemanticNeighbors', () => {
 
     expect(findMutualSemanticNeighbors(vectors, 'anchor')).toHaveLength(5);
   });
-
-  it('applies memory alignment bonus when both repositories have personal memory', () => {
-    // b has slightly lower base similarity than c, but anchor and b both have personal memories
-    const vectors = [vector('anchor', [1, 0]), vector('b', [0.95, 0.3]), vector('c', [0.96, 0.2])];
-
-    const memories: Map<string, Memory> = new Map([
-      [
-        'anchor',
-        {
-          repoId: 'anchor',
-          source: 'github_star',
-          sourceCreatedAt: null,
-          whySaved: '微服务网关',
-          note: null,
-        },
-      ],
-      [
-        'b',
-        {
-          repoId: 'b',
-          source: 'github_star',
-          sourceCreatedAt: null,
-          whySaved: '网关替代方案',
-          note: null,
-        },
-      ],
-    ]);
-
-    // Without options: c (similarity higher) is ranked before b
-    const withoutOptions = findMutualSemanticNeighbors(vectors, 'anchor');
-    expect(withoutOptions.map((n) => n.repoId)).toEqual(['c', 'b']);
-
-    // With memoriesByRepoId: b receives bonus (0.95 + 0.03 = 0.98 > c)
-    const withOptions = findMutualSemanticNeighbors(vectors, 'anchor', {
-      memoriesByRepoId: memories,
-      memoryWeightBonus: 0.05,
-    });
-    expect(withOptions.map((n) => n.repoId)).toEqual(['b', 'c']);
-  });
 });
 
 describe('findKeywordFallbackNeighbors', () => {
@@ -192,7 +153,7 @@ describe('findKeywordFallbackNeighbors', () => {
     ],
   ]);
 
-  it('ranks neighbors by topic overlap, language match, and memory intent overlap', () => {
+  it('ranks trustworthy neighbors by topic overlap and memory intent overlap', () => {
     const results = findKeywordFallbackNeighbors({
       anchorRepoId: 'anchor',
       anchorRepo,
@@ -203,12 +164,11 @@ describe('findKeywordFallbackNeighbors', () => {
 
     // r-topic has 2 topic overlaps (4.0 score)
     // r-memory has memory keyword overlap '检索' (2.5 score)
-    // r-lang has language match (1.0 score)
+    // r-lang has only a language match and is not trustworthy enough to recommend
     // r-unrelated has 0 score and is filtered out
-    expect(results.map((r) => r.repoId)).toEqual(['r-topic', 'r-memory', 'r-lang']);
+    expect(results.map((r) => r.repoId)).toEqual(['r-topic', 'r-memory']);
     expect(results[0]?.matchedReason).toBe('topic');
     expect(results[1]?.matchedReason).toBe('memory');
-    expect(results[2]?.matchedReason).toBe('language');
   });
 
   it('filters out anchor repo itself from fallback results', () => {

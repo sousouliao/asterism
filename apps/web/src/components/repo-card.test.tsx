@@ -74,6 +74,7 @@ describe('RepoCard bulk selection', () => {
     );
     expect(repoLink?.textContent).toBe(record.repo.name);
 
+    repoLink?.addEventListener('click', (event) => event.preventDefault(), { once: true });
     repoLink?.click();
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(onSelect).not.toHaveBeenCalled();
@@ -99,5 +100,28 @@ describe('RepoCard bulk selection', () => {
     );
 
     expect(container.textContent).toContain('替换微服务网关');
+  });
+
+  it('hides match explanations in bulk selection mode', async () => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () =>
+      root.render(
+        <RepoCard
+          record={record}
+          explanation={{
+            repoId: record.repoId,
+            primaryReason: { kind: 'why_saved', snippet: '替换微服务网关' },
+            reasons: [{ kind: 'why_saved', snippet: '替换微服务网关' }],
+          }}
+          bulkSelection={{ repoIds: new Set(), onToggle: vi.fn() }}
+        />,
+      ),
+    );
+
+    expect(container.textContent).not.toContain('替换微服务网关');
   });
 });

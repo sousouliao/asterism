@@ -16,7 +16,6 @@ export interface MatchExplanationBadgeProps {
 const KIND_ICONS: Record<MatchReasonKind, ComponentType<{ className?: string }>> = {
   why_saved: NotebookPenIcon,
   note: NotebookPenIcon,
-  semantic_memory: SparklesIcon,
   semantic_repo: SparklesIcon,
   topic: TagIcon,
   description: FileTextIcon,
@@ -27,10 +26,9 @@ function getBadgeVariantStyles(kind: MatchReasonKind): string {
   switch (kind) {
     case 'why_saved':
     case 'note':
-      return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/25 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40';
-    case 'semantic_memory':
+      return 'border-border bg-accent text-accent-foreground';
     case 'semantic_repo':
-      return 'bg-cyan-500/10 text-cyan-500 dark:text-cyan-400 border-cyan-500/25 dark:bg-cyan-950/40 dark:border-cyan-800/40';
+      return 'border-primary/25 bg-primary/10 text-link';
     default:
       return 'bg-muted/80 text-muted-foreground border-border/50';
   }
@@ -50,8 +48,6 @@ export function getMatchReasonLabel(reason: MatchReason, t: TFunction): string {
       return t('browse.matchReasons.topic', {
         topic: reason.matchedField || reason.snippet,
       });
-    case 'semantic_memory':
-      return t('browse.matchReasons.semanticMemory');
     case 'semantic_repo':
       return t('browse.matchReasons.semanticRepo');
     default:
@@ -69,12 +65,9 @@ export const MatchExplanationBadge = memo(function MatchExplanationBadge({
   const Icon = KIND_ICONS[primaryReason.kind] ?? SearchIcon;
   const label = getMatchReasonLabel(primaryReason, t);
 
-  // 仅在命中用户私有记忆（why_saved / note）或语义近邻（semantic_memory）时，在行内展示引文摘要；
+  // 仅在命中用户私有记忆（why_saved / note）时，在行内展示引文摘要；
   // 仓库客观元数据（description / name / topic）表面已有对应展示，不重复堆砌截断文本。
-  const isPersonalMemoryKind =
-    primaryReason.kind === 'why_saved' ||
-    primaryReason.kind === 'note' ||
-    primaryReason.kind === 'semantic_memory';
+  const isPersonalMemoryKind = primaryReason.kind === 'why_saved' || primaryReason.kind === 'note';
 
   const hasSnippet = Boolean(primaryReason.snippet?.trim());
   const shouldRenderInlineSnippet = showSnippet && hasSnippet && isPersonalMemoryKind;
@@ -124,9 +117,11 @@ export const MatchExplanationBadge = memo(function MatchExplanationBadge({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span
+        <button
+          type="button"
+          aria-label={t('browse.matchReasons.details', { reason: label })}
           className={cn(
-            'inline-flex max-w-full cursor-help items-center gap-1.5 overflow-hidden text-[11px] select-none',
+            'inline-flex max-w-full cursor-help items-center gap-1.5 overflow-hidden rounded-sm text-[11px] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             className,
           )}
         >
@@ -145,7 +140,7 @@ export const MatchExplanationBadge = memo(function MatchExplanationBadge({
               "{primaryReason.snippet}"
             </span>
           ) : null}
-        </span>
+        </button>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={6} className="p-2.5">
         {tooltipText}

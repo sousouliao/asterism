@@ -119,7 +119,7 @@ sequenceDiagram
 
 > ADR 0032 已退役服务端 AI 整理：运行时不保存 Provider credential，不调用 Generation Provider，也不维护 AI 草稿、任务、计划或同步后整理机会。历史 AI 操作已经写入的普通组织关系仍是 canonical 用户数据，不由退役迁移回滚。ADR 0035 进一步把用户自定义 Tag 迁入 Collection；成员关系保留，Tag color 不迁移。
 
-> 语义能力保持纯浏览器内边界：浏览器生成 repository/query embedding，只把用户向量存入本人 RLS 隔离的 `user_repo_embeddings`，用于隐形混合搜索与 Related Stars；它不经过 BYOK，不自动修改 canonical。ADR 0036 已退役 Collection Dial，embedding 不再用于集合盘候选排序。
+> 语义能力保持浏览器内推理边界：浏览器以仓库元数据和当前用户的 `whySaved` / `note` 生成 repository/query embedding，原文不发送给第三方模型；只把派生向量存入本人 RLS 隔离的 `user_repo_embeddings`，用于统一 Retrieval 与 Related Stars。首次使用 Memory-aware embedding 需通过 consent v2 明确授权。它不经过 BYOK，不自动修改 canonical。ADR 0036 已退役 Collection Dial，embedding 不再用于集合盘候选排序。
 
 README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML 仅有 5 分钟会话内缓存，也不建立搜索索引。
 
@@ -127,7 +127,7 @@ README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML
 
 ADR 0037 把 Memory 设为用户与 Repo 的一等关系；ADR 0038 明确采用无旧数据兼容的干净切换。`@asterism/core` 定义领域类型，`@asterism/db` 是读取与保存的唯一入口，`sync-stars` 通过幂等 repair pass 创建缺失基础记录，Web Quick Look 编辑个人上下文。旧 `notes` 运行时与查询接口不再保留。
 
-Collection、混合搜索、Related Stars、embedding、同步与可靠写入保持为可复用能力。统一 Retrieval、Snapshot、Research、MCP 与其他长期能力没有运行时授权。
+Collection、统一 Retrieval、Related Stars、embedding、同步与可靠写入保持为可复用能力。Snapshot、Research、MCP 与其他长期能力没有运行时授权。
 
 ### README 实时读取
 

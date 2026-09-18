@@ -228,7 +228,7 @@ ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。主体
 - 窗口移动：桌面与平板悬浮层以仓库身份所在的完整首行作为拖动区域，不添加 drag icon 或其他冗余能力提示；仓库链接短按仍打开 GitHub，pointer 位移达到 `4px` 后才进入拖动并抑制链接点击，关闭按钮不参与拖动。浮窗限制在视口 `12px` 安全边距内，窗口尺寸变化后自动收回视口，手机底部 Sheet 不提供拖动。
 - 编辑安全：Memory 的 `whySaved` 与 `note` 共用一套草稿边界。切换仓库、关闭面板、浏览器后退或离开页面前必须拦截；用户可选择保存并继续、放弃并继续，或通过关闭按钮 / Esc / 点遮罩继续编辑（关闭与「继续编辑」同义，页脚不再单独展示该动作）。页脚两个决策动作桌面右对齐，窄屏同宽单列，不得用 `space-between` 拆散。保存失败时保留两个字段的草稿与原选择，不得静默丢失。
 - 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。Memory Foundation 完成后的主体固定为 Overview → Memory → Related Stars（有可信结果时）→ Collections 的单列结构。集合编辑必须可搜索，不能在高基数时摊开全部目标。
-- Related Stars 是从当前收藏继续探索的只读 derived 能力：只展示最多 5 条互为 Top-12 语义近邻，不显示相似度百分比；每条使用标准整行按钮、仓库身份与一行描述，点击后在同一 Quick Look 中切换并允许继续探索。embedding 未准备、当前仓库无向量、无互为近邻或查询失败时整段不出现，不显示空态、不强行补足数量。
+- Related Stars 是从当前收藏继续探索的只读 derived 能力：优先展示最多 5 条互为 Top-12 语义近邻，不显示相似度百分比；向量运行时降级、当前仓库无向量、无互为近邻或向量读取失败时，可使用本地 Topics 与 Memory 关键词交集生成可信候补，同语言只能参与候补排序、不得单独构成推荐。无语义近邻也无可信候补时整段不出现，不显示空态、不强行补足数量。每条使用标准整行按钮、仓库身份与一行描述，点击后在同一 Quick Look 中切换并允许继续探索。
 - 可访问性：桌面和平板悬浮层使用命名的非模态 `dialog`，手机沿用 Sheet 语义；所有图标按钮必须有 i18n 标签与 tooltip，选中行 / 卡片暴露 `aria-selected` 或等价状态，并通过 `aria-controls` / `aria-expanded` 关联面板。
 
 ### Dialog Pattern · 对话框模式
@@ -245,6 +245,7 @@ Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等�
 
 - App Topbar 中的搜索是 **Browse Search**，只在 Browse 路由显示并修改 Browse 筛选状态。它不是全局搜索、command surface 或 Collection Detail 搜索；不得在其他路由产生不可见的筛选副作用。
 - ADR 0026（Accepted）把 Browse Search 演进为**隐形混合搜索**：关键词命中与语义近邻融合为一套排序、**零模式开关**（不新增 Semantic 模式切换、不暴露 Embedding 设置），由浏览器内 embedding 支撑、弱设备降级纯关键词。
+- ADR 0039 进一步把 `whySaved` / `note` 纳入统一 Retrieval：词法结果按 `why_saved` → `note` → 仓库名 → 描述 → Topic 的理由优先级分组，同级内才沿用用户选择的排序。Match Explanation 只能声明可验证的字段命中；合并向量无法区分 Memory 与仓库元数据贡献时使用中性语义说明，不得猜测“与你的笔记意图相近”。解释触发器必须键盘可达、使用设计 token，并在批量选择模式隐藏以保持整行 / 整卡选择语义。
 - ADR 0028 已移除二维语义星图。Browse 只提供卡片与列表两种信息布局；语义能力必须嵌入搜索排序或具体仓库的 Related Stars，不新增空间视图、语义模式开关或抽象点云导航。
 
 - 语言、Topic 与集合使用固定高度的可搜索 facet picker；初次打开最多渲染 20 个选项，搜索从完整集合中匹配并最多渲染 50 个结果，禁止在弹层首开时挂载全部高基数 facets。cutover 前标签筛选仍为现有 checkbox 菜单。

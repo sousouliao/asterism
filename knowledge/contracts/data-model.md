@@ -135,9 +135,9 @@ ADR 0038 采用无旧数据兼容的干净切换：`notes` 表与旧查询已经
 - `repo_id` → `repos(id)`
 - `embedding` — pgvector 向量；默认模型 `multilingual-e5-small` 为 384 维
 - `embedding_model` — 产出该向量的模型 ID（= `packages/core` 全局常量，版本化以支持可逆升级）
-- `content_hash` — 被嵌文本（`full_name` + `description` + `topics`）的哈希，用于探测过期并触发增量重嵌
+- `content_hash` — 被嵌文本（`full_name` + `description` + `topics` + 当前用户可选的 `why_saved` / `note`）的哈希，用于探测过期并触发增量重嵌
 
-约束：`(user_id, repo_id)` 唯一。回填 = 求「无行 / `embedding_model` 失配 / `content_hash` 失配」集合，天然增量、可续跑。个人量级按 `user_id` 过滤后精确扫描即毫秒级，**先不建 ANN 索引**（HNSW / IVFFlat 留待规模变大再引入）；维度随默认模型变化需 `alter` + 全库重嵌。查询向量在浏览器内嵌入后，只把向量发到用户自有 Postgres 做距离检索，原文不出设备。
+约束：`(user_id, repo_id)` 唯一。回填 = 求「无行 / `embedding_model` 失配 / `content_hash` 失配」集合，天然增量、可续跑。个人量级按 `user_id` 过滤后精确扫描即毫秒级，**先不建 ANN 索引**（HNSW / IVFFlat 留待规模变大再引入）；维度随默认模型变化需 `alter` + 全库重嵌。仓库元数据、Memory 与查询原文均只在浏览器内进入本地模型；数据库只接收派生向量与仅用于变化探测的哈希，并通过 RLS 按用户隔离。Memory-aware embedding 使用独立 consent v2，旧的公共元数据授权不得静默沿用。
 
 ---
 

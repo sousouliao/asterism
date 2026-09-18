@@ -286,7 +286,7 @@ export const RepoTableRow = memo(function RepoTableRow({
               {t('browse.archived')}
             </Badge>
           ) : null}
-          {explanation ? (
+          {explanation && !bulkSelection ? (
             <MatchExplanationBadge
               explanation={explanation}
               showSnippet={false}

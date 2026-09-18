@@ -37,7 +37,6 @@ export function selectSemanticNeighborhood(
   return findMutualSemanticNeighbors(
     freshVectors.map((record) => ({ repoId: record.repoId, embedding: record.vector })),
     anchorRepoId,
-    { memoriesByRepoId },
   )
     .map((neighbor) => repoById.get(neighbor.repoId))
     .filter((record): record is StarredRepoRecord => Boolean(record));
@@ -79,7 +78,7 @@ export function useSemanticNeighborhood(anchorRepoId: string | undefined): Starr
     return map;
   }, [memoriesList]);
 
-  const { data: embeddings } = useQuery({
+  const { data: embeddings, isError: embeddingsError } = useQuery({
     queryKey: embeddingKeys.list(userId ?? 'anon'),
     enabled: Boolean(userId && anchorRepoId && availability === 'available'),
     staleTime: 10 * 60 * 1_000,
@@ -90,8 +89,8 @@ export function useSemanticNeighborhood(anchorRepoId: string | undefined): Starr
     if (!anchorRepoId || !starredRepos) {
       return [];
     }
-    // 当且仅当弱设备明确不支持向量（unsupported）时，做关键词/语言/Memory 降级
-    if (availability === 'unsupported') {
+    // 向量运行时不可用或向量读取失败时，使用可信的本地元数据 / Memory 降级。
+    if (availability === 'degraded' || embeddingsError) {
       const repoById = new Map(starredRepos.map((record) => [record.repoId, record]));
       const anchor = repoById.get(anchorRepoId);
       if (!anchor) {
@@ -137,5 +136,5 @@ export function useSemanticNeighborhood(anchorRepoId: string | undefined): Starr
     return fallback
       .map((item) => repoById.get(item.repoId))
       .filter((record): record is StarredRepoRecord => Boolean(record));
-  }, [anchorRepoId, availability, embeddings, memoriesByRepoId, starredRepos]);
+  }, [anchorRepoId, availability, embeddings, embeddingsError, memoriesByRepoId, starredRepos]);
 }

@@ -13,7 +13,6 @@ export type MatchReasonKind =
   | 'name'
   | 'description'
   | 'topic'
-  | 'semantic_memory'
   | 'semantic_repo';
 
 export interface MatchReason {
@@ -93,14 +92,33 @@ const REASON_PRECEDENCE: Record<MatchReasonKind, number> = {
   name: 3,
   description: 4,
   topic: 5,
-  semantic_memory: 6,
-  semantic_repo: 7,
+  semantic_repo: 6,
 };
 
 function sortReasons(reasons: MatchReason[]): MatchReason[] {
   return [...reasons].sort(
     (a, b) => (REASON_PRECEDENCE[a.kind] ?? 99) - (REASON_PRECEDENCE[b.kind] ?? 99),
   );
+}
+
+function sortKeywordMatches<T extends StarredRepoLike>(
+  matches: T[],
+  explanations: ReadonlyMap<string, MatchExplanation>,
+  sort: RepoSort,
+): T[] {
+  const sortedBySelectedDimension = sortStarredRepos(matches, sort);
+  const selectedOrder = new Map(sortedBySelectedDimension.map((item, index) => [item, index]));
+
+  return sortedBySelectedDimension.sort((left, right) => {
+    const leftReason = left.repoId ? explanations.get(left.repoId)?.primaryReason.kind : undefined;
+    const rightReason = right.repoId
+      ? explanations.get(right.repoId)?.primaryReason.kind
+      : undefined;
+    const precedenceDelta =
+      (leftReason ? REASON_PRECEDENCE[leftReason] : 99) -
+      (rightReason ? REASON_PRECEDENCE[rightReason] : 99);
+    return precedenceDelta || (selectedOrder.get(left) ?? 0) - (selectedOrder.get(right) ?? 0);
+  });
 }
 
 /**
@@ -213,7 +231,7 @@ export function retrieveRepos<T extends StarredRepoLike>({
     }
   }
 
-  const primary = sortStarredRepos(keywordMatches, sort);
+  const primary = sortKeywordMatches(keywordMatches, explanations, sort);
 
   // 4. 语义近邻扩展（Semantic Neighbors）
   if (!distanceByRepoId || distanceByRepoId.size === 0) {
@@ -241,14 +259,11 @@ export function retrieveRepos<T extends StarredRepoLike>({
     if (!item.repoId) {
       continue;
     }
-    const memory = memoriesByRepoId?.get(item.repoId);
-    const hasPersonalMemory = Boolean(memory?.whySaved?.trim() || memory?.note?.trim());
-    const kind: MatchReasonKind = hasPersonalMemory ? 'semantic_memory' : 'semantic_repo';
-    const targetText = hasPersonalMemory
-      ? memory?.whySaved?.trim() || memory?.note?.trim()
-      : item.repo.description?.trim() || undefined;
+    // 当前向量把仓库元数据与 Memory 合并编码，距离本身无法证明相似性来自哪一字段。
+    // 在有可验证的分字段信号前，只给中性语义解释，避免把任意 Memory 错当成命中证据。
+    const targetText = item.repo.description?.trim() || undefined;
     const reason: MatchReason = {
-      kind,
+      kind: 'semantic_repo',
       snippet: targetText,
       fullText: targetText,
     };

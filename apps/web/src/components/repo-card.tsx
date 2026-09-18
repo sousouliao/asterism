@@ -206,7 +206,7 @@ export const RepoCard = memo(function RepoCard({
           ) : null}
         </div>
 
-        {explanation ? (
+        {explanation && !bulkSelection ? (
           <div className="flex min-w-0 items-center pointer-events-auto">
             <MatchExplanationBadge explanation={explanation} />
           </div>

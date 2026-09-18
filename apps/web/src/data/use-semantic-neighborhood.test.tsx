@@ -37,6 +37,10 @@ vi.mock('./use-starred-repos', () => ({
   useStarredRepos: () => ({ data: mocks.starredRepos }),
 }));
 
+vi.mock('./use-memories-list', () => ({
+  useMemoriesList: () => ({ data: [] }),
+}));
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function starred(repoId: string, name: string): StarredRepoRecord {
@@ -154,6 +158,37 @@ describe('useSemanticNeighborhood', () => {
       });
     });
     expect(mocks.listRepoEmbeddings).toHaveBeenCalledTimes(1);
+
+    await act(async () => root.unmount());
+    container.remove();
+  });
+
+  it('uses local fallback when embedding preparation degrades', async () => {
+    const related = mocks.starredRepos[1];
+    if (related) {
+      related.repo.topics = ['anchor'];
+    }
+    const preparationToken = beginEmbeddingPreparation('user-a', true);
+    finishEmbeddingPreparation('user-a', preparationToken, false);
+    const container = document.createElement('div');
+    document.body.append(container);
+    const root = createRoot(container);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    function Harness() {
+      return <span>{useSemanticNeighborhood('repo-1').length}</span>;
+    }
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <Harness />
+        </QueryClientProvider>,
+      );
+    });
+
+    expect(container.textContent).toBe('1');
+    expect(mocks.listRepoEmbeddings).not.toHaveBeenCalled();
 
     await act(async () => root.unmount());
     container.remove();

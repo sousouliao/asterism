@@ -27,7 +27,7 @@ function subscribe(listener: () => void) {
 }
 
 export function embeddingOptInStorageKey(userId: string) {
-  return `asterism:embedding-bootstrap:v1:${userId}:${DEFAULT_EMBEDDING_MODEL}`;
+  return `asterism:embedding-bootstrap:v2:${userId}:${DEFAULT_EMBEDDING_MODEL}`;
 }
 
 export function embeddingPromptDismissalStorageKey(userId: string) {

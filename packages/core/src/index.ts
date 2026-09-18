@@ -98,7 +98,6 @@ export { extractSnippet, retrieveRepos } from './repos/retrieval';
 export type {
   FallbackNeighbor,
   KeywordFallbackNeighborInput,
-  MutualNeighborsOptions,
   RepoSemanticVector,
   SemanticNeighbor,
 } from './repos/semantic-neighborhood';
