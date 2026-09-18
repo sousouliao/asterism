@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "pnpm --filter @asterism/web^... build && node scripts/prepare-embedding-assets.mjs",
+    "predev": "pnpm --filter @asterism/web^... build && node scripts/sync-public.mjs && node scripts/prepare-embedding-assets.mjs",
     "dev": "vite",
-    "build": "node scripts/prepare-embedding-assets.mjs && vite build",
+    "build": "node scripts/sync-public.mjs && node scripts/prepare-embedding-assets.mjs && vite build",
     "test": "vitest run",
     "preview": "vite preview",
     "reset-smart-search": "node scripts/reset-smart-search.mjs",

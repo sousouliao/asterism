@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Asterism</title>
+    <!-- 图标集由 RealFaviconGenerator 生成（主图为 public/favicon.svg，2026-09-18）。
+         favicon.ico / favicon-96x96.png 保持透明背景，应用图标（apple-touch / manifest）
+         为白底；background_color 取应用画布色，使启动屏到页面不过渡。 -->
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Asterism" />
+    <link rel="manifest" href="/site.webmanifest" />
     <script>
       // 首帧前应用已保存主题，避免刷新时先出亮色再翻转为暗色。
       // 键名与 packages/ui 的 THEME_STORAGE_KEY 一致，由 theme-bootstrap.test.ts 守护。

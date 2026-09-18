@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Asterism">
+  <!--
+    应用图标变体：实心品牌蓝铺满 + 白色星座标记，标记占画布 56%，
+    落在 Android maskable 的 80% 安全圆内。用于 RealFaviconGenerator 的
+    iOS / Android 图标（那里会自加圆角与遮罩，所以源图不做圆角、不留边距）。
+  -->
+  <rect width="64" height="64" fill="#2563eb" />
+  <g transform="translate(14 14) scale(1.125)">
+    <g fill="none" stroke="#ffffff" stroke-width="2.2" stroke-opacity="0.75" stroke-linecap="round">
+      <line x1="5.9" y1="8.8" x2="16" y2="5.9" />
+      <line x1="16" y1="5.9" x2="26.1" y2="13.1" />
+      <line x1="5.9" y1="8.8" x2="11.7" y2="20.3" />
+      <line x1="11.7" y1="20.3" x2="21.8" y2="26.1" />
+      <line x1="26.1" y1="13.1" x2="21.8" y2="26.1" />
+    </g>
+    <g fill="#ffffff">
+      <circle cx="5.9" cy="8.8" r="2.05" />
+      <circle cx="16" cy="5.9" r="2.9" />
+      <circle cx="26.1" cy="13.1" r="2.05" />
+      <circle cx="11.7" cy="20.3" r="2.05" />
+      <circle cx="21.8" cy="26.1" r="2.9" />
+    </g>
+  </g>
+</svg>

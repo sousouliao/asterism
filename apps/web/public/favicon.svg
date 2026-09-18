@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Asterism">
+  <!--
+    小尺寸专用星座标记：与 BrandLogo 同一拓扑（5 节点 + 5 连线），按 16px 可辨识度
+    调整了字重与不透明度，并把主题色写成字面值（favicon 读不到 CSS 变量）。
+    由 RealFaviconGenerator 生成整套图标（2026-09-18），见 knowledge/logs/2026-09-18-favicon-assets.md。
+  -->
+  <style>
+    svg { color: #2563eb }
+    @media (prefers-color-scheme: dark) { svg { color: #60a5fa } }
+  </style>
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-opacity="0.55" stroke-linecap="round">
+    <line x1="5.9" y1="8.8" x2="16" y2="5.9" />
+    <line x1="16" y1="5.9" x2="26.1" y2="13.1" />
+    <line x1="5.9" y1="8.8" x2="11.7" y2="20.3" />
+    <line x1="11.7" y1="20.3" x2="21.8" y2="26.1" />
+    <line x1="26.1" y1="13.1" x2="21.8" y2="26.1" />
+  </g>
+  <g fill="currentColor">
+    <circle cx="5.9" cy="8.8" r="2.05" />
+    <circle cx="16" cy="5.9" r="2.9" />
+    <circle cx="26.1" cy="13.1" r="2.05" />
+    <circle cx="11.7" cy="20.3" r="2.05" />
+    <circle cx="21.8" cy="26.1" r="2.9" />
+  </g>
+</svg>
