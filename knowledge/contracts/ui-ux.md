@@ -141,6 +141,8 @@ Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 +
 
 **Logo**：节点与连线统一使用 `--brand`；连线以较低 opacity 表达层级。禁止蓝紫渐变、gradient text 与装饰性 glow。
 
+**站点图标**：仓库自有的静态资源放在 `apps/web/public`（由 `scripts/sync-public.mjs` 同步到 Vite 的 public 根目录，因为 `publicDir` 被 embedding 资产占用）。`favicon.svg` 与 `BrandLogo` 同拓扑但按 16px 重调字重（连线 2.2 / 55%，节点 2.05 与 2.9，画布 32），颜色用字面值 + SVG 内 `prefers-color-scheme`；`favicon-tile.svg`（实心 `--brand` + 白色标记）只在需要实心应用图标时使用，不得用作标签页图标。整套图标由 RealFaviconGenerator 从 `favicon.svg` 生成：标签页 / 书签 / `favicon.ico` 保持透明背景，主屏图标（`apple-touch-icon`、`web-app-manifest-*`）为白底；`site.webmanifest` 的 `theme_color` / `background_color` 取应用画布色而非品牌蓝，与配色的克制策略一致。
+
 **分类色**：语言色只用于小面积信息编码，不用于 Dashboard 大面积图形。ADR 0035 不给 Collection 调色盘；历史标签 8 色不再出现在产品表面。
 
 ### Dark Mode Tokens · 暗色（定稿）
@@ -169,7 +171,7 @@ GitHub provider token 缺失只影响同步能力，不属于全局应用故障�
 - Browse / Dashboard 空状态：需要恢复时直接显示 Reconnect GitHub，不隐藏唯一主操作。
 - Toast 只报告恢复启动失败，不承担持久状态提示；恢复状态不得通过 modal 阻断浏览已有仓库。
 
-实现保留 `GlassControlRow` + `GlassRail` + `SegmentedControl` API，以及 4px rail padding、12px rail radius、4px indicator inset、8px/14px tab padding、10px tab radius、14px icon 与 240ms indicator 滑动。控制条 blur 为 8px；浮层与吸顶背景为 12px。动效使用 `--ease-out-quart`，交互反馈 120–240ms，并支持 `prefers-reduced-motion`。
+实现保留 `GlassControlRow` + `GlassRail` + `SegmentedControl` API，以及 4px rail padding、12px rail radius、4px indicator inset、8px/14px tab padding、10px tab radius、14px icon 与 240ms indicator 滑动。GlassRail 自带轨道高度（≈46px），**不与应用表单控件的 default 尺寸强行对齐**：收敛 tab 垂直留白会把文字挤在蓝色 indicator 里，已试过并回退；设置行内的一致性只要求 Select / Button 彼此对齐。控制条 blur 为 8px；浮层与吸顶背景为 12px。动效使用 `--ease-out-quart`，交互反馈 120–240ms，并支持 `prefers-reduced-motion`。
 
 **`variant: 'glass' | 'solid'`**（`GlassRail` / `SegmentedControl`，默认 `'glass'`）：
 
@@ -209,7 +211,7 @@ Browse 列表是紧凑生产力视图，不是 GitHub 元数据表格的复刻�
 
 - 仓库身份与点击语义：整行是打开 Asterism Repo Inspector 的主操作，支持 pointer click 与聚焦后的 Enter / Space；仓库名称与卡片视图保持一致，作为唯一的 GitHub 外链并新窗口打开，不再额外显示重复的 external-link 图标。名称链接与整行详情触发器必须并列，点击或键盘激活名称只打开 GitHub。行继续保持原生 `row` 语义，不改写为 `role=button`；Archived 使用既有 outline badge，描述保持单行截断。
 - 整理上下文：用户集合名称与笔记存在状态收进 Repository 次级信息，不混入 GitHub topics；集合名称按真实可用宽度折叠为 `+n`。二者都不存在时不渲染占位文案，不设置 Organization 独立列。ADR 0035 cutover 前仍展示用户标签与集合计数。
-- Activity：Updated 与 Starred 同时可见，完整相对时间通过 tooltip 与无障碍文本提供；按更新时间排序时，Updated 不得被响应式布局隐藏。
+- Activity：Updated 与 Starred 同时可见，完整相对时间通过 tooltip 与无障碍文本提供；按更新时间排序时，Updated 不得被响应式布局隐藏。两行各自独立成行并向左对齐，行间保留 4px 间距，不得直接抵着 micro 行高排在一起。
 - 表面与对齐：列表容器使用与 Repo Card 一致的 `--card` 内容表面，圆角必须裁切表头、行 hover 与虚拟占位内容；表头和 cell 必须复用同一列模板与水平内边距，并统一左对齐。表头使用独立的 muted surface、micro 字号与 medium 字重，必须与正文形成可辨识层级。
 - 批量选中反馈：批量模式以选中 checkbox 作为强确认，并用轻量 `accent` surface 表达整行范围；不得为每个选中行重复绘制完整 primary / ring 边框，以免全选时形成高密度线条。Quick Look 的单行选中仍使用完整 inset ring / surface，两种状态不得混用。
 - 响应式列：按列表容器而非浏览器视口切换；容器 `≥1024px` 显示 Repository / Language / Stars / Activity，`640–1023px` 视觉隐藏 Language、保留其表头与 cell 语义，`<640px` 视觉隐藏表头并重排为身份、描述/整理上下文、Language / Stars / Activity。任何详情呈现都不得改变主内容的 x、宽度或产生横向滚动。
@@ -231,6 +233,16 @@ ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。主体
 - Related Stars 是从当前收藏继续探索的只读 derived 能力：优先展示最多 5 条互为 Top-12 语义近邻，不显示相似度百分比；向量运行时降级、当前仓库无向量、无互为近邻或向量读取失败时，可使用本地 Topics 与 Memory 关键词交集生成可信候补，同语言只能参与候补排序、不得单独构成推荐。无语义近邻也无可信候补时整段不出现，不显示空态、不强行补足数量。每条使用标准整行按钮、仓库身份与一行描述，点击后在同一 Quick Look 中切换并允许继续探索。
 - 可访问性：桌面和平板悬浮层使用命名的非模态 `dialog`，手机沿用 Sheet 语义；所有图标按钮必须有 i18n 标签与 tooltip，选中行 / 卡片暴露 `aria-selected` 或等价状态，并通过 `aria-controls` / `aria-expanded` 关联面板。
 
+### Settings Row Pattern · 设置行模式
+
+设置页每一行固定为「左侧身份与状态 + 右侧可执行动作」两段，不把状态与动作混在同一组控件里。
+
+- **左段承载信息**：行标题、描述，以及该行的状态；状态（就绪 / 需要处理 / 准备中）以 Badge 与标题同行表达，属于行的信息，不进入右侧动作区。
+- **右段只放动作**：同一行内的动作共享一套几何（default 尺寸 / `rounded-md` / 8px 间距），空间不足时整组换行，`≥sm` 保持右对齐、窄屏随文本左对齐。
+- **动作层级**：常规维护动作使用 `outline`；会移除模型 / 索引 / 数据的动作沿用 `border-destructive/40 text-destructive` 的次级破坏性描边（与「退出登录」一致），不得为此新增色板或变体。同一行不出现两个同权重按钮。
+- **写操作反馈**：按钮内 spinner + 动作文案并保持宽度稳定，运行中的动作标 `aria-busy`，同组其他动作停用；长任务（模型下载 / 回填索引）在行内以带真实百分比的 `role=status` 徽标表达，禁止伪造进度。
+- **不可用态归因**：缺少前置数据时（如尚未同步任何 Star 仓库）不得只留下一个禁用按钮，必须就地说明原因。
+
 ### Dialog Pattern · 对话框模式
 
 应用内确认与表单 Dialog 共用 `@asterism/ui` 默认密度，与 Quick Look 浮层同属 Graphite Glass overlay，不得再回退到更松的 shadcn 默认（512px / 24px）。
@@ -251,7 +263,8 @@ Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等�
 - 语言、Topic 与集合使用固定高度的可搜索 facet picker；初次打开最多渲染 20 个选项，搜索从完整集合中匹配并最多渲染 50 个结果，禁止在弹层首开时挂载全部高基数 facets。cutover 前标签筛选仍为现有 checkbox 菜单。
 - 搜索输入的放大镜统一使用 `black/60`，并置于 Input 表面之上，避免被半透明 Glass 背景覆盖洗白。
 - Topic 默认沿用出现频率排序，语言沿用字母排序；当前选中项即使不在首屏窗口内也必须保持可见。
-- 筛选栏采用无外框的开放式工具栏：语言、Topic、集合、更多筛选与清除组成左侧筛选组，排序作为独立右侧组；使用空间而非额外容器边框表达分组。所有 trigger 统一使用现有 `size="sm"` 高度，不得额外覆盖造成 Select 与 Button 尺寸不一致。空间不足时组级换行，单个 trigger 不横向溢出。
+- 筛选栏采用无外框的开放式工具栏：语言、Topic、集合、更多筛选与清除组成左侧筛选组，排序作为独立右侧组；使用空间而非额外容器边框表达分组。空间不足时按控件换行，排序与批量入口保持同组并整体右对齐；单个 trigger 不横向溢出。
+- 同一行内的所有 trigger 共享一套几何（`apps/web/src/components/filter-trigger.ts` 的 `FILTER_TRIGGER_CLASS`）：统一使用 `size="sm"` 高度、`rounded-lg`、10px 水平内边距、6px 内部间距、`min-w-28`/`max-w-44` 宽度区间与 caption 字号，不得额外覆盖造成 Select 与 Button 尺寸不一致。Trigger 文案左对齐并独占剩余空间，使尾部计数徽标与箭头统一贴右边缘；行内图标与箭头使用 `--muted-foreground`，不混用前景色。
 - 未选择的 facet trigger 使用简短类别名（Language / Topic），菜单内仍保留“全部”选项；已启用的筛选以既有 primary token 的轻量边框和背景表达 active 状态。GlassRail 仅用于具有共享轨道语义的 Segmented Control，不包裹独立下拉控件。
 - 弹层使用既有 Graphite Glass token、可见焦点与 reduced-motion 规则。
 - “更多筛选”内的 Select 属于子浮层：点击父 Popover 表面只关闭当前子 Select，父层保持打开；点击父子浮层之外才关闭两层。父层必须在 Radix Select 的 modal pointer-event 隔离期间保持可交互。
@@ -267,7 +280,7 @@ Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等�
 - 后台刷新：已有可用数据时继续显示当前内容，不重新覆盖页面骨架；只在原操作入口或局部状态区表达 fetching。
 - 空态判定：页面必须等待决定空态所需的全部首屏查询结束，禁止先显示“无数据”再跳到真实内容。
 - 未知进度：后端未提供真实 `processed / total` 时使用 indeterminate 状态，不得用当前记录数推算伪百分比或伪计数。
-- 写操作：保存、删除、恢复等操作使用按钮内部 spinner + 动作文案，保持按钮宽度稳定，设置 `aria-busy` 并阻止重复提交；pending 期间不得允许关闭仍在提交的对话框或再次选择导入文件。
+- 写操作：保存、删除、恢复等操作使用按钮内部 spinner + 动作文案，保持按钮宽度稳定，设置 `aria-busy` 并阻止重复提交；pending 期间不得允许关闭仍在提交的对话框或再次选择导入文件。宽度稳定靠 idle / pending 文案叠在同一格内实现，因此 pending 文案必须比 idle 文案窄至少一个图标宽度（spinner 16px + gap 8px），否则按钮会在待命状态被永久撑宽、出现多余左右留白；窄标签动作改为给 idle 文案配图标。
 - 写失败恢复：创建/重命名失败时保持对话框、输入与焦点上下文；笔记失败时保留草稿和 Inspector；删除失败时保持确认目标；集合关联失败时恢复服务器状态。所有失败提供 en / zh-CN 错误反馈与原位重试或取消路径，不得静默失败。
 - 骨架语义：基础 Skeleton 使用 `muted` 表面、克制 pulse 与 `motion-reduce:animate-none`，形状本身 `aria-hidden`；骨架区域统一提供单一的屏幕阅读器 loading 状态，避免逐块播报。
 

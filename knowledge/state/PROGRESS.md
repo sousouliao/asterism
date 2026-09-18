@@ -12,6 +12,14 @@
 
 ## 已完成里程碑
 
+- **2026-09-18 · Favicon 源资源**：新增小尺寸专用 `favicon.svg`（与 BrandLogo 同拓扑、按 16px 重调字重、主题色字面值）与 `favicon-tile.svg`（应用图标位），接上 `index.html` 的图标声明，并用 `scripts/sync-public.mjs` 解决 `apps/web/public` 未被服务的问题（`publicDir` 被 embedding 资产占用）。RealFaviconGenerator 产出的整套图标（透明标签页图标 + 白底主屏图标 + `site.webmanifest`）已落地 `apps/web/public` 并接入 `index.html`。见 `logs/2026-09-18-favicon-assets.md`。
+
+- **2026-09-18 · Browse 列表动态列行距**：列表视图「动态」列的 `更新于 / 收藏于` 两行原本零间距贴在一起，补 4px 行间距（字号 / 行高 token 不变），行高仍为 64px。见 `logs/2026-09-18-repo-table-activity-rhythm.md`。
+
+- **2026-09-18 · 设置页语义搜索行重构**：状态（就绪 / 准备中 / 需要处理）移出动作区与行标题同行，维护动作统一按钮几何并区分常规与销毁层级，`重建索引` / `重试` 补上按钮内 pending 反馈，未同步仓库时就地归因；确认对话框关闭按钮补齐 i18n 与 pending 禁用。同日复核补完三项：描述文案去除 RLS 术语、pending 文案收短消除按钮被永久撑宽（`重建索引` 122.6 → 100px）、控件高度收敛尝试后回退（GlassRail 保留自带轨道高度，不强行与表单控件等高）。见 `logs/2026-09-18-settings-semantic-search-row.md`。
+
+- **2026-09-18 · Browse 筛选栏控件几何统一**：facet、集合、更多筛选与排序改用同一份 trigger 几何常量（高度 / 圆角 / 内边距 / gap / 宽度区间 / 图标与箭头颜色），修复更多筛选文案居中、排序 Select 过宽且图标与文案之间留大片空白；排序控件移回独立右侧组并补可访问名。见 `logs/2026-09-18-filter-toolbar-trigger-geometry.md`。
+
 - **2026-09-18 · 客户端偏好持久化修复**：主题在首帧脚本中应用，消除刷新时的亮暗闪烁；界面语言写入 `asterism-language` 并跨会话恢复。见 ADR 0040 与 `logs/2026-09-18-client-preference-persistence.md`。
 - **2026-09-18 · Unified Retrieval Engine 复核收口（GitHub #39）**：在原交付基础上修正跨结果个人字段排序、不可达降级分支、不可证实的 Memory 语义归因和无关 Memory 存在加成；Related Stars 降级只由 Topic / Memory 词交集建立候选，同语言仅作同级排序；embedding consent 升级为 v2 并明确本地处理 / RLS 派生向量边界；解释徽章补齐 token、键盘和批量选择语义。见 ADR 0039 与 `logs/2026-09-18-unified-retrieval-review-remediation.md`。
 - **2026-09-17 · Memory Foundation 交付与上线（GitHub #37）**：每个 `user × repo` 一条 Memory，承载 `whySaved` 与 `note`；Stars 同步幂等补齐基础 Memory，Quick Look 提供双字段编辑、清空、失败恢复与双语界面，导入导出升级为仅支持 JSON v3。自动化门禁与桌面/手机视觉 QA 通过；远端 Supabase migration 与 Edge Function 已部署上线，代码合入 `main`，#37 正式关闭。见 ADR 0038 与 `logs/2026-09-17-memory-foundation.md`。
