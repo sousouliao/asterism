@@ -162,7 +162,7 @@ export function CollectionDetailRouteLoading({ label }: { label: string }) {
 
 export function ImportExportContentSkeleton() {
   return (
-    <div className="grid items-start gap-6 md:grid-cols-2">
+    <div className="grid gap-6 md:grid-cols-2">
       <Card className="overflow-hidden rounded-lg p-0">
         <div className="flex flex-col gap-2 border-b p-5">
           <Skeleton className="h-4 w-32" />
@@ -182,7 +182,7 @@ export function ImportExportContentSkeleton() {
       <Card className="flex flex-col gap-4 p-5">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-36 w-full rounded-lg" />
+        <Skeleton className="min-h-36 w-full flex-1 rounded-lg" />
       </Card>
     </div>
   );

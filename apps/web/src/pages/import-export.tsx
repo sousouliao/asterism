@@ -125,7 +125,7 @@ export function ImportExportPage() {
           description={t('importExport.emptyDescription')}
         />
       ) : (
-        <div className="grid items-start gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
           <section className="overflow-hidden rounded-lg border bg-card">
             <div className="flex flex-col gap-1.5 border-b p-5">
               <h2 className="font-semibold text-base text-foreground">
@@ -193,7 +193,7 @@ export function ImportExportPage() {
               tabIndex={importData.isPending ? -1 : 0}
               aria-disabled={importData.isPending}
               aria-busy={importData.isPending}
-              className={`flex min-h-36 flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
+              className={`flex min-h-36 flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
                 dragOver ? 'border-primary bg-accent' : 'border-border bg-muted/30'
               } ${importData.isPending ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
               onClick={() => {

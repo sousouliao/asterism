@@ -303,6 +303,10 @@ Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等�
 - 选择条目必须更新当前工作区 hash、把 heading 滚到 64px header offset 下并移交程序化焦点；Popover / Sheet 关闭时不得把焦点从已选 heading 抢回 trigger。键盘与 pointer 使用同一行为，临时呈现可通过 Esc / 外部点击正常关闭。
 - 自然滚动按当前越过 header threshold 的 heading 更新 active state，并以 history `replace` 更新 hash，禁止为每个 section 增加历史记录。复制的 section URL 必须在内容加载后定位；用户选择允许 smooth scroll，但 `prefers-reduced-motion: reduce` 下改为即时滚动。
 
+### Paired Card Row · 并排卡片行
+
+同一行内并排的两张卡片（如 Import / Export 的导出与恢复、Settings 的并列分区）必须等高：栅格不设 `items-start`，让较矮的一张拉到行高；卡片内的可伸缩区域（拖拽区、列表）用 `flex-1` 吃掉剩余高度，不得把多余高度留给卡片底部做空白。单列（窄屏）下卡片回到各自内容高度，`flex-1` 不得把拖拽区压到最小高度以下。骨架必须镜像同样的拉伸行为。
+
 ### Empty State Action Pattern · 空状态操作模式
 
 空状态必须提供单一、明确的主操作，不得在页头与空状态主体重复显示同一个 primary action。Collections 在数据为空时由空状态主体承担首次创建入口；存在数据后，创建入口移至页头以支持高频追加，并提供名称搜索。筛选或搜索无结果不等同于数据为空，此时保留页头创建入口，并在内容区表达无匹配结果。
