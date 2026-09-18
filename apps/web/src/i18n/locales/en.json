@@ -298,7 +298,28 @@
     "emptyTitle": "No stars to analyze",
     "emptyDescription": "Sync your GitHub stars to see insights here.",
     "errorTitle": "Could not load insights",
-    "errorDescription": "Something went wrong while loading your data."
+    "errorDescription": "Something went wrong while loading your data.",
+    "resurface": {
+      "title": "Resurface",
+      "description": "Dormant stars brought back with the context you recorded.",
+      "worthRemembering": "Worth remembering",
+      "missingContext": "Missing context",
+      "reasons": {
+        "anniversary_one": "Starred {{count}} year ago today",
+        "anniversary_other": "Starred {{count}} years ago today",
+        "dormant": "Saved {{duration}} ago",
+        "noted": "You recorded a note",
+        "repoQuiet": "No repo updates for {{duration}}",
+        "missingWhySaved": "No saved reason yet",
+        "notedWithoutReason": "Has a note, but no saved reason",
+        "highValue": "{{value}} stars"
+      },
+      "echoWhySaved": "Why you saved",
+      "echoNote": "Your note",
+      "addWhySaved": "Add why you saved it",
+      "useful": "Useful",
+      "dismiss": "Dismiss"
+    }
   },
   "importExport": {
     "title": "Import / Export",

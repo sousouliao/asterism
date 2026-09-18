@@ -1,4 +1,4 @@
-import { deriveDashboardInsights } from '@asterism/core';
+import { deriveDashboardInsights, type Memory } from '@asterism/core';
 import { Button } from '@asterism/ui';
 import {
   AlertTriangleIcon,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { lazy, Suspense, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSession } from '../auth/use-session';
 import { DashboardCharts } from '../components/dashboard/dashboard-charts';
 import { StatCard } from '../components/dashboard/stat-card';
 import { EmptyState } from '../components/empty-state';
@@ -20,8 +21,11 @@ import {
   DashboardChartsSkeleton,
   DashboardContentSkeleton,
 } from '../components/page-loading-states';
+import { ResurfaceSection } from '../components/resurface/resurface-section';
+import { ResurfaceSectionSkeleton } from '../components/resurface/resurface-skeleton';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
+import { useMemoriesList } from '../data/use-memories-list';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 
@@ -31,6 +35,8 @@ const LazyDashboardCharts = lazy(async () => ({
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
+  const { session } = useSession();
+  const userId = session?.user.id;
   const {
     data: starredRepos,
     isLoading: starredReposLoading,
@@ -40,11 +46,16 @@ export function DashboardPage() {
   } = useStarredRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
+  const { data: memories, isLoading: memoriesLoading, isError: memoriesError } = useMemoriesList();
   const isLoading = starredReposLoading || collectionsLoading || collectionReposLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
 
   const records = useMemo(() => starredRepos ?? [], [starredRepos]);
+  const memoriesByRepoId = useMemo(
+    () => new Map<string, Memory>((memories ?? []).map((memory) => [memory.repoId, memory])),
+    [memories],
+  );
 
   const insights = useMemo(
     () =>
@@ -112,6 +123,16 @@ export function DashboardPage() {
         />
       ) : (
         <>
+          {memoriesLoading ? (
+            <ResurfaceSectionSkeleton />
+          ) : memoriesError || !memories ? null : (
+            <ResurfaceSection
+              records={records}
+              memoriesByRepoId={memoriesByRepoId}
+              userId={userId}
+            />
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               icon={StarIcon}

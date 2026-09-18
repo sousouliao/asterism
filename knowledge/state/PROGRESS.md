@@ -5,13 +5,14 @@
 ## 当前状态
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
-- **当前状态**：GitHub #39 `feat(retrieval): Unified Retrieval with Memory & Match Explanation` 已完成复核与修正。统一检索引擎将用户私有记忆（whySaved, note）融入词法排序与本地语义向量，输出可验证的 Match Explanation；Related Stars 通过合并向量表达个人意图，并在向量不可用时按 Topic / Memory 关键词可信降级。
-- **当前工程 frontier**：推进下一代检索与唤醒功能。三个纵向切片中的 #39 已完成；下一活动执行目标为 #40（沉睡唤醒 Resurface）。
+- **当前状态**：GitHub #40 `feat(memory): resurface inactive stars and contextual memory streams` 本地实现完成。主页新增 Resurface 双流（值得重温 / 待补全记忆），算法为 `@asterism/core` 纯本地确定性评分（沉睡档位、整年纪念日 ±3 天、Memory 信号、仓库静默、star 档位），每条候选只携带可验证理由；Useful / Dismiss 为 90 天本地压制（版本化 localStorage 键，按用户隔离）。四道工程门禁与 dev 预览路由视觉 QA 通过；待部署 preview 后关闭 issue。
+- **当前工程 frontier**：推进下一代检索与唤醒功能。三个纵向切片中的 #39、#40 已完成；下一活动执行目标为 #41（Ask Asterism 私有问答）。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
 
 ## 已完成里程碑
 
+- **2026-09-19 · Resurface & Memory Streams 交付（GitHub #40）**：沉睡唤醒双流、可解释推荐理由、记忆回显与补写入口、Useful / Dismiss 本地反馈；`packages/core` 算法 + 20 单测、web 组件与交互测试、双语 i18n、dev 预览路由与四道门禁全部通过。见 ADR 0041 与 `logs/2026-09-19-resurface-memory-streams.md`。
 - **2026-09-18 · 导入 / 导出并排卡片等高**：栅格去掉 `items-start` 让两张卡拉到同一行高，拖拽区用 `flex-1` 吃掉剩余高度（原来底部留 145px 空白），骨架同步。见 `logs/2026-09-18-import-export-card-heights.md`。
 - **2026-09-18 · Favicon 源资源**：新增小尺寸专用 `favicon.svg`（与 BrandLogo 同拓扑、按 16px 重调字重、主题色字面值）与 `favicon-tile.svg`（应用图标位），接上 `index.html` 的图标声明，并用 `scripts/sync-public.mjs` 解决 `apps/web/public` 未被服务的问题（`publicDir` 被 embedding 资产占用）。RealFaviconGenerator 产出的整套图标（透明标签页图标 + 白底主屏图标 + `site.webmanifest`）已落地 `apps/web/public` 并接入 `index.html`。见 `logs/2026-09-18-favicon-assets.md`。
 - **2026-09-18 · Browse 列表动态列行距**：列表视图「动态」列的 `更新于 / 收藏于` 两行原本零间距贴在一起，补 4px 行间距（字号 / 行高 token 不变），行高仍为 64px。见 `logs/2026-09-18-repo-table-activity-rhythm.md`。
@@ -31,8 +32,8 @@
 
 ## 下一恢复点
 
-1. 推进 GitHub #40（Resurface 唤醒流）：基于统一检索与意图权重的沉睡 Star 智能唤醒与推荐。
-2. #40 验收完成后，推进 #41（Ask Asterism 私有问答）。
+1. 部署 web preview 并在真实账号下确认 Dashboard Resurface 分区，随后关闭 GitHub #40。
+2. 推进 GitHub #41（Ask Asterism 私有问答）：基于统一检索做 Grounding 问答，严格限定个人库，附带可追溯证据链。
 
 ## 环境提示
 

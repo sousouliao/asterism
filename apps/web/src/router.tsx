@@ -73,12 +73,26 @@ function createDevelopmentRoutes() {
     })),
   );
 
+  const ResurfacePreviewPage = lazy(() =>
+    import('./pages/resurface-preview').then((module) => ({
+      default: module.ResurfacePreviewPage,
+    })),
+  );
+
   return [
     {
       path: '/dev/readme-corpus',
       element: (
         <Suspense fallback={<CorpusLabFallback />}>
           <ReadmeCorpusLabPage />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/dev/resurface-preview',
+      element: (
+        <Suspense fallback={<CorpusLabFallback />}>
+          <ResurfacePreviewPage />
         </Suspense>
       ),
     },

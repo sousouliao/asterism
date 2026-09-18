@@ -298,7 +298,28 @@
     "emptyTitle": "暂无 Star 可分析",
     "emptyDescription": "同步 GitHub Stars 后即可查看统计。",
     "errorTitle": "无法加载洞察",
-    "errorDescription": "加载数据时出错，请稍后重试。"
+    "errorDescription": "加载数据时出错，请稍后重试。",
+    "resurface": {
+      "title": "记忆唤醒",
+      "description": "让沉睡的 Star 带着你记录的上下文重新出现。",
+      "worthRemembering": "值得重温",
+      "missingContext": "待补全记忆",
+      "reasons": {
+        "anniversary_one": "{{count}} 年前的今天收藏",
+        "anniversary_other": "{{count}} 年前的今天收藏",
+        "dormant": "收藏于 {{duration}} 前",
+        "noted": "记录过笔记",
+        "repoQuiet": "仓库已 {{duration}} 未更新",
+        "missingWhySaved": "尚未记录收藏原因",
+        "notedWithoutReason": "有笔记，但缺少收藏原因",
+        "highValue": "{{value}} Star"
+      },
+      "echoWhySaved": "收藏原因",
+      "echoNote": "你的笔记",
+      "addWhySaved": "补写收藏原因",
+      "useful": "很有用",
+      "dismiss": "暂不提醒"
+    }
   },
   "importExport": {
     "title": "导入 / 导出",

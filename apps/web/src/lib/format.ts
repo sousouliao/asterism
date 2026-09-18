@@ -73,3 +73,22 @@ export function formatCompactRelativeTime(
 
   return isChinese ? '刚刚' : 'now';
 }
+
+const DAY_DURATION_UNITS: { en: string; zh: string; days: number }[] = [
+  { en: 'y', zh: '年', days: 365 },
+  { en: 'mo', zh: '个月', days: 30 },
+  { en: 'd', zh: '天', days: 1 },
+];
+
+/** 天数时长的紧凑表达，如 "2y" / "2年"，用于唤醒理由里的沉睡与静默时长。 */
+export function formatCompactDayDuration(days: number, locale: string): string {
+  const isChinese = locale.toLowerCase().startsWith('zh');
+  const clamped = Math.max(0, Math.floor(days));
+  for (const unit of DAY_DURATION_UNITS) {
+    if (clamped >= unit.days) {
+      const value = Math.max(1, Math.floor(clamped / unit.days));
+      return isChinese ? `${value}${unit.zh}` : `${value}${unit.en}`;
+    }
+  }
+  return isChinese ? '0天' : '0d';
+}
