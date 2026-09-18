@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Asterism</title>
+    <script>
+      // 首帧前应用已保存主题，避免刷新时先出亮色再翻转为暗色。
+      // 键名与 packages/ui 的 THEME_STORAGE_KEY 一致，由 theme-bootstrap.test.ts 守护。
+      (() => {
+        let stored = null;
+        try {
+          stored = window.localStorage.getItem('asterism-theme');
+        } catch {
+          // 存储不可用时按系统偏好处理。
+        }
+        const preference = stored === 'light' || stored === 'dark' ? stored : 'system';
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = preference === 'dark' || (preference === 'system' && prefersDark);
+        const root = document.documentElement;
+        root.classList.toggle('dark', isDark);
+        root.style.colorScheme = isDark ? 'dark' : 'light';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -2,7 +2,7 @@ export { toast } from 'sonner';
 export type { ModeToggleLabels } from './components/mode-toggle';
 export { ModeToggle } from './components/mode-toggle';
 export type { ResolvedTheme, Theme } from './components/theme-provider';
-export { ThemeProvider, useTheme } from './components/theme-provider';
+export { THEME_STORAGE_KEY, ThemeProvider, useTheme } from './components/theme-provider';
 export {
   Avatar,
   AvatarFallback,

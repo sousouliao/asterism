@@ -22,6 +22,7 @@ import { useSession } from '../auth/use-session';
 import { ConfirmDialog } from '../components/confirm-dialog';
 import { PageHeader } from '../components/page-header';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
+import { changeInterfaceLanguage } from '../i18n';
 import { supabase } from '../lib/supabase';
 
 const THEME_OPTIONS: { value: Theme; labelKey: string }[] = [
@@ -125,7 +126,7 @@ export function SettingsPage() {
           control={
             <Select
               value={i18n.resolvedLanguage}
-              onValueChange={(value) => void i18n.changeLanguage(value)}
+              onValueChange={(value) => void changeInterfaceLanguage(value)}
             >
               <SelectTrigger className="w-40">
                 <SelectValue />

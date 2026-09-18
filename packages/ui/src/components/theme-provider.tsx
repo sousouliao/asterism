@@ -11,6 +11,21 @@ interface ThemeProviderState {
 
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined);
 
+const THEME_STORAGE_KEY = 'asterism-theme';
+
+function isTheme(value: unknown): value is Theme {
+  return value === 'light' || value === 'dark' || value === 'system';
+}
+
+function readStoredTheme(storageKey: string): Theme | null {
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    return isTheme(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
 function getSystemTheme(): ResolvedTheme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -24,13 +39,13 @@ interface ThemeProviderProps {
 function ThemeProvider({
   children,
   defaultTheme = 'system',
-  storageKey = 'asterism-theme',
+  storageKey = THEME_STORAGE_KEY,
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === 'undefined') {
       return defaultTheme;
     }
-    return (window.localStorage.getItem(storageKey) as Theme | null) ?? defaultTheme;
+    return readStoredTheme(storageKey) ?? defaultTheme;
   });
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() =>
     typeof window === 'undefined' ? 'light' : getSystemTheme(),
@@ -56,7 +71,11 @@ function ThemeProvider({
       theme,
       resolvedTheme,
       setTheme: (next: Theme) => {
-        window.localStorage.setItem(storageKey, next);
+        try {
+          window.localStorage.setItem(storageKey, next);
+        } catch {
+          // Private mode or quota exhaustion keeps the choice in memory for this session.
+        }
         setThemeState(next);
       },
     }),
@@ -75,4 +94,4 @@ function useTheme(): ThemeProviderState {
 }
 
 export type { ResolvedTheme, Theme };
-export { ThemeProvider, useTheme };
+export { THEME_STORAGE_KEY, ThemeProvider, useTheme };
