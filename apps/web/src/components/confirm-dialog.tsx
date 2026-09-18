@@ -41,7 +41,7 @@ export function ConfirmDialog({
         }
       }}
     >
-      <DialogContent>
+      <DialogContent closeLabel={t('common.close')} closeDisabled={pending}>
         <DialogHeader className="pr-10">
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}

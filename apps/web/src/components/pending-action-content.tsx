@@ -1,6 +1,12 @@
 import { cn } from '@asterism/ui';
 import { LoaderCircleIcon, type LucideIcon } from 'lucide-react';
 
+/**
+ * 按钮内原位反馈：spinner + 动作文案，两个状态叠在同一格内以保持按钮宽度稳定。
+ *
+ * 注意 pending 文案必须比 idle 文案窄至少一个图标宽度（spinner 16px + gap 8px），
+ * 否则待命状态会把按钮永久撑宽，出现多余的左右留白。
+ */
 export function PendingActionContent({
   pending,
   idleLabel,

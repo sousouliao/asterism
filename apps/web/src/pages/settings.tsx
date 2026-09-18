@@ -15,12 +15,13 @@ import {
   type Theme,
   useTheme,
 } from '@asterism/ui';
-import { LoaderCircleIcon, LogOutIcon } from 'lucide-react';
+import { AlertTriangleIcon, LoaderCircleIcon, LogOutIcon } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
 import { ConfirmDialog } from '../components/confirm-dialog';
 import { PageHeader } from '../components/page-header';
+import { PendingActionContent } from '../components/pending-action-content';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
 import { changeInterfaceLanguage } from '../i18n';
 import { supabase } from '../lib/supabase';
@@ -31,22 +32,33 @@ const THEME_OPTIONS: { value: Theme; labelKey: string }[] = [
   { value: 'dark', labelKey: 'theme.dark' },
 ];
 
+/** 会销毁数据的次级动作，与「退出登录」共用同一套破坏性描边。 */
+const DESTRUCTIVE_OUTLINE_CLASS =
+  'border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive';
+
 function SettingRow({
   title,
+  badge,
   description,
   control,
 }: {
   title: string;
+  badge?: ReactNode;
   description: string;
   control: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 py-4">
-      <div className="flex flex-col gap-0.5">
-        <p className="font-medium text-foreground text-sm">{title}</p>
+      <div className="flex flex-col gap-0.5 sm:min-w-0 sm:flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-medium text-foreground text-sm">{title}</p>
+          {badge}
+        </div>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
-      {control}
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 sm:ml-auto">
+        {control}
+      </div>
     </div>
   );
 }
@@ -65,7 +77,9 @@ export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { session } = useSession();
   const embedding = useEmbeddingBootstrapContext();
-  const [embeddingAction, setEmbeddingAction] = useState<'rebuild' | 'clear' | null>(null);
+  const [embeddingAction, setEmbeddingAction] = useState<
+    'start' | 'retry' | 'rebuild' | 'clear' | null
+  >(null);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [embeddingError, setEmbeddingError] = useState<string | null>(null);
   const user = session?.user;
@@ -77,14 +91,50 @@ export function SettingsPage() {
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
   const initial = name.slice(0, 1).toUpperCase() || '?';
   const preparing = !['idle', 'ready', 'degraded'].includes(embedding.phase);
+  const embeddingBusy = embeddingAction !== null;
   const embeddingProgress =
     embedding.phase === 'loading-model'
       ? Math.round(embedding.modelProgress)
       : embedding.phase === 'backfilling' && embedding.total > 0
         ? Math.round((embedding.completed / embedding.total) * 100)
         : 0;
+  const embeddingBadge = preparing ? (
+    <Badge variant="secondary" className="gap-1.5" role="status">
+      <LoaderCircleIcon
+        className="size-3 animate-spin motion-reduce:animate-none"
+        aria-hidden="true"
+      />
+      {t('settings.preparingSearch', { progress: embeddingProgress })}
+    </Badge>
+  ) : embedding.phase === 'ready' ? (
+    <Badge variant="secondary">{t('settings.searchReady')}</Badge>
+  ) : embedding.phase === 'degraded' ? (
+    <Badge
+      variant="outline"
+      className="gap-1.5 border-destructive/40 text-destructive"
+      role="status"
+    >
+      <AlertTriangleIcon className="size-3" aria-hidden="true" />
+      {t('settings.searchNeedsAttention')}
+    </Badge>
+  ) : null;
+  // 已建立索引时只提供维护动作：重建索引与销毁索引，二者共享同一套按钮几何。
+  const maintenance =
+    embedding.phase === 'ready'
+      ? ({
+          action: 'rebuild',
+          label: t('settings.rebuildSearch'),
+          pendingLabel: t('settings.rebuildSearchPending'),
+        } as const)
+      : embedding.phase === 'degraded'
+        ? ({
+            action: 'retry',
+            label: t('common.retry'),
+            pendingLabel: t('settings.retrySearchPending'),
+          } as const)
+        : null;
 
-  const runEmbeddingAction = async (action: 'rebuild' | 'clear') => {
+  const runEmbeddingAction = async (action: 'start' | 'retry' | 'rebuild' | 'clear') => {
     setEmbeddingAction(action);
     setEmbeddingError(null);
     try {
@@ -144,54 +194,41 @@ export function SettingsPage() {
         <SectionTitle>{t('settings.search')}</SectionTitle>
         <SettingRow
           title={t('settings.semanticSearch')}
+          badge={embeddingBadge}
           description={t('settings.semanticSearchDescription')}
           control={
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {preparing ? (
-                <Badge variant="secondary" className="gap-1.5">
-                  <LoaderCircleIcon className="size-3 animate-spin motion-reduce:animate-none" />
-                  {t('settings.preparingSearch', { progress: embeddingProgress })}
-                </Badge>
-              ) : embedding.phase === 'ready' ? (
-                <>
-                  <Badge variant="secondary">{t('settings.searchReady')}</Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={embeddingAction !== null}
-                    onClick={() => void runEmbeddingAction('rebuild')}
-                  >
-                    {t('settings.rebuildSearch')}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={embeddingAction !== null}
-                    onClick={() => setClearDialogOpen(true)}
-                  >
-                    {t('settings.clearSearchModel')}
-                  </Button>
-                </>
-              ) : embedding.phase === 'degraded' ? (
-                <>
-                  <Badge variant="secondary">{t('settings.searchNeedsAttention')}</Badge>
-                  <Button variant="outline" size="sm" onClick={() => void embedding.retry()}>
-                    {t('common.retry')}
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setClearDialogOpen(true)}>
-                    {t('settings.clearSearchModel')}
-                  </Button>
-                </>
-              ) : (
+            maintenance ? (
+              <>
                 <Button
-                  size="sm"
-                  disabled={embedding.repositoryCount === 0}
-                  onClick={() => void embedding.start()}
+                  variant="outline"
+                  disabled={embeddingBusy}
+                  aria-busy={embeddingAction === maintenance.action}
+                  onClick={() => void runEmbeddingAction(maintenance.action)}
                 >
-                  {t('settings.enableSemanticSearch')}
+                  <PendingActionContent
+                    pending={embeddingBusy}
+                    idleLabel={maintenance.label}
+                    pendingLabel={maintenance.pendingLabel}
+                  />
                 </Button>
-              )}
-            </div>
+                <Button
+                  variant="outline"
+                  className={DESTRUCTIVE_OUTLINE_CLASS}
+                  disabled={embeddingBusy}
+                  onClick={() => setClearDialogOpen(true)}
+                >
+                  {t('settings.clearSearchModel')}
+                </Button>
+              </>
+            ) : preparing ? null : embedding.repositoryCount === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                {t('settings.semanticSearchNeedsRepositories')}
+              </p>
+            ) : (
+              <Button disabled={embeddingBusy} onClick={() => void runEmbeddingAction('start')}>
+                {t('settings.enableSemanticSearch')}
+              </Button>
+            )
           }
         />
         {embeddingError ? (
@@ -216,7 +253,7 @@ export function SettingsPage() {
           </div>
           <Button
             variant="outline"
-            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className={DESTRUCTIVE_OUTLINE_CLASS}
             onClick={() => void signOut(supabase)}
           >
             <LogOutIcon className="size-4" />
