@@ -74,99 +74,101 @@ export function DashboardPage() {
   const formatCount = (value: number) => new Intl.NumberFormat(i18n.language).format(value);
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
-      <PageHeader title={t('dashboard.title')} description={t('dashboard.subtitle')} />
+    <div className="-m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+        <PageHeader title={t('dashboard.title')} description={t('dashboard.subtitle')} />
 
-      {isLoading ? (
-        <LoadingRegion label={t('loading.dashboard')} className="flex flex-col gap-6">
-          <DashboardContentSkeleton />
-        </LoadingRegion>
-      ) : isError ? (
-        <EmptyState
-          icon={AlertTriangleIcon}
-          title={t('dashboard.errorTitle')}
-          description={t('dashboard.errorDescription')}
-          action={
-            <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
-              <RefreshCwIcon className="size-4" />
-              {t('browse.retry')}
-            </Button>
-          }
-        />
-      ) : records.length === 0 ? (
-        <EmptyState
-          icon={StarIcon}
-          title={t('dashboard.emptyTitle')}
-          description={t('dashboard.emptyDescription')}
-          action={
-            <Button onClick={sync.sync} disabled={syncPending}>
-              {sync.requiresReconnect ? (
-                sync.reconnectPending ? (
-                  <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />
-                ) : (
-                  <LogInIcon className="size-4" />
-                )
-              ) : (
-                <RefreshCwIcon
-                  className={
-                    sync.isPending ? 'size-4 animate-spin motion-reduce:animate-none' : 'size-4'
-                  }
-                />
-              )}
-              {sync.requiresReconnect
-                ? sync.reconnectPending
-                  ? t('sync.reconnecting')
-                  : t('sync.reconnectAction')
-                : t('browse.syncAction')}
-            </Button>
-          }
-        />
-      ) : (
-        <>
-          {memoriesLoading ? (
-            <ResurfaceSectionSkeleton />
-          ) : memoriesError || !memories ? null : (
-            <ResurfaceSection
-              records={records}
-              memoriesByRepoId={memoriesByRepoId}
-              userId={userId}
-            />
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              icon={StarIcon}
-              label={t('dashboard.totalStars')}
-              value={formatCount(insights.stats.totalStars)}
-            />
-            <StatCard
-              icon={LanguagesIcon}
-              label={t('dashboard.languages')}
-              value={formatCount(insights.stats.languageCount)}
-            />
-            <StatCard
-              icon={FolderIcon}
-              label={t('dashboard.collectedRepos')}
-              value={formatCount(insights.stats.collectedRepoCount)}
-            />
-            <StatCard
-              icon={FolderIcon}
-              label={t('dashboard.collections')}
-              value={formatCount(insights.stats.collectionCount)}
-            />
-          </div>
-
-          <Suspense
-            fallback={
-              <LoadingRegion label={t('loading.charts')}>
-                <DashboardChartsSkeleton count={4} />
-              </LoadingRegion>
+        {isLoading ? (
+          <LoadingRegion label={t('loading.dashboard')} className="flex flex-col gap-6">
+            <DashboardContentSkeleton />
+          </LoadingRegion>
+        ) : isError ? (
+          <EmptyState
+            icon={AlertTriangleIcon}
+            title={t('dashboard.errorTitle')}
+            description={t('dashboard.errorDescription')}
+            action={
+              <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCwIcon className="size-4" />
+                {t('browse.retry')}
+              </Button>
             }
-          >
-            <LazyDashboardCharts insights={insights} />
-          </Suspense>
-        </>
-      )}
+          />
+        ) : records.length === 0 ? (
+          <EmptyState
+            icon={StarIcon}
+            title={t('dashboard.emptyTitle')}
+            description={t('dashboard.emptyDescription')}
+            action={
+              <Button onClick={sync.sync} disabled={syncPending}>
+                {sync.requiresReconnect ? (
+                  sync.reconnectPending ? (
+                    <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />
+                  ) : (
+                    <LogInIcon className="size-4" />
+                  )
+                ) : (
+                  <RefreshCwIcon
+                    className={
+                      sync.isPending ? 'size-4 animate-spin motion-reduce:animate-none' : 'size-4'
+                    }
+                  />
+                )}
+                {sync.requiresReconnect
+                  ? sync.reconnectPending
+                    ? t('sync.reconnecting')
+                    : t('sync.reconnectAction')
+                  : t('browse.syncAction')}
+              </Button>
+            }
+          />
+        ) : (
+          <>
+            {memoriesLoading ? (
+              <ResurfaceSectionSkeleton />
+            ) : memoriesError || !memories ? null : (
+              <ResurfaceSection
+                records={records}
+                memoriesByRepoId={memoriesByRepoId}
+                userId={userId}
+              />
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                icon={StarIcon}
+                label={t('dashboard.totalStars')}
+                value={formatCount(insights.stats.totalStars)}
+              />
+              <StatCard
+                icon={LanguagesIcon}
+                label={t('dashboard.languages')}
+                value={formatCount(insights.stats.languageCount)}
+              />
+              <StatCard
+                icon={FolderIcon}
+                label={t('dashboard.collectedRepos')}
+                value={formatCount(insights.stats.collectedRepoCount)}
+              />
+              <StatCard
+                icon={FolderIcon}
+                label={t('dashboard.collections')}
+                value={formatCount(insights.stats.collectionCount)}
+              />
+            </div>
+
+            <Suspense
+              fallback={
+                <LoadingRegion label={t('loading.charts')}>
+                  <DashboardChartsSkeleton count={4} />
+                </LoadingRegion>
+              }
+            >
+              <LazyDashboardCharts insights={insights} />
+            </Suspense>
+          </>
+        )}
+      </div>
     </div>
   );
 }

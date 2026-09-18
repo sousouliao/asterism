@@ -56,3 +56,13 @@ Quick Look 快捷编辑与补写入口，双语 + 桌面 / 移动 + a11y，全�
 
 - 真实账号下的端到端视觉确认待部署 preview 后进行（本地已用 dev 预览路由覆盖）。
 - Useful 的正向情感暂无消费方；引入任何学习回路需新 ADR。
+
+## 追加 · 页面滚动条贴边修复（用户反馈）
+
+预览页截图反馈「滚动条应该贴边」。根因：五个整页滚动页面（Dashboard、Collections、
+Collection Detail、Import / Export、Settings）把 `max-w-6xl` 直接放在滚动容器上并嵌在
+`AppLayout` 的 `p-6` 主区内，窄屏下轨道距窗口右缘 24px、宽屏最多 168px，违反 Browse 已
+确立的「全宽滚动层 + 内层限宽」模式。修复：全部改为 `-m-6` 全宽滚动层 + 内层
+`px-6` + `mx-auto max-w-6xl`；预览页改为 `h-svh` 列 + 自有全宽滚动层；ui-ux 契约
+Scrollbar 节同步显式禁止把 `max-w-*` / 页面 padding 放在滚动容器上。500px 视口实测
+轨道贴边，四道门禁复跑通过。

@@ -115,69 +115,70 @@ export function CollectionDetailPage() {
 
   if (!collection) {
     return (
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
+      <div className="-m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+          <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
+            <Link to="/collections">
+              <ArrowLeftIcon className="size-4" />
+              {t('collectionDetail.back')}
+            </Link>
+          </Button>
+          <EmptyState
+            icon={FolderIcon}
+            title={t('collectionDetail.notFoundTitle')}
+            description={t('collectionDetail.notFoundDescription')}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={setScrollElement} className="-m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
           <Link to="/collections">
             <ArrowLeftIcon className="size-4" />
             {t('collectionDetail.back')}
           </Link>
         </Button>
-        <EmptyState
-          icon={FolderIcon}
-          title={t('collectionDetail.notFoundTitle')}
-          description={t('collectionDetail.notFoundDescription')}
-        />
-      </div>
-    );
-  }
 
-  return (
-    <div
-      ref={setScrollElement}
-      className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto"
-    >
-      <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
-        <Link to="/collections">
-          <ArrowLeftIcon className="size-4" />
-          {t('collectionDetail.back')}
-        </Link>
-      </Button>
-
-      <div className="flex items-start gap-4">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-accent">
-          <FolderIcon className="size-6 text-muted-foreground" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="font-bold text-page-title text-foreground tracking-tight">
-            {collection.name}
-          </h1>
-          {collection.description ? (
-            <p className="mt-1 text-[13px] text-muted-foreground leading-5">
-              {collection.description}
+        <div className="flex items-start gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-accent">
+            <FolderIcon className="size-6 text-muted-foreground" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-bold text-page-title text-foreground tracking-tight">
+              {collection.name}
+            </h1>
+            {collection.description ? (
+              <p className="mt-1 text-[13px] text-muted-foreground leading-5">
+                {collection.description}
+              </p>
+            ) : null}
+            <p className="mt-2 text-caption text-muted-foreground">
+              {t('collectionDetail.repoCount', { count })}
             </p>
-          ) : null}
-          <p className="mt-2 text-caption text-muted-foreground">
-            {t('collectionDetail.repoCount', { count })}
-          </p>
+          </div>
         </div>
-      </div>
 
-      {memberRecords.length === 0 ? (
-        <EmptyState
-          icon={FolderIcon}
-          title={t('collectionDetail.emptyTitle')}
-          description={t('collectionDetail.emptyDescription')}
-        />
-      ) : (
-        <RepoCollection
-          records={memberRecords}
-          view="list"
-          collectionsByRepo={collectionsByRepo}
-          selectedRepoId={selectedRepoId}
-          onSelect={openInspector}
-          scrollElement={scrollElement}
-        />
-      )}
+        {memberRecords.length === 0 ? (
+          <EmptyState
+            icon={FolderIcon}
+            title={t('collectionDetail.emptyTitle')}
+            description={t('collectionDetail.emptyDescription')}
+          />
+        ) : (
+          <RepoCollection
+            records={memberRecords}
+            view="list"
+            collectionsByRepo={collectionsByRepo}
+            selectedRepoId={selectedRepoId}
+            onSelect={openInspector}
+            scrollElement={scrollElement}
+          />
+        )}
+      </div>
     </div>
   );
 }

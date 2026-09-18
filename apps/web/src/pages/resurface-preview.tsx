@@ -168,53 +168,57 @@ export function ResurfacePreviewPage() {
 
   return (
     <RepoInspectorProvider>
-      <div className="flex min-h-svh flex-col gap-6 bg-background p-6 text-foreground">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3">
-          <p className="text-[13px] text-muted-foreground">
-            Dev preview · fixtures only · feedback stays local
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void changeInterfaceLanguage('en')}
-              className="rounded-md border px-2 py-1 text-[12px]"
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              onClick={() => void changeInterfaceLanguage('zh-CN')}
-              className="rounded-md border px-2 py-1 text-[12px]"
-            >
-              中文
-            </button>
-            <button
-              type="button"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="rounded-md border px-2 py-1 text-[12px]"
-            >
-              {theme === 'dark' ? 'Light' : 'Dark'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.clear();
-                location.reload();
-              }}
-              className="rounded-md border px-2 py-1 text-[12px]"
-            >
-              Reset feedback
-            </button>
+      <div className="flex h-svh flex-col bg-background text-foreground">
+        <div className="shrink-0 px-6 pt-6">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3">
+            <p className="text-[13px] text-muted-foreground">
+              Dev preview · fixtures only · feedback stays local
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void changeInterfaceLanguage('en')}
+                className="rounded-md border px-2 py-1 text-[12px]"
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => void changeInterfaceLanguage('zh-CN')}
+                className="rounded-md border px-2 py-1 text-[12px]"
+              >
+                中文
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="rounded-md border px-2 py-1 text-[12px]"
+              >
+                {theme === 'dark' ? 'Light' : 'Dark'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.clear();
+                  location.reload();
+                }}
+                className="rounded-md border px-2 py-1 text-[12px]"
+              >
+                Reset feedback
+              </button>
+            </div>
           </div>
         </div>
 
-        <main className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-          <ResurfaceSection
-            records={records}
-            memoriesByRepoId={memoriesByRepoId}
-            userId="resurface-preview"
-          />
-        </main>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+          <main className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+            <ResurfaceSection
+              records={records}
+              memoriesByRepoId={memoriesByRepoId}
+              userId="resurface-preview"
+            />
+          </main>
+        </div>
 
         <RepoInspector />
       </div>

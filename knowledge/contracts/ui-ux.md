@@ -124,7 +124,7 @@
 
 Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 + 筛选栏（及同步进度条）固定在上方 `shrink-0` 区域；仅下方全宽列表层 `flex-1 overflow-y-auto` 滚动，虚拟列表绑定该区域，列表内容再由 `px-6` + `max-w-6xl` 居中限宽。页面根节点用 `-m-6` 穿过 `main` padding，让 scrollbar 贴主内容区边缘；无需 `position: sticky`，也不修改 `main` 自身的 padding。
 
-其余页面根节点使用 `flex-1 min-h-0 overflow-y-auto` 整页滚动。
+其余页面根节点同样以 `-m-6` 穿过 `main` padding 承担整页滚动：外层 `flex-1 min-h-0 overflow-y-auto` 全宽滚动层让轨道贴主内容区右缘，内层再以 `px-6` 恢复内边距并用 `mx-auto max-w-6xl` 限宽；不得把 `max-w-*` 或页面 padding 直接放在滚动容器上使轨道缩进。
 
 ### Radius · 圆角（定稿 · 取自设计稿）
 
