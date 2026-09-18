@@ -1,8 +1,15 @@
-import { Button, cn, Input, Popover, PopoverContent, PopoverTrigger } from '@asterism/ui';
+import { Badge, Button, cn, Input, Popover, PopoverContent, PopoverTrigger } from '@asterism/ui';
 import { CheckIcon, ChevronDownIcon } from 'lucide-react';
 import { useDeferredValue, useId, useMemo, useRef, useState } from 'react';
 import type { LabeledFacetOption } from './facet-options';
 import { getVisibleFacetOptions, getVisibleLabeledFacetOptions } from './facet-options';
+import {
+  FILTER_TRIGGER_ACTIVE_CLASS,
+  FILTER_TRIGGER_CHEVRON_CLASS,
+  FILTER_TRIGGER_CLASS,
+  FILTER_TRIGGER_COUNT_CLASS,
+  FILTER_TRIGGER_LABEL_CLASS,
+} from './filter-trigger';
 import { SearchInputIcon } from './search-input-icon';
 
 interface FacetPickerProps {
@@ -57,13 +64,13 @@ export function FacetPicker({
           variant="outline"
           size="sm"
           className={cn(
-            'min-w-28 max-w-44 justify-between rounded-lg border-[var(--glass-border)] px-2.5 font-normal text-caption shadow-none hover:bg-accent/70',
-            value !== null && 'border-primary/30 bg-primary/5 hover:bg-primary/10',
+            FILTER_TRIGGER_CLASS,
+            value !== null && FILTER_TRIGGER_ACTIVE_CLASS,
             className,
           )}
         >
-          <span className="truncate">{value ?? triggerLabel}</span>
-          <ChevronDownIcon className="size-4 opacity-50" />
+          <span className={FILTER_TRIGGER_LABEL_CLASS}>{value ?? triggerLabel}</span>
+          <ChevronDownIcon className={FILTER_TRIGGER_CHEVRON_CLASS} />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -172,18 +179,18 @@ export function MultiFacetPicker({
           variant="outline"
           size="sm"
           className={cn(
-            'min-w-28 max-w-44 justify-between gap-1 rounded-lg border-[var(--glass-border)] px-2.5 font-normal text-caption shadow-none hover:bg-accent/70',
-            selectedCount > 0 && 'border-primary/30 bg-primary/5 hover:bg-primary/10',
+            FILTER_TRIGGER_CLASS,
+            selectedCount > 0 && FILTER_TRIGGER_ACTIVE_CLASS,
             className,
           )}
         >
-          <span className="truncate">{triggerLabel}</span>
+          <span className={FILTER_TRIGGER_LABEL_CLASS}>{triggerLabel}</span>
           {selectedCount > 0 ? (
-            <span className="rounded-md bg-secondary px-1.5 font-medium text-caption">
+            <Badge variant="secondary" className={FILTER_TRIGGER_COUNT_CLASS}>
               {selectedCount}
-            </span>
+            </Badge>
           ) : null}
-          <ChevronDownIcon className="size-4 opacity-50" />
+          <ChevronDownIcon className={FILTER_TRIGGER_CHEVRON_CLASS} />
         </Button>
       </PopoverTrigger>
       <PopoverContent
