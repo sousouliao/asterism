@@ -74,7 +74,7 @@ export function DashboardPage() {
   const formatCount = (value: number) => new Intl.NumberFormat(i18n.language).format(value);
 
   return (
-    <div className="-m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+    <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <PageHeader title={t('dashboard.title')} description={t('dashboard.subtitle')} />
 

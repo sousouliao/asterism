@@ -82,15 +82,17 @@
 | `--font-sans` | 正文无衬线字体栈 | `"Geist Variable", ui-sans-serif, system-ui, sans-serif` |
 | `--font-mono` | 数字 / 日期等宽字体 | `"Geist Mono Variable", ui-monospace, monospace` |
 | `--text-display` | Login 主标题等 | `1.75rem`（28px）/ Bold |
-| `--text-page-title` | 页面标题（Settings/Dashboard/Collections） | `1.5rem`（24px）/ Bold |
-| `--text-section-title` | 区块标题（Browse 页头、空状态） | `1.25rem`（20px）/ SemiBold |
-| `--text-drawer-title` | Drawer 标题 | `1rem`（16px）/ SemiBold |
+| `--text-page-title` | 页面标题（所有页面 h1，含 Browse 与集合详情） | `1.5rem`（24px）/ Bold |
+| `--text-section-title` | 区块标题（页内分区块、空状态） | `1.25rem`（20px）/ SemiBold |
+| `--text-drawer-title` | Drawer / Dialog 与内容卡片标题 | `1rem`（16px）/ SemiBold |
 | `--text-repo-name` | Repo Inspector 仓库名 | `1.125rem`（18px）/ SemiBold |
 | `--text-body` | 描述、卡片正文 | `0.8125rem`（13px）/ line-height `1.25rem` |
 | `--text-caption` | 筛选、统计、副标题 | `0.75rem`（12px） |
 | `--text-micro` | 表格列头 | `0.6875rem`（11px）/ Medium |
 
 字重：Regular 400 · Medium 500 · SemiBold 600 · Bold 700。
+
+标题层级固定为三级，跨页面一致：**页面标题**（h1 = `--text-page-title`，Login 例外使用 `--text-display`）→ **区块标题**（h2 = `--text-section-title`，如 Settings 分区、Dashboard 记忆唤醒、导入导出面板）→ **卡片 / 面板标题**（`--text-drawer-title`，如集合卡片名、图表卡片标题）。禁止用 `text-base`、`text-4xl` 等原始档位充当标题；页面加载骨架必须镜像同档字号。
 
 ### Spacing · 间距（定稿 · 4px 栅格）
 
@@ -125,6 +127,12 @@
 Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 + 筛选栏（及同步进度条）固定在上方 `shrink-0` 区域；仅下方全宽列表层 `flex-1 overflow-y-auto` 滚动，虚拟列表绑定该区域，列表内容再由 `px-6` + `max-w-6xl` 居中限宽。页面根节点用 `-m-6` 穿过 `main` padding，让 scrollbar 贴主内容区边缘；无需 `position: sticky`，也不修改 `main` 自身的 padding。
 
 其余页面根节点同样以 `-m-6` 穿过 `main` padding 承担整页滚动：外层 `flex-1 min-h-0 overflow-y-auto` 全宽滚动层让轨道贴主内容区右缘，内层再以 `px-6` 恢复内边距并用 `mx-auto max-w-6xl` 限宽；不得把 `max-w-*` 或页面 padding 直接放在滚动容器上使轨道缩进。
+
+**滚动条槽位常驻预留**：Windows / Linux 等经典滚动条占布局宽度（本项目 8px），若只在滚动条出现时才扣减内容盒，滚动页与不滚动页、加载态与完成态、吸顶区与列表之间会出现约 4px 的列位移。规则：
+
+- 所有全宽滚动层（页面根、Browse 列表、README 工作区）统一挂 `.asterism-scroll-gutter`（`scrollbar-gutter: stable`），无滚动条时也预留槽位；路由 fallback（`LoadingFrame` / Settings 骨架）用 `overflow-hidden + .asterism-scroll-gutter` 复用与页面根一致的内容盒。
+- Browse「固定头 + 滚动列表」分栏的固定侧不得加 `overflow` 裁剪（会裁掉 GlassControlRow 的 100vw 吸顶背景渐隐），改以 `padding-right: calc(var(--scrollbar-size) + 1.5rem)` 补齐同样槽位；批量选择栏同理对齐列表列。
+- macOS 等覆盖式滚动条零占位，`scrollbar-gutter` 自然退化为无操作，两平台行为均一致。
 
 ### Radius · 圆角（定稿 · 取自设计稿）
 

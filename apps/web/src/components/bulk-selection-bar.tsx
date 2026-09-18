@@ -45,7 +45,7 @@ export function BulkSelectionBar({
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 lg:left-60">
-      <div className="mx-auto max-w-6xl px-6 pb-4">
+      <div className="mx-auto max-w-6xl pl-6 pr-[calc(var(--scrollbar-size)_+_1.5rem)] pb-4">
         <section
           aria-label={t('bulk.toolbarLabel')}
           className="asterism-glass-overlay pointer-events-auto flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between"

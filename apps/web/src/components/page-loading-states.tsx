@@ -6,17 +6,11 @@ import { RepoListSkeleton } from './repo-skeletons';
 const THREE_KEYS = ['a', 'b', 'c'] as const;
 const FOUR_KEYS = ['a', 'b', 'c', 'd'] as const;
 
-export function PageHeaderSkeleton({
-  compact = false,
-  action = false,
-}: {
-  compact?: boolean;
-  action?: boolean;
-}) {
+export function PageHeaderSkeleton({ action = false }: { action?: boolean }) {
   return (
     <div className="flex min-h-10 items-start justify-between gap-4">
       <div className="flex min-w-0 flex-col gap-2">
-        <Skeleton className={compact ? 'h-5 w-40' : 'h-6 w-44'} />
+        <Skeleton className="h-6 w-44" />
         <Skeleton className="h-3 w-64 max-w-full" />
       </div>
       {action ? <Skeleton className="h-9 w-28 shrink-0" /> : null}
@@ -28,9 +22,9 @@ function LoadingFrame({ label, children }: { label: string; children: ReactNode 
   return (
     <LoadingRegion
       label={label}
-      className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden"
+      className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-hidden px-6 py-6"
     >
-      {children}
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6">{children}</div>
     </LoadingRegion>
   );
 }
@@ -40,7 +34,7 @@ export function BrowseToolbarSkeleton() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-2">
-          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-6 w-40" />
           <Skeleton className="h-3 w-36" />
         </div>
         <Skeleton className="h-10 w-24 rounded-xl" />
@@ -165,7 +159,7 @@ export function ImportExportContentSkeleton() {
     <div className="grid gap-6 md:grid-cols-2">
       <Card className="overflow-hidden rounded-lg p-0">
         <div className="flex flex-col gap-2 border-b p-5">
-          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-5 w-32" />
           <Skeleton className="h-3 w-5/6" />
         </div>
         {THREE_KEYS.map((key) => (
@@ -180,7 +174,7 @@ export function ImportExportContentSkeleton() {
         ))}
       </Card>
       <Card className="flex flex-col gap-4 p-5">
-        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-5 w-32" />
         <Skeleton className="h-3 w-full" />
         <Skeleton className="min-h-36 w-full flex-1 rounded-lg" />
       </Card>
@@ -201,22 +195,24 @@ export function SettingsRouteLoading({ label }: { label: string }) {
   return (
     <LoadingRegion
       label={label}
-      className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-8 overflow-hidden"
+      className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-hidden px-6 py-6"
     >
-      <PageHeaderSkeleton compact />
-      {THREE_KEYS.map((key) => (
-        <section key={key} className="flex flex-col gap-4">
-          <Skeleton className="h-4 w-28" />
-          <div className="flex items-center justify-between gap-4 py-4">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-3.5 w-32" />
-              <Skeleton className="h-3 w-52" />
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-8">
+        <PageHeaderSkeleton />
+        {THREE_KEYS.map((key) => (
+          <section key={key} className="flex flex-col gap-4">
+            <Skeleton className="h-5 w-28" />
+            <div className="flex items-center justify-between gap-4 py-4">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-3 w-52" />
+              </div>
+              <Skeleton className="h-9 w-36" />
             </div>
-            <Skeleton className="h-9 w-36" />
-          </div>
-          <Skeleton className="h-px w-full rounded-none" />
-        </section>
-      ))}
+            <Skeleton className="h-px w-full rounded-none" />
+          </section>
+        ))}
+      </div>
     </LoadingRegion>
   );
 }

@@ -394,7 +394,7 @@ export function RepoReadmePage() {
         }}
         data-readme-scroll-container
         data-readme-motion-content
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="asterism-scroll-gutter min-h-0 flex-1 overflow-y-auto"
       >
         {readme.isPending ? (
           <ReadmeDocumentLoading label={t('readme.loading')} />

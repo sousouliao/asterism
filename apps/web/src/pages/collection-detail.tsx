@@ -115,7 +115,7 @@ export function CollectionDetailPage() {
 
   if (!collection) {
     return (
-      <div className="-m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
           <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
             <Link to="/collections">
@@ -134,7 +134,10 @@ export function CollectionDetailPage() {
   }
 
   return (
-    <div ref={setScrollElement} className="-m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+    <div
+      ref={setScrollElement}
+      className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6"
+    >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
           <Link to="/collections">

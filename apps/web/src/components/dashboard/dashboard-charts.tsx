@@ -52,7 +52,7 @@ function ChartCard({
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
-        <CardTitle className="font-medium text-base">{title}</CardTitle>
+        <CardTitle className="font-semibold text-drawer-title">{title}</CardTitle>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>

@@ -35,7 +35,7 @@ export function LoginPage() {
         </div>
 
         <div className="flex max-w-xl flex-col gap-6">
-          <h1 className="whitespace-pre-line font-bold text-4xl text-foreground tracking-tight lg:text-5xl">
+          <h1 className="whitespace-pre-line font-bold text-display text-foreground tracking-tight">
             {t('login.brandTagline')}
           </h1>
           <p className="text-base text-muted-foreground leading-relaxed">
@@ -59,7 +59,7 @@ export function LoginPage() {
         </div>
         <div className="flex w-full max-w-[380px] flex-col gap-8">
           <div className="flex flex-col gap-2 text-center">
-            <h2 className="font-bold text-[28px] text-card-foreground leading-tight">
+            <h2 className="font-semibold text-section-title text-card-foreground leading-tight">
               {t('login.getStarted')}
             </h2>
             <p className="text-[14px] text-muted-foreground leading-[22px]">

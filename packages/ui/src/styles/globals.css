@@ -273,6 +273,11 @@
 }
 
 @layer components {
+  /* 滚动层常驻预留滚动条槽：有无滚动条、加载态与加载完成的内容盒一致，列不横移 */
+  .asterism-scroll-gutter {
+    scrollbar-gutter: stable;
+  }
+
   .asterism-glass-page {
     position: relative;
     overflow: hidden;

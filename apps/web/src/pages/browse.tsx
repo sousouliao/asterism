@@ -334,12 +334,12 @@ function BrowseDataPage() {
         label={t('loading.repositories')}
         className="-m-6 flex min-h-0 flex-1 flex-col gap-5"
       >
-        <div className="shrink-0 px-6 pt-6">
+        <div className="shrink-0 pl-6 pr-[calc(var(--scrollbar-size)_+_1.5rem)] pt-6">
           <div className="mx-auto w-full max-w-6xl">
             <BrowseToolbarSkeleton />
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden px-6 pb-6">
+        <div className="asterism-scroll-gutter min-h-0 flex-1 overflow-hidden px-6 pb-6">
           <div className="mx-auto w-full max-w-6xl">
             <InitialLoadingState view={view} />
           </div>
@@ -351,12 +351,12 @@ function BrowseDataPage() {
   if (hasRepos) {
     return (
       <div className="-m-6 flex min-h-0 flex-1 flex-col gap-5">
-        <div className="shrink-0 px-6 pt-6">
+        {/* 右缘常驻预留与下方滚动层一致的 scrollbar 槽位，吸顶区与列表内容盒对齐 */}
+        <div className="shrink-0 pl-6 pr-[calc(var(--scrollbar-size)_+_1.5rem)] pt-6">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
             <GlassControlRow stuck={stuck} className="flex-col items-stretch gap-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <PageHeader
-                  size="section"
                   title={t('browse.title')}
                   description={!isError ? t('browse.count', { total }) : undefined}
                 />
@@ -391,7 +391,7 @@ function BrowseDataPage() {
           ref={setRepoScrollElement}
           data-browse-scroll-container
           className={cn(
-            'min-h-0 flex-1 overflow-y-auto px-6 pb-6',
+            'asterism-scroll-gutter min-h-0 flex-1 overflow-y-auto px-6 pb-6',
             bulkSelectionMode && 'pb-44 sm:pb-24',
           )}
         >
@@ -457,10 +457,12 @@ function BrowseDataPage() {
   }
 
   return (
-    <div data-browse-scroll-container className="-m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+    <div
+      data-browse-scroll-container
+      className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6"
+    >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
         <PageHeader
-          size="section"
           title={t('browse.title')}
           description={!isError ? t('browse.count', { total }) : undefined}
         />
