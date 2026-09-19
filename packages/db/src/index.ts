@@ -2,8 +2,12 @@ export type {
   AskGenerateMessage,
   AskGenerateOutcome,
   AskGenerateRequest,
+  AskModelsOutcome,
+  AskModelsRequest,
+  AskTestOutcome,
+  AskTestRequest,
 } from './ask';
-export { invokeAskGenerate } from './ask';
+export { invokeAskGenerate, invokeAskModels, invokeAskTest } from './ask';
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
 export type {

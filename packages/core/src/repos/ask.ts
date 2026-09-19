@@ -62,6 +62,41 @@ export function findAskProvider(id: string): AskProviderDefinition | undefined {
 }
 
 // ---------------------------------------------------------------------------
+// 连接能力读取（ADR 0043；自旧 Generation Registry 的 capability 读取原样迁移）
+// ---------------------------------------------------------------------------
+
+/** 一次连接探针的结论投影；`reason` 沿用旧探针词汇供界面映射失败原因。 */
+export interface GenerationCapabilityView {
+  ok: boolean;
+  model: string | null;
+  testedAt: string | null;
+  reason: string | null;
+}
+
+export function readGenerationCapability(capability: unknown): GenerationCapabilityView | null {
+  if (capability === null || typeof capability !== 'object') {
+    return null;
+  }
+  const record = capability as Record<string, unknown>;
+  if (typeof record.ok !== 'boolean') {
+    return null;
+  }
+  const model = typeof record.model === 'string' ? record.model.trim() : '';
+  return {
+    ok: record.ok,
+    model: model.length > 0 ? model : null,
+    testedAt: typeof record.testedAt === 'string' ? record.testedAt : null,
+    reason: typeof record.reason === 'string' ? record.reason : null,
+  };
+}
+
+/** 连接通过能力测试时证明过的唯一模型；未测试或失败返回 null。 */
+export function readTestedModel(capability: unknown): string | null {
+  const parsed = readGenerationCapability(capability);
+  return parsed?.ok ? parsed.model : null;
+}
+
+// ---------------------------------------------------------------------------
 // 召回：自然语言问题 → 个人库候选
 // ---------------------------------------------------------------------------
 
@@ -413,6 +448,8 @@ export interface BuildAskPromptInput<T extends StarredRepoLike> {
   history?: readonly AskExchange[];
   /** 回答语言（BCP 47 标签，跟随界面语言；缺省由模型跟随问题语言）。 */
   language?: string;
+  /** 是否把 Memory 笔记（whySaved / note）写进 prompt；缺省包含（ADR 0042 同意范围）。 */
+  includeNotes?: boolean;
 }
 
 export interface AskPrompt {
@@ -424,6 +461,7 @@ function formatCandidateBlock<T extends StarredRepoLike>(
   candidate: AskCandidate<T>,
   index: number,
   memory?: Memory,
+  includeNotes = true,
 ): string {
   const { repo } = candidate.item;
   const lines = [`[${index}] ${repo.fullName} — ${repo.description?.trim() || 'No description'}`];
@@ -433,6 +471,9 @@ function formatCandidateBlock<T extends StarredRepoLike>(
     repo.topics.length > 0 ? `Topics: ${repo.topics.join(', ')}` : null,
   ].filter((part): part is string => part !== null);
   lines.push(`    ${meta.join(' · ')}`);
+  if (!includeNotes) {
+    return lines.join('\n');
+  }
   const whySaved = memory?.whySaved?.trim();
   if (whySaved) {
     lines.push(`    Why saved (user's own note): ${whySaved}`);
@@ -454,6 +495,7 @@ export function buildAskPrompt<T extends StarredRepoLike>({
   memoriesByRepoId,
   history,
   language,
+  includeNotes = true,
 }: BuildAskPromptInput<T>): AskPrompt {
   const system = [
     'You are Ask Asterism, the question-answering assistant of a personal open-source memory app.',
@@ -488,6 +530,7 @@ export function buildAskPrompt<T extends StarredRepoLike>({
         candidate,
         index,
         candidate.repoId ? memoriesByRepoId?.get(candidate.repoId) : undefined,
+        includeNotes,
       ),
     ),
   );

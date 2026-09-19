@@ -13,6 +13,7 @@
 ## 已完成里程碑
 
 - **2026-09-20 · Ask Asterism 本地实现交付（GitHub #41）**：BYOK 问答全链路本地落地——`@asterism/core` 召回 / prompt / 引用校验（16 单测）、`ask-generate` 无状态 Edge Function（8 单测）、db 封装（5 单测）、BYOK 存储与 Settings 同意流、Command Palette 面板（6+4 单测）、双语 i18n 与 `/dev/ask-preview`；四道门禁与视觉检查通过。远端部署与验收待维护者执行。见 `logs/2026-09-20-ask-asterism-delivery.md`。
+- **2026-09-20 · Ask 连接管理器还原（ADR 0043）**：自旧 Generation Registry（`edb5925~1`）完整迁移连接配置体验——具名连接管理、模型检测（`/models` 转发，失败手填）、连接探针、活跃连接与「包含笔记」偏好；底座重建为浏览器本地连接库（版本化 localStorage 键），`ask-generate` 增加 `models` / `test` 两个动作（部署面不新增函数行），激活连接经 ADR 0042 出网同意后写入 ask-byok。四道门禁全绿。见 ADR 0043 与 `logs/2026-09-20-ask-connection-restoration.md`。
 - **2026-09-19 · Ask BYOK 决策与 #41 前置准备**：裁定 Ask Asterism 生成策略为客户端 BYOK（OpenAI 兼容、Provider 白名单）+ 无状态 Edge Function `ask-generate` 透传 + 客户端引用校验，不做抽取式兜底；修订 product / architecture / data-model 三份合同的数据流与服务端 AI 边界表述，#41 验收标准追加 BYOK 四项，产出五步实现执行计划。见 ADR 0042 与 `logs/2026-09-19-ask-byok-preparation.md`。
 - **2026-09-19 · Resurface 真实环境验收与 #40 关闭**：Vercel production（git 集成自动部署，无自定义域名）在真实账号下确认 Dashboard Resurface 双流、可验证理由、Useful / Dismiss 持久化与 Quick Look Memory 入口；QA 产生的本地反馈已清理还原，issue #40 附验收评论后关闭。见 `logs/2026-09-19-resurface-production-acceptance.md`。
 - **2026-09-19 · Resurface & Memory Streams 交付（GitHub #40）**：沉睡唤醒双流、可解释推荐理由、记忆回显与补写入口、Useful / Dismiss 本地反馈；`packages/core` 算法 + 20 单测、web 组件与交互测试、双语 i18n、dev 预览路由与四道门禁全部通过。见 ADR 0041 与 `logs/2026-09-19-resurface-memory-streams.md`。
@@ -35,7 +36,7 @@
 
 ## 下一恢复点
 
-1. #41 收尾：`ask-generate` 已远端部署（传输层 smoke 通过）。剩余：维护者在 Web 端真实账号 smoke——Settings 配置 Provider key → ⌘K 提问 → 引用直达 Quick Look → 无匹配问题返回「未找到」——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
+1. #41 收尾：ADR 0043 版 `ask-generate`（含 `models` / `test` 动作）已于 2026-09-20 重新部署至 `hqtrmulypxwdqvzlkhke`，传输层 smoke 通过（OPTIONS 预检 200；无 JWT / 伪造 JWT 均被平台 `verify_jwt` 拒绝）。剩余：维护者在 Web 端真实账号 smoke——Settings 建立连接并检测模型 → 激活（过出网同意）→ ⌘K 提问 → 引用直达 Quick Look → 无匹配问题返回「未找到」——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
 
 ## 环境提示
 

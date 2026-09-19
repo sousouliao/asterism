@@ -32,3 +32,13 @@ export const embeddingKeys = {
   search: (userId: string, query: string) => ['embeddings', 'search', userId, query] as const,
   list: (userId: string) => ['embeddings', 'list', userId] as const,
 };
+
+export const aiConnectionKeys = {
+  all: ['ai-connections'] as const,
+  list: (userId: string) => ['ai-connections', userId] as const,
+};
+
+export const aiSettingsKeys = {
+  all: ['ai-settings'] as const,
+  detail: (userId: string) => ['ai-settings', userId] as const,
+};

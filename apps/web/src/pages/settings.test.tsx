@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { ThemeProvider } from '@asterism/ui';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -54,11 +55,15 @@ async function renderSettings(overrides: Record<string, unknown> = {}) {
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
+  // 连接管理器使用 react-query；生产环境由应用根提供同样的 Provider。
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   await act(async () => {
     root.render(
-      <ThemeProvider defaultTheme="light">
-        <SettingsPage />
-      </ThemeProvider>,
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="light">
+          <SettingsPage />
+        </ThemeProvider>
+      </QueryClientProvider>,
     );
   });
 }

@@ -10,6 +10,7 @@ import { invokeAskGenerate, type StarredRepoRecord } from '@asterism/db';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/use-session';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
+import { readAiSettings } from '../lib/ai-connections';
 import { readAskByok } from '../lib/ask-byok';
 import { supabase } from '../lib/supabase';
 import { useMemoriesList } from './use-memories-list';
@@ -55,6 +56,7 @@ export function useAskQuestion() {
   const { session } = useSession();
   const userId = session?.user.id;
   const byok = readAskByok(userId ?? '');
+  const includeNotes = readAiSettings(userId ?? '').includeNotesInAi;
   const embedding = useEmbeddingBootstrapContext();
   const semanticEnabled =
     embedding.optedIn && (embedding.phase === 'ready' || embedding.backend !== null);
@@ -136,6 +138,7 @@ export function useAskQuestion() {
         memoriesByRepoId,
         history: submission.history,
         language: document.documentElement.lang || undefined,
+        includeNotes,
       });
       const outcome = await invokeAskGenerate(supabase, {
         provider: byok?.provider ?? '',
@@ -188,6 +191,7 @@ export function useAskQuestion() {
     isSearching,
     semanticEnabled,
     byok,
+    includeNotes,
   ]);
 
   return { phase, turns, ask, reset, configured: Boolean(byok) };

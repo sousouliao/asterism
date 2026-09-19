@@ -82,6 +82,7 @@ export type {
   AskProviderId,
   AskRecommendation,
   BuildAskPromptInput,
+  GenerationCapabilityView,
   SelectAskCandidatesInput,
 } from './repos/ask';
 export {
@@ -91,6 +92,8 @@ export {
   buildAskPrompt,
   findAskProvider,
   parseAskResponse,
+  readGenerationCapability,
+  readTestedModel,
   selectAskCandidates,
   tokenizeQuestion,
 } from './repos/ask';

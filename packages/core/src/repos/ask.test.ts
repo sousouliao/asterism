@@ -8,6 +8,8 @@ import {
   buildAskPrompt,
   findAskProvider,
   parseAskResponse,
+  readGenerationCapability,
+  readTestedModel,
   selectAskCandidates,
   tokenizeQuestion,
 } from './ask';
@@ -256,6 +258,50 @@ describe('buildAskPrompt', () => {
     expect(prompt.user).toContain('Q: websocket libs?');
     expect(prompt.user).toContain('A: Suggested [0].');
     expect(prompt.user).toContain('context only');
+  });
+
+  it('omits memory notes when includeNotes is false but keeps metadata', () => {
+    const prompt = buildAskPrompt({
+      question: 'Which Rust libraries support WebSocket?',
+      candidates,
+      memoriesByRepoId: new Map([
+        [
+          'repo-ws',
+          memory('repo-ws', { whySaved: 'streaming experiments', note: 'used for push' }),
+        ],
+      ]),
+      includeNotes: false,
+    });
+    expect(prompt.user).toContain('[0] rustws/tokio-tungstenite');
+    expect(prompt.user).toContain('Language: Rust');
+    expect(prompt.user).not.toContain("Why saved (user's own note):");
+    expect(prompt.user).not.toContain("Note (user's own note):");
+  });
+});
+
+describe('connection capability readers', () => {
+  it('projects a stored probe result and its tested model', () => {
+    const capability = {
+      ok: true,
+      reason: null,
+      model: 'deepseek-chat',
+      testedAt: '2026-09-20T00:00:00.000Z',
+    };
+    expect(readGenerationCapability(capability)).toEqual({
+      ok: true,
+      model: 'deepseek-chat',
+      testedAt: '2026-09-20T00:00:00.000Z',
+      reason: null,
+    });
+    expect(readTestedModel(capability)).toBe('deepseek-chat');
+  });
+
+  it('returns no tested model for failed probes and rejects malformed records', () => {
+    const failed = { ok: false, reason: 'unauthorized', model: 'deepseek-chat', testedAt: null };
+    expect(readTestedModel(failed)).toBeNull();
+    expect(readGenerationCapability(failed)?.reason).toBe('unauthorized');
+    expect(readGenerationCapability(null)).toBeNull();
+    expect(readGenerationCapability({ ok: 'yes' })).toBeNull();
   });
 });
 

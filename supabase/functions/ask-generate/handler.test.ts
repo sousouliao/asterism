@@ -164,3 +164,181 @@ describe('ask-generate HTTP boundary', () => {
     await expect(outcome(response)).resolves.toEqual({ status: 'retryable_error' });
   });
 });
+
+describe('ask-generate models action', () => {
+  function modelsBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      action: 'models',
+      provider: 'deepseek',
+      providerKey: 'sk-test-key-123456',
+      ...overrides,
+    };
+  }
+
+  function modelsSuccess() {
+    return new Response(
+      JSON.stringify({
+        object: 'list',
+        data: [{ id: 'deepseek-reasoner' }, { id: 'deepseek-chat' }, { id: 'deepseek-chat' }],
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  it('forwards a GET /models request with the provider key and returns a deduped sorted list', async () => {
+    const deps = dependencies({ fetchProvider: vi.fn().mockResolvedValue(modelsSuccess()) });
+    const response = await createAskGenerateHandler(deps)(request(modelsBody()));
+    expect(response.status).toBe(200);
+    await expect(outcome(response)).resolves.toEqual({
+      status: 'success',
+      models: ['deepseek-chat', 'deepseek-reasoner'],
+    });
+
+    const call = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(call?.[0]).toBe('https://api.deepseek.com/models');
+    const init = call?.[1] as RequestInit;
+    expect(init.method).toBe('GET');
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      'Bearer sk-test-key-123456',
+    );
+  });
+
+  it('caps the model list to bound the response size', async () => {
+    const data = Array.from({ length: 250 }, (_, index) => ({ id: `model-${index}` }));
+    const deps = dependencies({
+      fetchProvider: vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify({ data }), { status: 200 })),
+    });
+    const response = await createAskGenerateHandler(deps)(request(modelsBody()));
+    const body = await outcome(response);
+    expect((body.models as string[]).length).toBe(200);
+  });
+
+  it('keeps generation requests untouched and rejects unknown actions', async () => {
+    const deps = dependencies();
+    const generate = await createAskGenerateHandler(deps)(request(validBody()));
+    expect(generate.status).toBe(200);
+
+    const unknown = await createAskGenerateHandler(deps)(request(modelsBody({ action: 'evil' })));
+    expect(unknown.status).toBe(400);
+    expect((deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
+  });
+
+  it('validates the provider whitelist and key shape before fetching', async () => {
+    const deps = dependencies();
+    const cases: Record<string, unknown>[] = [
+      modelsBody({ provider: 'https-evil.example' }),
+      modelsBody({ providerKey: 'short' }),
+    ];
+    for (const body of cases) {
+      const response = await createAskGenerateHandler(deps)(request(body));
+      expect(response.status).toBe(400);
+    }
+    expect(deps.fetchProvider).not.toHaveBeenCalled();
+  });
+
+  it('maps upstream 401 to invalid_provider_key without leaking the key', async () => {
+    const deps = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(new Response('denied', { status: 401 })),
+    });
+    const response = await createAskGenerateHandler(deps)(request(modelsBody()));
+    const body = await outcome(response);
+    expect(body).toEqual({ status: 'invalid_provider_key' });
+    expect(JSON.stringify(body)).not.toContain('sk-test-key');
+  });
+
+  it('collapses upstream and transport failures into an empty-handed retryable outcome', async () => {
+    const rejected = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(new Response('slow down', { status: 429 })),
+    });
+    const rejectedResponse = await createAskGenerateHandler(rejected)(request(modelsBody()));
+    expect(rejectedResponse.status).toBe(502);
+    await expect(outcome(rejectedResponse)).resolves.toEqual({ status: 'retryable_error' });
+
+    const network = dependencies({
+      fetchProvider: vi.fn().mockRejectedValue(new Error('dns')),
+    });
+    const networkResponse = await createAskGenerateHandler(network)(request(modelsBody()));
+    expect(networkResponse.status).toBe(502);
+  });
+
+  it('returns an empty success list when the payload has no parsable ids', async () => {
+    const deps = dependencies({
+      fetchProvider: vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ object: 'list', data: [] }), { status: 200 }),
+        ),
+    });
+    const response = await createAskGenerateHandler(deps)(request(modelsBody()));
+    await expect(outcome(response)).resolves.toEqual({ status: 'success', models: [] });
+  });
+});
+
+describe('ask-generate test action', () => {
+  function testBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      action: 'test',
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+      providerKey: 'sk-test-key-123456',
+      ...overrides,
+    };
+  }
+
+  it('sends the fixed minimal probe with json mode where supported', async () => {
+    const deps = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(providerSuccess('{"ok":true}')),
+    });
+    const response = await createAskGenerateHandler(deps)(request(testBody()));
+    expect(response.status).toBe(200);
+    await expect(outcome(response)).resolves.toEqual({ status: 'success', ok: true, reason: null });
+
+    const call = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(call?.[0]).toBe('https://api.deepseek.com/chat/completions');
+    const init = call?.[1] as RequestInit;
+    expect(JSON.parse(String(init.body))).toEqual({
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: 'Respond with the JSON object {"ok":true} and nothing else.' },
+        { role: 'user', content: 'connection probe' },
+      ],
+      temperature: 0,
+      max_tokens: 512,
+      response_format: { type: 'json_object' },
+    });
+  });
+
+  it('omits json mode for providers without support and validates the model id', async () => {
+    const deps = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(providerSuccess('{"ok":true}')),
+    });
+    await createAskGenerateHandler(deps)(request(testBody({ provider: 'openrouter' })));
+    const init = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(init.body))).not.toHaveProperty('response_format');
+
+    const bad = await createAskGenerateHandler(deps)(request(testBody({ model: 'bad model!' })));
+    expect(bad.status).toBe(400);
+  });
+
+  it('maps empty probe content to an invalid outcome with a format reason', async () => {
+    const deps = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(providerSuccess('')),
+    });
+    const response = await createAskGenerateHandler(deps)(request(testBody()));
+    await expect(outcome(response)).resolves.toEqual({
+      status: 'success',
+      ok: false,
+      reason: 'empty_response',
+    });
+  });
+
+  it('maps upstream 401 to invalid_provider_key', async () => {
+    const deps = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(new Response('denied', { status: 401 })),
+    });
+    const response = await createAskGenerateHandler(deps)(request(testBody()));
+    await expect(outcome(response)).resolves.toEqual({ status: 'invalid_provider_key' });
+  });
+});

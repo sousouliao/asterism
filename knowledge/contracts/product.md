@@ -26,7 +26,7 @@ Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库
 - **后端**：Supabase（Auth + Postgres source-of-truth + Edge Functions），TanStack Query 提供会话内请求缓存。当前不承诺离线浏览；多个客户端会话不主动推送收敛，进入页面、查询刷新、完成本地操作或重新连接后读取最新状态。
 - **语义能力**：隐形混合搜索与 Related Stars 使用浏览器内 embedding；被嵌文本由仓库元数据与用户自己的 `whySaved` / `note` 组成，原文只在浏览器内处理，派生向量按用户存于 RLS 隔离的 `user_repo_embeddings`。它不依赖 BYOK，也不修改集合或 Memory canonical。
 - **AI 整理退役**：产品不再提供服务端 Generation、BYOK Connection、AI 整理草稿或 Organization Task。历史 AI 执行已经形成的普通组织关系继续作为 canonical 用户数据保留。
-- **Ask 生成（ADR 0042）**：Ask Asterism 的回答生成使用用户自带 key 的 OpenAI 兼容 LLM（BYOK，v1 固定 Provider 枚举：DeepSeek / OpenAI / Groq / OpenRouter）；key 仅存浏览器本地，经无状态 Edge Function `ask-generate` 透传，服务端不保存 credential。检索与证据严格限于个人库，不联网搜索；`whySaved` / `note` 原文发送给所选 Provider 前必须显式同意。推荐与引用经客户端校验后由本地数据渲染；未配置 key 时提供配置引导，不提供无 LLM 的兜底回答。
+- **Ask 生成（ADR 0042）**：Ask Asterism 的回答生成使用用户自带 key 的 OpenAI 兼容 LLM（BYOK，v1 固定 Provider 枚举：DeepSeek / OpenAI / Groq / OpenRouter）；key 仅存浏览器本地，经无状态 Edge Function `ask-generate` 透传，服务端不保存 credential。检索与证据严格限于个人库，不联网搜索；`whySaved` / `note` 原文发送给所选 Provider 前必须显式同意。推荐与引用经客户端校验后由本地数据渲染；未配置 key 时提供配置引导，不提供无 LLM 的兜底回答。Settings 提供还原的连接管理体验（ADR 0043）：具名连接的新建 / 编辑 / 启停 / 删除、模型检测（失败可手填模型 ID）、连接探针与活跃连接偏好；连接与 key 存浏览器本地库，激活连接即写入 Ask 配置且必须先通过出网同意，「包含笔记」偏好可关闭 Memory 原文进入 prompt。
 - **Memory 模型（ADR 0037）**：每个用户与 Repo 首版恰好一条 Memory，承载来源、来源时间、`whySaved` 与自由文本 `note`。Star 是初始来源，不是产品终点；系统不得猜测 `whySaved`。
 - **组织模型（ADR 0035）**：用户自定义组织关系只保留 Collection。Collection 是次级人工组织能力，保留既有功能但暂停新增 Collection Management；GitHub Language / Topics / Archived / 时间承担客观筛选。
 

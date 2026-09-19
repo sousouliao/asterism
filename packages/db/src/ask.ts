@@ -68,3 +68,93 @@ export async function invokeAskGenerate(
   }
   return data;
 }
+
+export interface AskModelsRequest {
+  provider: string;
+  /** 用户 BYOK 的 Provider key：仅随本次请求透传，由调用方从草稿或本地存储读取。 */
+  providerKey: string;
+}
+
+export type AskModelsOutcome =
+  | { status: 'success'; models: string[] }
+  | { status: 'invalid_provider_key' }
+  | { status: 'unavailable' };
+
+export interface AskTestRequest extends AskModelsRequest {
+  model: string;
+}
+
+/** 探针结论：`reason` 沿用旧探针词汇，供界面映射可读的失败原因。 */
+export type AskTestOutcome =
+  | { status: 'passed' }
+  | { status: 'failed'; reason: 'unauthorized' | 'empty_response' | 'network' }
+  | { status: 'unavailable' };
+
+/**
+ * 调用 `ask-generate` 的 test 动作（ADR 0043）：用给定 key + 模型发送一次最小生成
+ * 请求，验证连接可用性。结果不落服务端，由调用方在本地连接记录上更新状态。
+ */
+export async function invokeAskTest(
+  client: SupabaseClient,
+  request: AskTestRequest,
+): Promise<AskTestOutcome> {
+  const { data, error } = await client.functions.invoke<unknown>('ask-generate', {
+    body: {
+      action: 'test',
+      provider: request.provider,
+      model: request.model,
+      providerKey: request.providerKey,
+    },
+  });
+  if (error || data === null || typeof data !== 'object') {
+    return { status: 'unavailable' };
+  }
+  const outcome = data as Record<string, unknown>;
+  if (outcome.status === 'invalid_provider_key') {
+    return { status: 'failed', reason: 'unauthorized' };
+  }
+  if (outcome.status === 'success') {
+    if (outcome.ok === true) {
+      return { status: 'passed' };
+    }
+    if (outcome.reason === 'empty_response') {
+      return { status: 'failed', reason: 'empty_response' };
+    }
+    return { status: 'failed', reason: 'network' };
+  }
+  return { status: 'unavailable' };
+}
+
+/**
+ * 调用 `ask-generate` 的 models 动作（ADR 0043）：用草稿中的 key 检测该 Provider 的
+ * 模型列表。除「key 被拒」可明确提示外，其余失败一律折叠为不可用，界面回退手填。
+ */
+export async function invokeAskModels(
+  client: SupabaseClient,
+  request: AskModelsRequest,
+): Promise<AskModelsOutcome> {
+  const { data, error } = await client.functions.invoke<unknown>('ask-generate', {
+    body: {
+      action: 'models',
+      provider: request.provider,
+      providerKey: request.providerKey,
+    },
+  });
+  if (error || data === null || typeof data !== 'object') {
+    return { status: 'unavailable' };
+  }
+  const outcome = data as Record<string, unknown>;
+  if (outcome.status === 'success') {
+    if (
+      !Array.isArray(outcome.models) ||
+      outcome.models.some((model) => typeof model !== 'string')
+    ) {
+      return { status: 'unavailable' };
+    }
+    return { status: 'success', models: outcome.models };
+  }
+  if (outcome.status === 'invalid_provider_key') {
+    return { status: 'invalid_provider_key' };
+  }
+  return { status: 'unavailable' };
+}
