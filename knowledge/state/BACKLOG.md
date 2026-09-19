@@ -5,11 +5,10 @@
 ## 当前 frontier
 
 - [ ] **个人私有知识问答（GitHub #41）**：`feat(ask): private and grounded repository Q&A (Ask Asterism)`。基于统一检索做 Grounding 问答，严格限定个人库，附带可追溯证据链。
-- [ ] **Resurface 真实环境验收（GitHub #40 收尾）**：本地实现、测试、门禁与 dev 预览视觉 QA 已完成；待部署 preview 并在真实账号确认后关闭 issue。
 
 ## 已完成近期 frontier
 
-- [x] **沉睡记忆唤醒与主页推荐流（GitHub #40）**：`feat(memory): resurface inactive stars and contextual memory streams`。双流卡片、可解释算法、本地反馈、双语与全部门禁已交付（ADR 0041）；issue 关闭待真实环境验收。
+- [x] **沉睡记忆唤醒与主页推荐流（GitHub #40）**：`feat(memory): resurface inactive stars and contextual memory streams`。双流卡片、可解释算法、本地反馈、双语与全部门禁已交付（ADR 0041）；真实环境验收通过后 issue 已关闭。
 - [x] **完成 Memory + Why I saved this 交付（GitHub #37）**：本地代码、自动化测试、桌面/手机视觉 QA、远端 Supabase migration (`20260917120000_memory_foundation.sql`) 推送、`sync-stars` Edge Function 部署与 GitHub Issue #37 已全部完成关闭。按 ADR 0038 不迁移旧 Note，也不兼容 v1/v2 JSON。
 - [x] **统一检索引擎（GitHub #39）**：Memory-aware 词法 / 语义检索、可验证 Match Explanation、可信 Related Stars 降级和 consent v2 已完成；代码复核发现的问题已修正并通过全量门禁。
 

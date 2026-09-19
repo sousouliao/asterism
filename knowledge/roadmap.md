@@ -15,7 +15,7 @@ Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR
 | Product Repositioning | Done（ADR 0037） | Personal Open Source Memory 成为正式定位 |
 | Memory Foundation | **Done（2026-09-17）** | #37：一对一 Memory 与 “Why I saved this” 完整纵向切片已部署上线 |
 | Unified Retrieval | **Done（2026-09-18）** | #39：Memory-aware 词法 / 语义检索、可验证解释与可信 Related Stars 降级 |
-| Resurface | **Done（2026-09-19）** | #40：沉睡唤醒双流、本地可解释算法与本地反馈（ADR 0041） |
+| Resurface | **Done（2026-09-19，已验收关闭）** | #40：沉睡唤醒双流、本地可解释算法与本地反馈（ADR 0041）；真实环境验收通过 |
 | Browser Extension / Desktop | Deferred | Memory / Retrieval 基础稳定后重新排期 |
 
 ## 已交付基础
