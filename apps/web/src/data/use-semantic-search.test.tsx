@@ -5,6 +5,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  QUERY_DEBOUNCE_MS,
   SEMANTIC_MATCH_COUNT,
   type SemanticNeighborsResult,
   useSemanticNeighbors,
@@ -59,11 +60,12 @@ async function render(props: { query: string; enabled: boolean }) {
   });
 }
 
-// queryFn 链是 await import → embed → RPC，全在 microtask；两轮 macrotask flush 稳妥收敛 fetch 与其后的重渲染。
+// queryFn 链是 await import → 防抖窗口 → embed → RPC；先跨过防抖再补 macrotask flush，
+// 稳妥收敛 fetch 与其后的重渲染。
 async function flush() {
   for (let round = 0; round < 2; round += 1) {
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, round === 0 ? QUERY_DEBOUNCE_MS + 20 : 0));
     });
   }
 }
@@ -127,5 +129,24 @@ describe('useSemanticNeighbors', () => {
         ['repo-2', 0.34],
       ]),
     );
+  });
+
+  it('reports searching while a changed query is still debounced', async () => {
+    mocks.embed.mockResolvedValue([[0.1]]);
+    mocks.searchRepoEmbeddings.mockResolvedValue([]);
+
+    await render({ query: 'vector', enabled: true });
+    await flush();
+    expect(latest?.isSearching).toBe(false);
+
+    await render({ query: 'vector search', enabled: true });
+    // 防抖窗口内 fetch 尚未派发，但等待方（Ask 编排）必须看到「还在检索」，
+    // 否则会误判语义通道已完成而绕过它。
+    expect(latest?.isSearching).toBe(true);
+    expect(mocks.embed).not.toHaveBeenCalledWith(['query: vector search']);
+
+    await flush();
+    expect(mocks.embed).toHaveBeenCalledWith(['query: vector search']);
+    expect(latest?.isSearching).toBe(false);
   });
 });

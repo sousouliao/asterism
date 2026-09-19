@@ -92,7 +92,11 @@ export function useAskQuestion() {
         question: turn.question,
         summary: turn.summary,
       }));
-      setSubmission({ id: nextId.current, question, history });
+      // id 必须逐次自增：effect 以 settledId 防重入，同 id 的后续提交（追问 / 重试）
+      // 会被视为已处理而永远停在 recalling。
+      const id = nextId.current;
+      nextId.current += 1;
+      setSubmission({ id, question, history });
       setPhase({ kind: 'recalling', question });
     },
     [byok, turns],

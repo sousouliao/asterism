@@ -9,7 +9,7 @@ import { embeddingKeys } from './keys';
 /** 语义近邻最多补充多少条（与 core 的 semanticLimit 对齐）。 */
 export const SEMANTIC_MATCH_COUNT = 24;
 /** 打字实时重排的节流：query 稳定这么久才嵌入 + 检索，避免每键一次 embed。 */
-const QUERY_DEBOUNCE_MS = 180;
+export const QUERY_DEBOUNCE_MS = 180;
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -38,8 +38,13 @@ export function useSemanticNeighbors(
 ): SemanticNeighborsResult {
   const { session } = useSession();
   const userId = session?.user.id;
-  const debouncedQuery = useDebouncedValue(query.trim(), QUERY_DEBOUNCE_MS);
+  const trimmed = query.trim();
+  const debouncedQuery = useDebouncedValue(trimmed, QUERY_DEBOUNCE_MS);
   const enabled = options.enabled && Boolean(userId) && debouncedQuery.length > 0;
+  // 防抖窗口内 fetch 尚未派发，但对等待方而言结果同样「还在浮现」；
+  // 只看 isFetching 会让调用方（Ask 编排）在这段窗口误判检索已完成而绕过语义通道。
+  const debouncePending =
+    options.enabled && Boolean(userId) && trimmed.length > 0 && debouncedQuery !== trimmed;
 
   const { data, isFetching } = useQuery({
     queryKey: embeddingKeys.search(userId ?? 'anon', debouncedQuery),
@@ -70,5 +75,5 @@ export function useSemanticNeighbors(
     return map;
   }, [data, enabled]);
 
-  return { distanceByRepoId, isSearching: enabled && isFetching };
+  return { distanceByRepoId, isSearching: (enabled && isFetching) || debouncePending };
 }
