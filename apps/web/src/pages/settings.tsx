@@ -22,6 +22,7 @@ import { useSession } from '../auth/use-session';
 import { ConfirmDialog } from '../components/confirm-dialog';
 import { PageHeader } from '../components/page-header';
 import { PendingActionContent } from '../components/pending-action-content';
+import { SettingsAskSection } from '../components/settings-ask-section';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
 import { changeInterfaceLanguage } from '../i18n';
 import { supabase } from '../lib/supabase';
@@ -238,6 +239,8 @@ export function SettingsPage() {
             </p>
           ) : null}
         </section>
+
+        <SettingsAskSection />
 
         <section className="flex flex-col gap-3">
           <SectionTitle>{t('settings.account')}</SectionTitle>

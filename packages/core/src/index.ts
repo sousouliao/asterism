@@ -73,6 +73,28 @@ export type {
 } from './repos/analytics';
 export { deriveDashboardInsights } from './repos/analytics';
 export type {
+  AskAnswer,
+  AskCandidate,
+  AskExchange,
+  AskParseResult,
+  AskPrompt,
+  AskProviderDefinition,
+  AskProviderId,
+  AskRecommendation,
+  BuildAskPromptInput,
+  SelectAskCandidatesInput,
+} from './repos/ask';
+export {
+  ASK_CANDIDATE_LIMIT,
+  ASK_MAX_RECOMMENDATIONS,
+  ASK_PROVIDERS,
+  buildAskPrompt,
+  findAskProvider,
+  parseAskResponse,
+  selectAskCandidates,
+  tokenizeQuestion,
+} from './repos/ask';
+export type {
   RepoFacets,
   RepoFilter,
   RepoSort,

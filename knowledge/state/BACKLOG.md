@@ -4,7 +4,7 @@
 
 ## 当前 frontier
 
-- [ ] **个人私有知识问答（GitHub #41）**：`feat(ask): private and grounded repository Q&A (Ask Asterism)`。基于统一检索做 Grounding 问答，严格限定个人库，附带可追溯证据链。生成策略已定为客户端 BYOK + 无状态 `ask-generate` 代理 + 引用校验、无抽取式兜底（ADR 0042）；合同修订与实现执行计划已完成，见 `../logs/2026-09-19-ask-byok-preparation.md`，待按 ①core → ②函数 → ③配置 → ④面板 → ⑤门禁 顺序实现。
+- [ ] **个人私有知识问答（GitHub #41）· 本地实现已交付，`ask-generate` 已远端部署，待真实环境验收**：`feat(ask): private and grounded repository Q&A (Ask Asterism)`。生成策略为客户端 BYOK + 无状态 `ask-generate` 代理 + 引用校验、无抽取式兜底（ADR 0042）；core / Edge Function / db / Settings 配置与同意流 / Ask 面板 / 双语 i18n / dev 预览与四道门禁全部完成（`logs/2026-09-20-ask-asterism-delivery.md`），远端部署与传输层 smoke 已通过。剩余：真实账号 smoke、production 验收后关闭 issue。
 
 ## 已完成近期 frontier
 

@@ -1,3 +1,9 @@
+export type {
+  AskGenerateMessage,
+  AskGenerateOutcome,
+  AskGenerateRequest,
+} from './ask';
+export { invokeAskGenerate } from './ask';
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
 export type {

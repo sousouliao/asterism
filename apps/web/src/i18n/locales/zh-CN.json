@@ -414,6 +414,31 @@
       "terminal": "{{count}} 项已终止"
     }
   },
+  "ask": {
+    "openMenu": "打开 Ask Asterism",
+    "title": "Ask Asterism",
+    "description": "就你保存过的项目提问；回答只依据你的个人收藏。",
+    "placeholder": "用自然语言提问…",
+    "questionLabel": "你的问题",
+    "submit": "提问",
+    "emptyHint": "用日常语言提问即可，会同时检索你的 Memory 笔记与仓库元数据。",
+    "needsSetupTitle": "Ask 需要配置 Provider key",
+    "needsSetupDescription": "回答由你自己的 OpenAI 兼容 key（DeepSeek / OpenAI / Groq / OpenRouter）基于个人收藏生成；key 只保存在此浏览器。",
+    "openSettings": "打开设置",
+    "recalling": "正在检索你的收藏…",
+    "generating": "正在生成回答…",
+    "notFound": "你的收藏库中未找到匹配的项目。",
+    "errorRetryable": "回答生成失败，请检查网络后重试。",
+    "errorTimeout": "Provider 响应超时，请重试。",
+    "errorInvalidKey": "Provider 拒绝了这个 API key，请在设置中检查。",
+    "errorProviderRejected": "Provider 拒绝了请求，请在设置中检查模型名。",
+    "provider": {
+      "deepseek": "DeepSeek",
+      "openai": "OpenAI",
+      "groq": "Groq",
+      "openrouter": "OpenRouter"
+    }
+  },
   "settings": {
     "title": "设置",
     "appearance": "外观",
@@ -437,6 +462,21 @@
     "clearSearchModelDescription": "这会移除本地模型和派生的搜索索引。关键词搜索不受影响，你之后仍可重新启用语义搜索。",
     "searchActionError": "无法更新搜索设置，请重试。",
     "account": "账号",
-    "connectedVia": "通过 GitHub OAuth 连接"
+    "connectedVia": "通过 GitHub OAuth 连接",
+    "ask": "Ask Asterism",
+    "askDescription": "配置你自己的 OpenAI 兼容 key，即可基于个人收藏回答问题；key 只保存在此浏览器。",
+    "askProvider": "Provider",
+    "askModel": "模型",
+    "askApiKey": "API key",
+    "askApiKeyHint": "仅保存在此浏览器；只在作答时发送给你选择的 Provider。",
+    "askConfigured": "已就绪",
+    "askNotConfigured": "未配置",
+    "askModelPlaceholder": "例如 deepseek-chat",
+    "askConsentTitle": "允许 Ask 向 {{provider}} 发送上下文",
+    "askConsentDescription": "作答时，Asterism 会把你的问题、命中仓库的元数据以及你的 Memory 笔记（收藏原因 / 备注）发送给 {{provider}}。你的 key 只保存在此浏览器，且仅随本次请求转发。",
+    "askConsentConfirm": "我了解，保存",
+    "askRemove": "移除 key",
+    "askRemoveTitle": "移除 Ask Asterism 的 key？",
+    "askRemoveDescription": "移除后 Ask 将不可用，直至重新配置；不会删除其他数据。"
   }
 }

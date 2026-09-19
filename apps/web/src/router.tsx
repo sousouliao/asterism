@@ -73,6 +73,12 @@ function createDevelopmentRoutes() {
     })),
   );
 
+  const AskPreviewPage = lazy(() =>
+    import('./pages/ask-preview').then((module) => ({
+      default: module.AskPreviewPage,
+    })),
+  );
+
   const ResurfacePreviewPage = lazy(() =>
     import('./pages/resurface-preview').then((module) => ({
       default: module.ResurfacePreviewPage,
@@ -85,6 +91,14 @@ function createDevelopmentRoutes() {
       element: (
         <Suspense fallback={<CorpusLabFallback />}>
           <ReadmeCorpusLabPage />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/dev/ask-preview',
+      element: (
+        <Suspense fallback={<CorpusLabFallback />}>
+          <AskPreviewPage />
         </Suspense>
       ),
     },

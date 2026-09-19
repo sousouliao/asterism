@@ -5,13 +5,14 @@
 ## 当前状态
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
-- **当前状态**：GitHub #40 Resurface 全链路交付并关闭。Vercel production（main @ 972b2d2）在真实账号 sousouliao（531 stars）下验收通过：双流渲染、可验证理由、Useful / Dismiss 即时移出与刷新持久化、「Add why you saved it」直达 Quick Look Memory 编辑；QA 本地反馈数据已清理还原。
-- **当前工程 frontier**：推进下一代检索与唤醒功能。三个纵向切片中的 #39、#40 已完成；下一活动执行目标为 #41（Ask Asterism 私有问答），生成策略已裁定为客户端 BYOK + 无状态 `ask-generate` 代理 + 引用校验、无抽取式兜底（ADR 0042），实现前置准备（合同修订、issue 验收标准更新、执行计划）已完成。
+- **当前状态**：GitHub #41 Ask Asterism 本地实现交付：BYOK 生成（客户端存 key + 无状态 `ask-generate` 代理）、个人库词法/语义召回、引用校验、Settings 配置与同意流、Command Palette 面板、双语 i18n 与 dev 预览路由全部落地；四道门禁与 impeccable 视觉检查（桌面明暗 + 移动 + 检测器零发现）通过。待办：远端部署 `ask-generate`、真实账号 smoke 与 production 验收后关闭 issue。
+- **当前工程 frontier**：三个纵向切片中的 #39、#40 已完成；#41（Ask Asterism 私有问答）本地实现已交付（ADR 0042：客户端 BYOK + 无状态代理 + 引用校验、无抽取式兜底），剩余远端部署与真实环境验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
 
 ## 已完成里程碑
 
+- **2026-09-20 · Ask Asterism 本地实现交付（GitHub #41）**：BYOK 问答全链路本地落地——`@asterism/core` 召回 / prompt / 引用校验（16 单测）、`ask-generate` 无状态 Edge Function（8 单测）、db 封装（5 单测）、BYOK 存储与 Settings 同意流、Command Palette 面板（6+4 单测）、双语 i18n 与 `/dev/ask-preview`；四道门禁与视觉检查通过。远端部署与验收待维护者执行。见 `logs/2026-09-20-ask-asterism-delivery.md`。
 - **2026-09-19 · Ask BYOK 决策与 #41 前置准备**：裁定 Ask Asterism 生成策略为客户端 BYOK（OpenAI 兼容、Provider 白名单）+ 无状态 Edge Function `ask-generate` 透传 + 客户端引用校验，不做抽取式兜底；修订 product / architecture / data-model 三份合同的数据流与服务端 AI 边界表述，#41 验收标准追加 BYOK 四项，产出五步实现执行计划。见 ADR 0042 与 `logs/2026-09-19-ask-byok-preparation.md`。
 - **2026-09-19 · Resurface 真实环境验收与 #40 关闭**：Vercel production（git 集成自动部署，无自定义域名）在真实账号下确认 Dashboard Resurface 双流、可验证理由、Useful / Dismiss 持久化与 Quick Look Memory 入口；QA 产生的本地反馈已清理还原，issue #40 附验收评论后关闭。见 `logs/2026-09-19-resurface-production-acceptance.md`。
 - **2026-09-19 · Resurface & Memory Streams 交付（GitHub #40）**：沉睡唤醒双流、可解释推荐理由、记忆回显与补写入口、Useful / Dismiss 本地反馈；`packages/core` 算法 + 20 单测、web 组件与交互测试、双语 i18n、dev 预览路由与四道门禁全部通过。见 ADR 0041 与 `logs/2026-09-19-resurface-memory-streams.md`。
@@ -34,7 +35,7 @@
 
 ## 下一恢复点
 
-1. 实现 GitHub #41（Ask Asterism 私有问答）：按 `logs/2026-09-19-ask-byok-preparation.md` 的五步顺序执行（① core 领域逻辑 → ② `ask-generate` Edge Function → ③ BYOK 配置与同意 → ④ Ask 面板 → ⑤ 门禁与验收），规格以 ADR 0042 与修订后合同为准。
+1. #41 收尾：`ask-generate` 已远端部署（传输层 smoke 通过）。剩余：维护者在 Web 端真实账号 smoke——Settings 配置 Provider key → ⌘K 提问 → 引用直达 Quick Look → 无匹配问题返回「未找到」——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
 
 ## 环境提示
 

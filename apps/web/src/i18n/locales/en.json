@@ -414,6 +414,31 @@
       "terminal": "{{count}} terminal"
     }
   },
+  "ask": {
+    "openMenu": "Open Ask Asterism",
+    "title": "Ask Asterism",
+    "description": "Ask questions about the projects you saved. Answers are grounded in your collection only.",
+    "placeholder": "Ask in your own words…",
+    "questionLabel": "Your question",
+    "submit": "Ask",
+    "emptyHint": "Ask in plain language — your Memory notes and repository metadata are searched together.",
+    "needsSetupTitle": "Ask needs a provider key",
+    "needsSetupDescription": "Answers are generated from your collection with your own OpenAI-compatible key (DeepSeek, OpenAI, Groq, or OpenRouter). The key is stored only in this browser.",
+    "openSettings": "Open settings",
+    "recalling": "Searching your collection…",
+    "generating": "Composing the answer…",
+    "notFound": "No matching projects were found in your collection.",
+    "errorRetryable": "The answer could not be generated. Check your connection and try again.",
+    "errorTimeout": "The provider did not respond in time. Try again.",
+    "errorInvalidKey": "The provider rejected this API key. Check it in Settings.",
+    "errorProviderRejected": "The provider rejected the request. Check the model name in Settings.",
+    "provider": {
+      "deepseek": "DeepSeek",
+      "openai": "OpenAI",
+      "groq": "Groq",
+      "openrouter": "OpenRouter"
+    }
+  },
   "settings": {
     "title": "Settings",
     "appearance": "Appearance",
@@ -437,6 +462,21 @@
     "clearSearchModelDescription": "This removes the local model and your derived search index. Keyword search will keep working, and you can enable semantic search again later.",
     "searchActionError": "The search setting could not be updated. Try again.",
     "account": "Account",
-    "connectedVia": "Connected via GitHub OAuth"
+    "connectedVia": "Connected via GitHub OAuth",
+    "ask": "Ask Asterism",
+    "askDescription": "Bring your own OpenAI-compatible key to answer questions from your collection. The key is stored only in this browser.",
+    "askProvider": "Provider",
+    "askModel": "Model",
+    "askApiKey": "API key",
+    "askApiKeyHint": "Stored only in this browser; sent only to your chosen provider when answering.",
+    "askConfigured": "Ready",
+    "askNotConfigured": "Not configured",
+    "askModelPlaceholder": "e.g. deepseek-chat",
+    "askConsentTitle": "Allow Ask to send context to {{provider}}",
+    "askConsentDescription": "To answer, Asterism sends your question together with the matching repositories' metadata and your Memory notes (why saved / note) to {{provider}}. Your key stays in this browser and is only forwarded for this request.",
+    "askConsentConfirm": "I understand — save",
+    "askRemove": "Remove key",
+    "askRemoveTitle": "Remove the Ask Asterism key?",
+    "askRemoveDescription": "Ask will stop working until you configure a new key. Nothing else is deleted."
   }
 }

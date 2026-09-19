@@ -67,6 +67,7 @@ Asterism 只读取公开 Star、公开仓库元数据与公开资料，不申请
 supabase functions deploy sync-stars
 supabase functions deploy read-repo-readme
 supabase functions deploy bulk-organize
+supabase functions deploy ask-generate
 ```
 
 三项函数都使用 Supabase 运行时自动注入的 `SUPABASE_URL` 与 `SUPABASE_SERVICE_ROLE_KEY`；不需要把它们写进仓库或 Web 环境变量。
@@ -74,6 +75,8 @@ supabase functions deploy bulk-organize
 - `sync-stars`：验证当前 Supabase 用户后，使用其 GitHub provider token 增量同步公开 Star。
 - `read-repo-readme`：先验证仓库属于当前用户的 Star 库，再从 GitHub 读取 README；README 不持久化到数据库。
 - `bulk-organize`：验证用户与仓库、标签、集合归属，按有界批次幂等写入并持久化逐关系结果；不访问 GitHub，也不执行 star/unstar。
+
+第四项 `ask-generate` 是 Ask Asterism 的无状态生成代理（ADR 0042）：验证 Supabase 用户后，把客户端组装的 prompt 以单次 JSON 请求转发到用户自带 key 的 OpenAI 兼容上游（Provider 白名单：DeepSeek / OpenAI / Groq / OpenRouter）。它不新增任何服务端 secret 或表——用户的 API key 只存其浏览器本地，仅随请求透传，不落日志。不部署此函数时，除 Ask Asterism 问答外的全部功能不受影响。
 
 ## 5. 配置并验证本地 Web
 
@@ -131,4 +134,4 @@ pnpm --filter @asterism/web dev
 - 数据写入被拒绝：确认 migrations 已完整应用、RLS 已开启且当前 session 用户与记录 `user_id` 一致。
 - 页面直达 404：为静态托管配置 SPA fallback 到 `index.html`。
 
-Phase 2 的 BYOK credential 加密与相关 secret 不属于本手册的 Phase 1 部署面；实现时将另行补充迁移与运维步骤。
+Phase 2 历史上的 BYOK credential 服务端加密已由 ADR 0032 退役，不再属于部署面；ADR 0042 的 Ask BYOK key 存于用户浏览器本地，自部署不需要任何 AI 相关 secret 或迁移。
