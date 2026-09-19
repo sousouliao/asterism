@@ -259,6 +259,15 @@ ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。主体
 - 关闭按钮：默认显示，与 Quick Look 一致（`ghost` + `icon-sm`）。决策型确认（如未保存笔记）也显示关闭按钮，语义等同「继续编辑」；页脚只保留破坏性/确认动作（放弃、保存），不再重复「继续编辑」按钮。保存进行中须禁用关闭。有关闭按钮的标题行需预留右侧空间。
 - 页脚动作默认 `size="sm"`，右对齐；窄屏需要时改为同宽单列。
 
+**Ask 对话舱例外**：Ask Asterism 面板是对话式任务（连续输入 + 消息流），使用底部居中 dock 变体——
+`max-w-2xl`（672px）、贴底（`bottom-4` / `sm:bottom-6`）、内容随问答生长（`max-h-[min(32rem, calc(100dvh - 6rem))]`，
+超出后消息区内部滚动并保持贴底）；composer 固定舱底直接可输入，打开时自动聚焦。消息布局：用户消息为
+石墨蓝调 `accent` 气泡靠右（尾角收窄），Asterism 回答为无气泡纯文本 + 证据卡片靠左；新消息
+`slide-in-from-bottom-2 + fade-in`（200ms / `--ease-out-quart`，reduced-motion 关闭）。遮罩减淡为
+`bg-black/30`（`DialogContent overlayClassName`），关闭按钮使用玻璃小按钮（`glass-surface` 材质）
+避开右上角用户气泡；消息区使用 `role="log"`，挂载贴底须走 ref callback（React 19.2 StrictMode +
+Portal 下挂载期 effect 早于 ref 附加执行，effect 仅负责后续更新的平滑滚动）。
+
 ### Browse Filter Pattern · 浏览筛选模式
 
 Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等权重：主栏只直出语言、Topic、集合、更多筛选与排序；Star 阈值、更新时间和仓库状态收进“更多筛选”，触发器显示已启用的次级筛选数量。排序保持独立可见，不计入“清除筛选”的 active 状态。ADR 0035 cutover 前主栏仍直出用户标签而非集合。

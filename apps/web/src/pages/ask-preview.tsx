@@ -1,7 +1,8 @@
 import type { AskCandidate, Repo } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
+import { Button, Dialog } from '@asterism/ui';
 import { useState } from 'react';
-import { AskThread } from '../components/ask/ask-panel';
+import { AskPanelContent, AskThread, type AskViewState } from '../components/ask/ask-panel';
 import { RepoInspector } from '../components/repo-inspector';
 import { RepoInspectorProvider, useRepoInspector } from '../contexts/repo-inspector-context';
 import type { AskPhase, AskTurn } from '../data/use-ask-question';
@@ -100,8 +101,25 @@ const ANSWERED_TURN: AskTurn = {
   ],
 };
 
+const MULTI_TURN: AskTurn[] = [
+  ANSWERED_TURN,
+  {
+    id: 2,
+    question: 'Which of those is lighter for an embedded client?',
+    summary:
+      '[1] inokawa/virtua is the lighter pick — it is a single dependency focused on virtualization, while [0] rustws/tungstenite targets the WebSocket protocol layer itself and pulls in more of a runtime footprint.',
+    candidates: PREVIEW_CANDIDATES,
+    recommendations: [{ index: 1, repoId: 'preview-virtua' }],
+  },
+];
+
 const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
   { label: 'answered', phase: { kind: 'answered', turn: ANSWERED_TURN }, turns: [ANSWERED_TURN] },
+  {
+    label: 'multi-turn',
+    phase: { kind: 'answered', turn: MULTI_TURN[1] as AskTurn },
+    turns: MULTI_TURN,
+  },
   { label: 'recalling', phase: { kind: 'recalling', question: 'virtual scroll tools?' } },
   { label: 'generating', phase: { kind: 'generating', question: 'virtual scroll tools?' } },
   { label: 'not_found', phase: { kind: 'not_found', question: 'kubernetes operators?' } },
@@ -115,18 +133,43 @@ const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
     phase: { kind: 'generating', question: 'which of those is lighter?' },
     turns: [ANSWERED_TURN],
   },
+  { label: 'idle', phase: { kind: 'idle' }, turns: [] },
+];
+
+/** 底部舱预览用状态面：真实 DialogContent + composer，仅数据为 fixture。 */
+const DOCK_FIXTURES: { label: string; ask: AskViewState }[] = [
+  ...PHASES.map(({ label, phase, turns }) => ({
+    label,
+    ask: { phase, turns: turns ?? [], ask: () => {}, configured: true } satisfies AskViewState,
+  })),
+  {
+    label: 'needs setup',
+    ask: {
+      phase: { kind: 'idle' },
+      turns: [],
+      ask: () => {},
+      configured: false,
+    } satisfies AskViewState,
+  },
 ];
 
 function AskPreviewContent() {
   const inspector = useRepoInspector();
   const [language, setLanguage] = useState<'en' | 'zh-CN'>('en');
+  const [activeDock, setActiveDock] = useState<string | null>(null);
   const openRepo: Parameters<typeof AskThread>[0]['onOpenRepo'] = (record, records, modality) => {
     inspector.requestOpen(record, { sourceKey: 'ask-preview', records }, modality);
+  };
+  const activeFixture = DOCK_FIXTURES.find((fixture) => fixture.label === activeDock);
+  const closeDock = (open: boolean) => {
+    if (!open) {
+      setActiveDock(null);
+    }
   };
 
   return (
     <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 pb-40">
         <header className="flex items-center justify-between gap-4">
           <h1 className="font-semibold text-page-title text-foreground">Ask Asterism preview</h1>
           <button
@@ -141,10 +184,31 @@ function AskPreviewContent() {
             {language === 'en' ? '切换中文' : 'Switch to English'}
           </button>
         </header>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="font-medium text-sm text-muted-foreground">bottom dock · real chrome</h2>
+          <p className="text-caption text-muted-foreground">
+            打开真实的底部居中对话舱（composer、遮罩、底部定位均为生产实现）；Esc
+            或关闭按钮退出后可切换下一个状态。
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {DOCK_FIXTURES.map(({ label }) => (
+              <Button
+                key={label}
+                size="xs"
+                variant={label === activeDock ? 'default' : 'outline'}
+                onClick={() => setActiveDock(label)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </section>
+
         {PHASES.map(({ label, phase, turns }) => (
           <section key={label} className="flex flex-col gap-3">
             <h2 className="font-medium text-sm text-muted-foreground">{label}</h2>
-            <div className="flex max-h-96 flex-col gap-6 overflow-y-auto rounded-lg border p-4">
+            <div className="flex max-h-96 flex-col gap-5 overflow-y-auto rounded-lg border p-4">
               <AskThread
                 turns={turns ?? []}
                 phase={phase}
@@ -156,6 +220,12 @@ function AskPreviewContent() {
           </section>
         ))}
       </div>
+
+      <Dialog open={activeDock !== null} onOpenChange={closeDock}>
+        {activeFixture ? (
+          <AskPanelContent ask={activeFixture.ask} onOpenChange={closeDock} />
+        ) : null}
+      </Dialog>
     </div>
   );
 }

@@ -422,6 +422,8 @@
     "questionLabel": "你的问题",
     "submit": "提问",
     "emptyHint": "用日常语言提问即可，会同时检索你的 Memory 笔记与仓库元数据。",
+    "speakerYou": "我",
+    "speakerAsterism": "Asterism",
     "needsSetupTitle": "Ask 需要配置 Provider key",
     "needsSetupDescription": "回答由你自己的 OpenAI 兼容 key（DeepSeek / OpenAI / Groq / OpenRouter）基于个人收藏生成；key 只保存在此浏览器。",
     "openSettings": "打开设置",

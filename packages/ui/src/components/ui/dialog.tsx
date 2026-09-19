@@ -35,6 +35,7 @@ function DialogOverlay({ className, ...props }: ComponentProps<typeof DialogPrim
 
 function DialogContent({
   className,
+  overlayClassName,
   children,
   showCloseButton = true,
   closeLabel = 'Close',
@@ -44,10 +45,12 @@ function DialogContent({
   showCloseButton?: boolean;
   closeLabel?: string;
   closeDisabled?: boolean;
+  /** 覆写遮罩样式（如减淡压暗）；不传时保持默认遮罩。 */
+  overlayClassName?: string;
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(

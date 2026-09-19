@@ -151,6 +151,7 @@ describe('AskPanel states', () => {
     phaseOverride = { kind: 'answered', turn: turn() };
     await renderPanel();
 
+    expect(text()).toContain('Which rust websocket library?');
     expect(text()).toContain('[0] fits your note about push latency.');
     expect(text()).toContain('tungstenite');
 
@@ -159,6 +160,14 @@ describe('AskPanel states', () => {
     const context = requestOpen.mock.calls[0]?.[1];
     expect(context.sourceKey).toBe('ask');
     expect(context.records).toHaveLength(1);
+  });
+
+  it('queues the in-flight question as the user turn while recalling', async () => {
+    phaseOverride = { kind: 'recalling', question: 'virtual scroll tools?' };
+    await renderPanel();
+
+    expect(text()).toContain('virtual scroll tools?');
+    expect(text()).toContain(i18next.t('ask.recalling', { lng: 'en' }));
   });
 
   it('states an honest no-match without calling the provider', async () => {

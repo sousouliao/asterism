@@ -422,6 +422,8 @@
     "questionLabel": "Your question",
     "submit": "Ask",
     "emptyHint": "Ask in plain language — your Memory notes and repository metadata are searched together.",
+    "speakerYou": "You",
+    "speakerAsterism": "Asterism",
     "needsSetupTitle": "Ask needs a provider key",
     "needsSetupDescription": "Answers are generated from your collection with your own OpenAI-compatible key (DeepSeek, OpenAI, Groq, or OpenRouter). The key is stored only in this browser.",
     "openSettings": "Open settings",

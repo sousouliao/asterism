@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-20 · Ask 面板底部对话舱重设计**：Ask 弹层从 Command Palette 式改为对话式底部 dock（composer 舱底直输、消息向上逐条弹出、用户气泡靠右 / Agent 纯文本靠左、遮罩减淡 30%、玻璃关闭小按钮）；`DialogContent` 增加 `overlayClassName`；修复 React 19.2 StrictMode + Portal 下挂载期 effect 早于 ref 附加导致的贴底滚动失效（改走 ref callback）；`/dev/ask-preview` 支持真实壳层逐状态预览；双语 i18n、253 单测、明暗 + 移动视觉检查全绿。见 `logs/2026-09-20-ask-bottom-dock-redesign.md` 与 ui-ux 契约「Ask 对话舱例外」。
+
 - **2026-09-20 · Ask 第二问死锁修复**：smoke 发现同一面板会话内第二问（追问 / 重试）永远停在 recalling——提交 id 未自增被防重入守卫吞掉；连带修复 `isSearching` 防抖窗口失真导致的语义通道静默绕过，并为 `useAskQuestion` 编排层补首批回归测试（3 例）。见 `logs/2026-09-20-ask-second-question-deadlock.md`。
 - **2026-09-20 · Ask Asterism 本地实现交付（GitHub #41）**：BYOK 问答全链路本地落地——`@asterism/core` 召回 / prompt / 引用校验（16 单测）、`ask-generate` 无状态 Edge Function（8 单测）、db 封装（5 单测）、BYOK 存储与 Settings 同意流、Command Palette 面板（6+4 单测）、双语 i18n 与 `/dev/ask-preview`；四道门禁与视觉检查通过。远端部署与验收待维护者执行。见 `logs/2026-09-20-ask-asterism-delivery.md`。
 - **2026-09-20 · Ask 连接管理器还原（ADR 0043）**：自旧 Generation Registry（`edb5925~1`）完整迁移连接配置体验——具名连接管理、模型检测（`/models` 转发，失败手填）、连接探针、活跃连接与「包含笔记」偏好；底座重建为浏览器本地连接库（版本化 localStorage 键），`ask-generate` 增加 `models` / `test` 两个动作（部署面不新增函数行），激活连接经 ADR 0042 出网同意后写入 ask-byok。四道门禁全绿。见 ADR 0043 与 `logs/2026-09-20-ask-connection-restoration.md`。
