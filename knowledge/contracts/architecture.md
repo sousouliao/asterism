@@ -21,7 +21,7 @@ flowchart TD
   subgraph supabase [Supabase]
     auth[Auth: GitHub OAuth]
     pg[(Postgres)]
-    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize]
+    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize / ask-generate]
   end
   gh[GitHub GraphQL / REST API]
 
@@ -39,7 +39,7 @@ flowchart TD
 
 - **clients（端）**：各端只负责平台壳与组装，业务逻辑下沉到共享包。
 - **shared（共享包）**：跨端复用的核心；不含任何平台专有 API（见 `conventions.md` 目录边界）。
-- **Supabase（后端）**：Auth 鉴权、Postgres 作为 source-of-truth、Edge Functions 承载同步、README 代理与批量整理等受信服务端逻辑。业务数据不使用 Realtime 订阅；客户端在查询边界重新读取权威状态。
+- **Supabase（后端）**：Auth 鉴权、Postgres 作为 source-of-truth、Edge Functions 承载同步、README 代理、批量整理与 Ask 生成代理等受信服务端逻辑。业务数据不使用 Realtime 订阅；客户端在查询边界重新读取权威状态。
 - **GitHub GraphQL / REST API**：上游数据源；stars 同步走 GraphQL，实时 README HTML 走受保护 Edge Function 调用 REST。
 
 ## Tech Stack · 技术栈
@@ -82,7 +82,7 @@ asterism/
 │   └── config/         # 共享工程配置（tsconfig / tailwind / biome 预设等）
 └── supabase/
     ├── migrations/     # 数据库迁移（schema + RLS）
-    └── functions/      # Edge Functions（sync-stars / read-repo-readme / bulk-organize）
+    └── functions/      # Edge Functions（sync-stars / read-repo-readme / bulk-organize / ask-generate）
 ```
 
 包命名遵循 `@asterism/*`；共享包为私有 workspace（不发 npm）。目录边界规则见 `conventions.md`。
@@ -117,9 +117,11 @@ sequenceDiagram
 
 > Stars 同步由受信 Edge Function `sync-stars` 执行，满足「全局 `repos` 仅受信路径写」的 RLS 约束。批量整理继续使用与 AI 无关的持久化执行路径：用户确认后固化 repository ID 范围与逐关系项目，服务端按有界批次执行并记录结果；成功项目保留，恢复时只领取待执行或可重试失败项目，幂等关系写保证重复提交不产生脏数据。客户端只经 `packages/db` 创建、触发、查询、重试或明确结束操作，并在查询边界重新读取权威状态。
 
-> ADR 0032 已退役服务端 AI 整理：运行时不保存 Provider credential，不调用 Generation Provider，也不维护 AI 草稿、任务、计划或同步后整理机会。历史 AI 操作已经写入的普通组织关系仍是 canonical 用户数据，不由退役迁移回滚。ADR 0035 进一步把用户自定义 Tag 迁入 Collection；成员关系保留，Tag color 不迁移。
+> ADR 0032 已退役服务端 AI 整理：运行时不保存 Provider credential，不调用 Generation Provider，也不维护 AI 草稿、任务、计划或同步后整理机会。历史 AI 操作已经写入的普通组织关系仍是 canonical 用户数据，不由退役迁移回滚。ADR 0035 进一步把用户自定义 Tag 迁入 Collection；成员关系保留，Tag color 不迁移。ADR 0042 的 Ask 客户端 BYOK 生成不保存服务端 credential、不复活 Provider Registry，服务端只承担无状态转发（见下）。
 
 > 语义能力保持浏览器内推理边界：浏览器以仓库元数据和当前用户的 `whySaved` / `note` 生成 repository/query embedding，原文不发送给第三方模型；只把派生向量存入本人 RLS 隔离的 `user_repo_embeddings`，用于统一 Retrieval 与 Related Stars。首次使用 Memory-aware embedding 需通过 consent v2 明确授权。它不经过 BYOK，不自动修改 canonical。ADR 0036 已退役 Collection Dial，embedding 不再用于集合盘候选排序。
+
+> Ask 生成走「本地检索 + 客户端 BYOK」边界（ADR 0042）：Web 在浏览器内用统一 Retrieval 召回个人库 top-K 候选，把候选结构化数据（含 `whySaved` / `note` 原文）与问题组装为 prompt，经用户显式同意后调用无状态 Edge Function `ask-generate`。该函数只校验 Supabase JWT、按 Provider 枚举（DeepSeek / OpenAI / Groq / OpenRouter）解析固定上游 URL、透传客户端持有的 `Authorization` 并转发单次 JSON 请求；不存储、不日志化任何 credential 或请求体，不接受白名单之外的 base URL（消除 SSRF 面）。回答的推荐与引用必须通过客户端校验（候选索引 ∈ 召回集合），由本地数据渲染；召回为空时不调用上游，直接返回未找到。除该显式同意的路径外，Memory 原文仍不离开浏览器。
 
 README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML 仅有 5 分钟会话内缓存，也不建立搜索索引。
 

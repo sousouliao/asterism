@@ -6,12 +6,13 @@
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
 - **当前状态**：GitHub #40 Resurface 全链路交付并关闭。Vercel production（main @ 972b2d2）在真实账号 sousouliao（531 stars）下验收通过：双流渲染、可验证理由、Useful / Dismiss 即时移出与刷新持久化、「Add why you saved it」直达 Quick Look Memory 编辑；QA 本地反馈数据已清理还原。
-- **当前工程 frontier**：推进下一代检索与唤醒功能。三个纵向切片中的 #39、#40 已完成；下一活动执行目标为 #41（Ask Asterism 私有问答）。
+- **当前工程 frontier**：推进下一代检索与唤醒功能。三个纵向切片中的 #39、#40 已完成；下一活动执行目标为 #41（Ask Asterism 私有问答），生成策略已裁定为客户端 BYOK + 无状态 `ask-generate` 代理 + 引用校验、无抽取式兜底（ADR 0042），实现前置准备（合同修订、issue 验收标准更新、执行计划）已完成。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
 
 ## 已完成里程碑
 
+- **2026-09-19 · Ask BYOK 决策与 #41 前置准备**：裁定 Ask Asterism 生成策略为客户端 BYOK（OpenAI 兼容、Provider 白名单）+ 无状态 Edge Function `ask-generate` 透传 + 客户端引用校验，不做抽取式兜底；修订 product / architecture / data-model 三份合同的数据流与服务端 AI 边界表述，#41 验收标准追加 BYOK 四项，产出五步实现执行计划。见 ADR 0042 与 `logs/2026-09-19-ask-byok-preparation.md`。
 - **2026-09-19 · Resurface 真实环境验收与 #40 关闭**：Vercel production（git 集成自动部署，无自定义域名）在真实账号下确认 Dashboard Resurface 双流、可验证理由、Useful / Dismiss 持久化与 Quick Look Memory 入口；QA 产生的本地反馈已清理还原，issue #40 附验收评论后关闭。见 `logs/2026-09-19-resurface-production-acceptance.md`。
 - **2026-09-19 · Resurface & Memory Streams 交付（GitHub #40）**：沉睡唤醒双流、可解释推荐理由、记忆回显与补写入口、Useful / Dismiss 本地反馈；`packages/core` 算法 + 20 单测、web 组件与交互测试、双语 i18n、dev 预览路由与四道门禁全部通过。见 ADR 0041 与 `logs/2026-09-19-resurface-memory-streams.md`。
 - **2026-09-18 · 导入 / 导出并排卡片等高**：栅格去掉 `items-start` 让两张卡拉到同一行高，拖拽区用 `flex-1` 吃掉剩余高度（原来底部留 145px 空白），骨架同步。见 `logs/2026-09-18-import-export-card-heights.md`。
@@ -33,7 +34,7 @@
 
 ## 下一恢复点
 
-1. 推进 GitHub #41（Ask Asterism 私有问答）：基于统一检索做 Grounding 问答，严格限定个人库，附带可追溯证据链。
+1. 实现 GitHub #41（Ask Asterism 私有问答）：按 `logs/2026-09-19-ask-byok-preparation.md` 的五步顺序执行（① core 领域逻辑 → ② `ask-generate` Edge Function → ③ BYOK 配置与同意 → ④ Ask 面板 → ⑤ 门禁与验收），规格以 ADR 0042 与修订后合同为准。
 
 ## 环境提示
 
