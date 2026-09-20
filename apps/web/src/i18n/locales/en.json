@@ -51,7 +51,7 @@
     "features": {
       "tagging": "Collections for grouping stars",
       "search": "Search repository names and descriptions",
-      "insights": "Insights & analytics dashboard",
+      "insights": "Insights into your starred repositories",
       "privacy": "Self-hosted, open source, privacy-first"
     },
     "getStarted": "Get started",
@@ -67,7 +67,7 @@
   "nav": {
     "browse": "Browse",
     "collections": "Collections",
-    "dashboard": "Dashboard",
+    "dashboard": "Insights",
     "importExport": "Import / Export",
     "settings": "Settings"
   },

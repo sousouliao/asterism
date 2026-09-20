@@ -15,8 +15,8 @@ type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
 const NAV_ITEMS: { to: string; key: string; icon: IconType; end?: boolean }[] = [
   { to: '/', key: 'nav.browse', icon: LayoutGridIcon, end: true },
-  { to: '/collections', key: 'nav.collections', icon: FolderIcon },
   { to: '/dashboard', key: 'nav.dashboard', icon: ChartColumnIcon },
+  { to: '/collections', key: 'nav.collections', icon: FolderIcon },
   { to: '/import-export', key: 'nav.importExport', icon: DownloadIcon },
   { to: '/settings', key: 'nav.settings', icon: SettingsIcon },
 ];

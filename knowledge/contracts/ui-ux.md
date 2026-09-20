@@ -21,7 +21,7 @@
 | Browse · 卡片 | `8:227` | ⚠️ frame 名为 "Dashboard"，**实为卡片视图** |
 | Settings | `8:299` | 外观 / 账号 |
 | Repo Quick Look | evolved from `8:364` | 非模态仓库快速详情（Collections / personal Memory；ADR 0037） |
-| Dashboard · Insights | `8:413` | ⚠️ frame 名为 "Browse - List View"，**实为统计仪表盘** |
+| Dashboard · Insights | `8:413` | ⚠️ frame 名为 "Browse - List View"，**实为统计洞察页**；用户面名称是 Insights / 洞察，不是 Dashboard / 仪表盘 |
 | Tags Management | `12:2` | 历史标签管理画面；ADR 0035 cutover 后不再是产品表面 |
 | Collections | `12:126` | 集合 |
 | Import / Export | `12:182` | 导入导出（JSON / CSV / Markdown） |
@@ -72,6 +72,8 @@
 | `--brand` | 单色 Logo | `#2563EB` | `#60A5FA` |
 
 > `--chart-1..5` 使用蓝色阶加一个石墨中性色；`--sidebar-*` 使用与画布同色相、不同明度的第二中性层。实现必须通过 `@theme inline` 暴露语义色，不得在业务组件中复制核心色值。
+
+侧栏导航顺序为：浏览 → 洞察 → 集合 → 导入 / 导出 → 设置。洞察在浏览之后、集合之前；集合是次级人工组织入口，不得排到洞察前面。桌面侧栏与移动抽屉共用同一 `NAV_ITEMS`。
 
 ### Typography · 字体（定稿 · 取自设计稿）
 

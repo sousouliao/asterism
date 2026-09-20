@@ -51,7 +51,7 @@
     "features": {
       "tagging": "用集合整理 Star",
       "search": "按仓库名称和描述搜索",
-      "insights": "洞察与统计仪表盘",
+      "insights": "Star 仓库的可视化洞察",
       "privacy": "自托管、开源、隐私优先"
     },
     "getStarted": "开始使用",
@@ -67,7 +67,7 @@
   "nav": {
     "browse": "浏览",
     "collections": "集合",
-    "dashboard": "仪表盘",
+    "dashboard": "洞察",
     "importExport": "导入 / 导出",
     "settings": "设置"
   },
@@ -296,7 +296,7 @@
     "noData": "数据不足",
     "noCollections": "还没有使用中的集合",
     "emptyTitle": "暂无 Star 可分析",
-    "emptyDescription": "同步 GitHub Stars 后即可查看统计。",
+    "emptyDescription": "同步 GitHub Stars 后即可查看洞察。",
     "errorTitle": "无法加载洞察",
     "errorDescription": "加载数据时出错，请稍后重试。",
     "resurface": {
