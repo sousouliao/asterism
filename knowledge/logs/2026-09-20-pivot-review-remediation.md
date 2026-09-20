@@ -49,4 +49,4 @@ repo 记忆化。Web 侧索引只依赖数据集本身，切换锚点不再重�
 
 ## 已知遗留
 
-`text-[13px]` 在 20 余个未被本轮触及的文件中仍是既有写法（与 `text-body` 等值），属存量债，未在本轮批量替换以免扩大 diff。
+业务组件里的 `text-[11px]` / `text-[12px]` / `text-[13px]` / `text-[14px]` / `text-[15px]` 已全部收进 `--text-micro` / `--text-caption` / `--text-body` / `--text-drawer-title`。`packages/ui` 基础件仍有 shadcn 默认的 `text-sm` / `text-xs` / `text-base`，与契约档位不完全重合，未在本轮改默认控件。

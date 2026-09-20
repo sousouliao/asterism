@@ -147,7 +147,7 @@ export const RepoCard = memo(function RepoCard({
       >
         <div className="flex h-5 min-w-0 items-start justify-between gap-2">
           {bulkSelection ? (
-            <span className="flex min-w-0 items-center gap-2 text-[13px]">
+            <span className="flex min-w-0 items-center gap-2 text-body">
               <span
                 aria-hidden="true"
                 className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
@@ -172,7 +172,7 @@ export const RepoCard = memo(function RepoCard({
               href={`https://github.com/${repo.fullName}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="group/link pointer-events-auto flex min-w-0 items-center gap-2 rounded-sm text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group/link pointer-events-auto flex min-w-0 items-center gap-2 rounded-sm text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span
                 aria-hidden="true"

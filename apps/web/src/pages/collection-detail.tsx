@@ -155,9 +155,7 @@ export function CollectionDetailPage() {
               {collection.name}
             </h1>
             {collection.description ? (
-              <p className="mt-1 text-[13px] text-muted-foreground leading-5">
-                {collection.description}
-              </p>
+              <p className="mt-1 text-body text-muted-foreground">{collection.description}</p>
             ) : null}
             <p className="mt-2 text-caption text-muted-foreground">
               {t('collectionDetail.repoCount', { count })}

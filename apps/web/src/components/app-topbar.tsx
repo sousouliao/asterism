@@ -130,7 +130,7 @@ export function AppTopbar() {
                   <XIcon className="size-4" />
                 </Button>
               ) : (
-                <kbd className="-translate-y-1/2 absolute top-1/2 right-2 flex h-5 items-center rounded-sm bg-background px-1.5 font-mono text-[11px] text-muted-foreground">
+                <kbd className="-translate-y-1/2 absolute top-1/2 right-2 flex h-5 items-center rounded-sm bg-background px-1.5 font-mono text-micro text-muted-foreground">
                   /
                 </kbd>
               )}
@@ -146,7 +146,7 @@ export function AppTopbar() {
               <div className="flex gap-2.5">
                 <SearchIcon className="mt-0.5 size-4 shrink-0 text-link" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-[13px] text-foreground">
+                  <p className="font-medium text-body text-foreground">
                     {t('embeddings.prepareTitle')}
                   </p>
                   <p className="mt-0.5 text-caption text-muted-foreground">
@@ -184,7 +184,7 @@ export function AppTopbar() {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="font-medium text-[13px] text-foreground">
+                    <p className="font-medium text-body text-foreground">
                       {embedding.phase === 'degraded'
                         ? t('embeddings.degradedTitle')
                         : t('embeddings.preparing')}
@@ -230,14 +230,14 @@ export function AppTopbar() {
             <Button
               variant="outline"
               size="xs"
-              className="h-8 gap-1.5 px-3 text-[13px]"
+              className="h-8 gap-1.5 px-3 text-body"
               aria-label={t('ask.openMenu')}
               aria-keyshortcuts={askShortcutLabel()}
               onClick={() => setAskOpen(true)}
             >
               <MessageCircleQuestionIcon className="size-3.5" aria-hidden="true" />
               <span className="hidden md:inline">{t('ask.title')}</span>
-              <kbd className="hidden h-5 items-center rounded-sm bg-muted px-1.5 font-mono text-[11px] text-muted-foreground md:flex">
+              <kbd className="hidden h-5 items-center rounded-sm bg-muted px-1.5 font-mono text-micro text-muted-foreground md:flex">
                 {askShortcutLabel()}
               </kbd>
             </Button>
@@ -253,7 +253,7 @@ export function AppTopbar() {
               variant="outline"
               size="xs"
               className={cn(
-                'h-8 gap-1.5 px-3 text-[13px]',
+                'h-8 gap-1.5 px-3 text-body',
                 sync.requiresReconnect &&
                   'border-warning/35 bg-warning/5 hover:border-warning/50 hover:bg-warning/10',
               )}

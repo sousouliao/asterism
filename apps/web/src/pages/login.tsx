@@ -45,7 +45,7 @@ export function LoginPage() {
 
         <ul className="flex flex-col gap-3">
           {FEATURES.map(({ icon: Icon, key }) => (
-            <li key={key} className="flex items-center gap-3 text-[13px] text-muted-foreground">
+            <li key={key} className="flex items-center gap-3 text-body text-muted-foreground">
               <Icon className="size-4 shrink-0 text-link" aria-hidden="true" />
               {t(key)}
             </li>
@@ -62,12 +62,13 @@ export function LoginPage() {
             <h2 className="font-semibold text-section-title text-card-foreground leading-tight">
               {t('login.getStarted')}
             </h2>
-            <p className="text-[14px] text-muted-foreground leading-[22px]">
-              {t('login.connectPrompt')}
-            </p>
+            <p className="text-body text-muted-foreground">{t('login.connectPrompt')}</p>
           </div>
 
-          <Button className="h-12 w-full gap-2.5 rounded-lg text-[15px]" onClick={handleSignIn}>
+          <Button
+            className="h-12 w-full gap-2.5 rounded-lg text-drawer-title"
+            onClick={handleSignIn}
+          >
             <GitHubIcon className="size-5" />
             {t('login.continueWithGitHub')}
           </Button>
@@ -81,10 +82,10 @@ export function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-3 rounded-lg bg-muted p-4">
-            <p className="font-medium text-[13px] text-card-foreground">{t('login.scopesTitle')}</p>
+            <p className="font-medium text-body text-card-foreground">{t('login.scopesTitle')}</p>
             <ul className="flex flex-col gap-1">
               {SCOPES.map((key) => (
-                <li key={key} className="text-[13px] text-muted-foreground">
+                <li key={key} className="text-body text-muted-foreground">
                   • {t(key)}
                 </li>
               ))}

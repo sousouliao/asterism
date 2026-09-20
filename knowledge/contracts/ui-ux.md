@@ -88,7 +88,7 @@
 | `--text-section-title` | 区块标题（页内分区块、空状态） | `1.25rem`（20px）/ SemiBold |
 | `--text-drawer-title` | Drawer / Dialog 与内容卡片标题 | `1rem`（16px）/ SemiBold |
 | `--text-repo-name` | Repo Inspector 仓库名 | `1.125rem`（18px）/ SemiBold |
-| `--text-body` | 描述、卡片正文 | `0.8125rem`（13px）/ line-height `1.25rem` |
+| `--text-body` | 描述、卡片正文 | `0.875rem`（14px）/ line-height `1.25rem` |
 | `--text-caption` | 筛选、统计、副标题 | `0.75rem`（12px） |
 | `--text-micro` | 表格列头 | `0.6875rem`（11px）/ Medium |
 
@@ -239,7 +239,7 @@ ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。主体
 - 选择与关闭：点击当前已选仓库再次关闭，点击其他仓库直接切换；点击悬浮窗外或按 Esc 关闭，repo trigger 自身不走外部关闭处理；Quick Look 自身经 Portal 挂出的菜单 / 列表框 / 对话框不算窗外点击，不得因此关闭浮窗。任何路由变化都关闭 Quick Look，不跨页面保留。从 README 工作区按来源协调器返回 Browse / Collection 后，若同一仓库仍在恢复后的可见列表中，允许程序化重开该仓库的 Quick Look（这是可逆阅读迂回的一部分，不是跨路由保活）。键盘 Enter / Space 打开时把焦点移入窗口，关闭后返回原 trigger；pointer 打开保留列表操作上下文。
 - 窗口移动：桌面与平板悬浮层以仓库身份所在的完整首行作为拖动区域，不添加 drag icon 或其他冗余能力提示；仓库链接短按仍打开 GitHub，pointer 位移达到 `4px` 后才进入拖动并抑制链接点击，关闭按钮不参与拖动。浮窗限制在视口 `12px` 安全边距内，窗口尺寸变化后自动收回视口，手机底部 Sheet 不提供拖动。
 - 编辑安全：Memory 的 `whySaved` 与 `note` 共用一套草稿边界。切换仓库、关闭面板、浏览器后退或离开页面前必须拦截；用户可选择保存并继续、放弃并继续，或通过关闭按钮 / Esc / 点遮罩继续编辑（关闭与「继续编辑」同义，页脚不再单独展示该动作）。页脚两个决策动作桌面右对齐，窄屏同宽单列，不得用 `space-between` 拆散。保存失败时保留两个字段的草稿与原选择，不得静默丢失。
-- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。Memory Foundation 完成后的主体固定为 Overview → Memory → Related Stars（有可信结果时）→ Collections 的单列结构。集合编辑必须可搜索，不能在高基数时摊开全部目标。
+- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 14px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。Memory Foundation 完成后的主体固定为 Overview → Memory → Related Stars（有可信结果时）→ Collections 的单列结构。集合编辑必须可搜索，不能在高基数时摊开全部目标。
 - Related Stars 是从当前收藏继续探索的只读 derived 能力：优先展示最多 5 条互为 Top-12 语义近邻，不显示相似度百分比；向量运行时降级、当前仓库无向量、无互为近邻或向量读取失败时，可使用本地 Topics 与 Memory 关键词交集生成可信候补，同语言只能参与候补排序、不得单独构成推荐。无语义近邻也无可信候补时整段不出现，不显示空态、不强行补足数量。每条使用标准整行按钮、仓库身份与一行描述，点击后在同一 Quick Look 中切换并允许继续探索。
 - 可访问性：桌面和平板悬浮层使用命名的非模态 `dialog`，手机沿用 Sheet 语义；所有图标按钮必须有 i18n 标签与 tooltip，选中行 / 卡片暴露 `aria-selected` 或等价状态，并通过 `aria-controls` / `aria-expanded` 关联面板。
 

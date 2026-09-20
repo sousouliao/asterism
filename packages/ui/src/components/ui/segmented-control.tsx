@@ -24,13 +24,13 @@ type IndicatorState = {
 const INDICATOR_INSET = 4;
 
 const sizeClasses: Record<SegmentedControlSize, string> = {
-  sm: 'px-[14px] py-2 text-[13px] leading-normal',
-  md: 'px-[14px] py-2 text-[13px] leading-normal',
+  sm: 'px-[14px] py-2 text-body leading-normal',
+  md: 'px-[14px] py-2 text-body leading-normal',
 };
 
 const iconOnlySizeClasses: Record<SegmentedControlSize, string> = {
-  sm: 'px-[14px] py-2 text-[13px] leading-normal',
-  md: 'px-[14px] py-2 text-[13px] leading-normal',
+  sm: 'px-[14px] py-2 text-body leading-normal',
+  md: 'px-[14px] py-2 text-body leading-normal',
 };
 
 function SegmentedControl<T extends string>({

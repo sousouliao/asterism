@@ -52,7 +52,7 @@ export function TruncatedDescription({
       tabIndex={onSelect ? 0 : undefined}
       onClick={onSelect}
       onKeyDown={onSelect ? handleKeyDown : undefined}
-      className="pointer-events-auto line-clamp-2 rounded-sm text-[13px] text-muted-foreground leading-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="pointer-events-auto line-clamp-2 rounded-sm text-body text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {children}
     </p>

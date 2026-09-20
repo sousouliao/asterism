@@ -20,9 +20,7 @@ export function EmptyState({
       ) : null}
       <div className="flex max-w-sm flex-col gap-2">
         <p className="font-semibold text-section-title text-foreground">{title}</p>
-        {description ? (
-          <p className="text-[14px] text-muted-foreground leading-snug">{description}</p>
-        ) : null}
+        {description ? <p className="text-body text-muted-foreground">{description}</p> : null}
       </div>
       {action}
     </div>

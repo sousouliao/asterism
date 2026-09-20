@@ -29,7 +29,7 @@ Color strategy: **Restrained** — blue is reserved for primary actions, current
 ## Typography
 
 - **Fonts**: `"Geist Variable"` (sans, body/UI), `"Geist Mono Variable"` (numbers/dates).
-- **Scale** (desktop): display 28px/Bold → page-title 24px/Bold → section-title 20px/SemiBold → drawer-title 16px/SemiBold → Repo Inspector name 18px/SemiBold → body 13px/1.25 line-height → caption 12px/1rem line-height → micro 11px/0.875rem line-height. Table headers use micro/Medium; Activity and Inspector compact metadata use micro/Regular.
+- **Scale** (desktop): display 28px/Bold → page-title 24px/Bold → section-title 20px/SemiBold → drawer-title 16px/SemiBold → Repo Inspector name 18px/SemiBold → body 14px/1.25 line-height → caption 12px/1rem line-height → micro 11px/0.875rem line-height. Table headers use micro/Medium; Activity and Inspector compact metadata use micro/Regular.
 - **Weights**: Regular 400 · Medium 500 · SemiBold 600 · Bold 700.
 - **Simplified Chinese mixed text**: keep one half-width space between Han text and Latin terms, abbreviations, or Latin interpolations. Never rewrite repository names, URLs, code, or README source text globally.
 - Full scale + usage mapping in `ui-ux.md`.

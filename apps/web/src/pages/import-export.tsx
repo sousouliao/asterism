@@ -132,7 +132,7 @@ export function ImportExportPage() {
                 <h2 className="font-semibold text-section-title text-foreground">
                   {t('importExport.exportTitle')}
                 </h2>
-                <p className="text-[13px] leading-5 text-muted-foreground">
+                <p className="text-body text-muted-foreground">
                   {t('importExport.exportDescription')}
                 </p>
               </div>
@@ -154,10 +154,7 @@ export function ImportExportPage() {
                           <h3 className="font-medium text-sm text-foreground">
                             {t(`importExport.format.${option.id}`)}
                           </h3>
-                          <p
-                            id={descriptionId}
-                            className="mt-1 text-[13px] leading-5 text-muted-foreground"
-                          >
+                          <p id={descriptionId} className="mt-1 text-body text-muted-foreground">
                             {t(`importExport.formatDescription.${option.id}`)}
                           </p>
                         </div>
@@ -184,7 +181,7 @@ export function ImportExportPage() {
               <h2 className="font-semibold text-section-title text-foreground">
                 {t('importExport.importTitle')}
               </h2>
-              <p className="text-[13px] leading-5 text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 {t('importExport.importDescription')}
               </p>
               {/* 拖拽区交互不适合原生 button，按用户要求使用 div 承载 role=button */}

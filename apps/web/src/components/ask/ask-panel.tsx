@@ -238,7 +238,7 @@ export function AskPanelContent({
             aria-label={t('ask.questionLabel')}
             placeholder={t('ask.placeholder')}
             onChange={(inputEvent) => setQuestion(inputEvent.target.value)}
-            className="h-11 border-0 bg-transparent px-0 text-[14px] shadow-none backdrop-blur-none focus-visible:ring-0 dark:bg-transparent"
+            className="h-11 border-0 bg-transparent px-0 text-body shadow-none backdrop-blur-none focus-visible:ring-0 dark:bg-transparent"
           />
           {busy ? (
             <LoaderCircleIcon
@@ -246,7 +246,7 @@ export function AskPanelContent({
               aria-hidden="true"
             />
           ) : (
-            <kbd className="hidden h-5 shrink-0 items-center rounded-sm bg-muted px-1.5 font-mono text-[11px] text-muted-foreground sm:flex">
+            <kbd className="hidden h-5 shrink-0 items-center rounded-sm bg-muted px-1.5 font-mono text-micro text-muted-foreground sm:flex">
               ↵
             </kbd>
           )}
@@ -306,7 +306,7 @@ function AskTurnView({ turn, onOpenRepo }: { turn: AskTurn; onOpenRepo: OpenRepo
     <div className="flex flex-col gap-3">
       <AskQuestionBubble question={turn.question} />
       <AskAnswerBlock>
-        <p className="text-[13px] leading-relaxed whitespace-pre-wrap text-foreground">
+        <p className="text-body leading-relaxed whitespace-pre-wrap text-foreground">
           {turn.summary}
         </p>
         {turn.recommendations.length > 0 ? (
@@ -358,7 +358,7 @@ function AskLiveTurnView({
 function AskQuestionBubble({ question }: { question: string }) {
   const { t } = useTranslation();
   return (
-    <p className="ml-auto max-w-[85%] animate-in rounded-lg rounded-br-sm bg-accent px-3.5 py-2 text-[13px] leading-relaxed text-accent-foreground duration-200 [--tw-ease:var(--ease-out-quart)] fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
+    <p className="ml-auto max-w-[85%] animate-in rounded-lg rounded-br-sm bg-accent px-3.5 py-2 text-body leading-relaxed text-accent-foreground duration-200 [--tw-ease:var(--ease-out-quart)] fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
       <span className="sr-only">{t('ask.speakerYou')}: </span>
       {question}
     </p>

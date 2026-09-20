@@ -52,7 +52,7 @@ export function UserMenu() {
         {requiresReconnect ? (
           <>
             <div className="px-2 py-2">
-              <div className="flex items-center gap-2 font-medium text-[13px]">
+              <div className="flex items-center gap-2 font-medium text-body">
                 <CircleAlertIcon className="size-4 shrink-0 text-warning" />
                 <span>{t('sync.reconnectTitle')}</span>
               </div>

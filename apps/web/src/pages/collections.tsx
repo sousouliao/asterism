@@ -182,7 +182,7 @@ export function CollectionsPage() {
                   </div>
                 </div>
                 {collection.description ? (
-                  <p className="line-clamp-2 text-[13px] text-muted-foreground leading-5">
+                  <p className="line-clamp-2 text-body text-muted-foreground">
                     {collection.description}
                   </p>
                 ) : null}

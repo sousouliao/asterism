@@ -76,7 +76,7 @@ export const MatchExplanationBadge = memo(function MatchExplanationBadge({
   const hasMultipleReasons = reasons.length > 1;
 
   const tooltipText = (
-    <div className="flex max-w-sm flex-col gap-2 text-[12px] leading-relaxed">
+    <div className="flex max-w-sm flex-col gap-2 text-caption leading-relaxed">
       <div className="flex items-center gap-1.5 font-medium text-foreground">
         <Icon className="size-3.5 shrink-0" aria-hidden="true" />
         <span>{label}</span>
@@ -87,7 +87,7 @@ export const MatchExplanationBadge = memo(function MatchExplanationBadge({
         </div>
       ) : null}
       {hasMultipleReasons ? (
-        <div className="mt-0.5 border-t border-border/50 pt-1.5 text-[11px] text-muted-foreground">
+        <div className="mt-0.5 border-t border-border/50 pt-1.5 text-micro text-muted-foreground">
           <div className="mb-1 font-medium text-foreground/70">
             {t('browse.matchReasons.additionalMatches')}
           </div>
@@ -124,7 +124,7 @@ export const MatchExplanationBadge = memo(function MatchExplanationBadge({
           type="button"
           aria-label={t('browse.matchReasons.details', { reason: label })}
           className={cn(
-            'inline-flex max-w-full cursor-help items-center gap-1.5 overflow-hidden rounded-sm text-[11px] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'inline-flex max-w-full cursor-help items-center gap-1.5 overflow-hidden rounded-sm text-micro select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             className,
           )}
         >

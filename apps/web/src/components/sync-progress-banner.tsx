@@ -12,7 +12,7 @@ export function SyncProgressBanner({ label, className }: { label: string; classN
         className="size-5 shrink-0 animate-spin text-link motion-reduce:animate-none"
         aria-hidden="true"
       />
-      <p className="font-medium text-[13px] text-foreground">{label}</p>
+      <p className="font-medium text-body text-foreground">{label}</p>
     </div>
   );
 }
