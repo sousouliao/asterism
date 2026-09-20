@@ -1,34 +1,16 @@
-import type { Memory, Repo } from '@asterism/core';
+import type { Memory } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { useTheme } from '@asterism/ui';
 import { useMemo } from 'react';
 import { RepoInspector } from '../components/repo-inspector';
 import { ResurfaceSection } from '../components/resurface/resurface-section';
 import { RepoInspectorProvider } from '../contexts/repo-inspector-context';
+import { previewRepo } from '../fixtures/preview-repo';
 import { changeInterfaceLanguage } from '../i18n';
+import { resurfaceFeedbackStorageKey } from '../lib/resurface-feedback';
 
 const DAY_MS = 86_400_000;
-
-function previewRepo(overrides: Partial<Repo>): Repo {
-  return {
-    githubId: 1,
-    fullName: 'owner/name',
-    name: 'name',
-    owner: 'owner',
-    description: 'Fixture repo for the resurface preview',
-    language: 'TypeScript',
-    topics: ['preview'],
-    stargazers: 500,
-    forks: 12,
-    homepage: null,
-    pushedAt: null,
-    repoCreatedAt: null,
-    archived: false,
-    isFork: false,
-    syncedAt: '2026-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
+const PREVIEW_USER_ID = 'resurface-preview';
 
 /**
  * 构造覆盖全部理由分支的样本：纪念日 + 笔记、沉睡 + whySaved + 仓库静默、
@@ -171,38 +153,39 @@ export function ResurfacePreviewPage() {
       <div className="flex h-svh flex-col bg-background text-foreground">
         <div className="shrink-0 px-6 pt-6">
           <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3">
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               Dev preview · fixtures only · feedback stays local
             </p>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => void changeInterfaceLanguage('en')}
-                className="rounded-md border px-2 py-1 text-[12px]"
+                className="rounded-md border px-2 py-1 text-caption"
               >
                 EN
               </button>
               <button
                 type="button"
                 onClick={() => void changeInterfaceLanguage('zh-CN')}
-                className="rounded-md border px-2 py-1 text-[12px]"
+                className="rounded-md border px-2 py-1 text-caption"
               >
                 中文
               </button>
               <button
                 type="button"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="rounded-md border px-2 py-1 text-[12px]"
+                className="rounded-md border px-2 py-1 text-caption"
               >
                 {theme === 'dark' ? 'Light' : 'Dark'}
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  localStorage.clear();
+                  // 只清预览自己的反馈键：localStorage.clear() 会顺手登出真实会话。
+                  localStorage.removeItem(resurfaceFeedbackStorageKey(PREVIEW_USER_ID));
                   location.reload();
                 }}
-                className="rounded-md border px-2 py-1 text-[12px]"
+                className="rounded-md border px-2 py-1 text-caption"
               >
                 Reset feedback
               </button>
@@ -215,7 +198,7 @@ export function ResurfacePreviewPage() {
             <ResurfaceSection
               records={records}
               memoriesByRepoId={memoriesByRepoId}
-              userId="resurface-preview"
+              userId={PREVIEW_USER_ID}
             />
           </main>
         </div>

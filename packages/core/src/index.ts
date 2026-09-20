@@ -133,8 +133,10 @@ export type {
   KeywordFallbackNeighborInput,
   RepoSemanticVector,
   SemanticNeighbor,
+  SemanticNeighborhoodIndex,
 } from './repos/semantic-neighborhood';
 export {
+  buildSemanticNeighborhoodIndex,
   findKeywordFallbackNeighbors,
   findMutualSemanticNeighbors,
 } from './repos/semantic-neighborhood';

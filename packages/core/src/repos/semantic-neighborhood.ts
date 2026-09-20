@@ -28,32 +28,109 @@ export interface KeywordFallbackNeighborInput {
 const CANDIDATE_POOL_SIZE = 12;
 const RESULT_LIMIT = 5;
 
-function cosineSimilarity(
-  left: readonly number[],
-  right: readonly number[],
-  leftNorm: number,
-  rightNorm: number,
-): number {
-  if (left.length !== right.length || leftNorm === 0 || rightNorm === 0) {
-    return Number.NEGATIVE_INFINITY;
-  }
-  let dot = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    dot += (left[index] ?? 0) * (right[index] ?? 0);
-  }
-  return dot / (leftNorm * rightNorm);
-}
-
-function vectorNorm(vector: readonly number[]): number {
-  let squared = 0;
-  for (const value of vector) {
-    squared += value * value;
-  }
-  return Math.sqrt(squared);
-}
-
 function compareNeighbors(left: SemanticNeighbor, right: SemanticNeighbor): number {
   return right.similarity - left.similarity || left.repoId.localeCompare(right.repoId);
+}
+
+/**
+ * 预归一化的向量索引：把 L2 归一化和 Top-K 池摊到一次构建上，
+ * 让同一批向量下的多个锚点查询只付一次全量扫描的代价。
+ */
+export interface SemanticNeighborhoodIndex {
+  readonly size: number;
+  has(repoId: string): boolean;
+  nearestPool(repoId: string): readonly SemanticNeighbor[];
+}
+
+/** 归一化后余弦相似度退化为点积；维度不同的向量之间不具可比性。 */
+function dot(left: Float64Array, right: Float64Array): number {
+  if (left.length !== right.length) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  let sum = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    sum += (left[index] as number) * (right[index] as number);
+  }
+  return sum;
+}
+
+/** 维护一个长度上限为 CANDIDATE_POOL_SIZE 的有序池，避免对全量候选排序。 */
+function pushBounded(pool: SemanticNeighbor[], candidate: SemanticNeighbor): void {
+  const full = pool.length === CANDIDATE_POOL_SIZE;
+  if (full && compareNeighbors(candidate, pool[pool.length - 1] as SemanticNeighbor) >= 0) {
+    return;
+  }
+  let insertAt = pool.length;
+  while (insertAt > 0 && compareNeighbors(candidate, pool[insertAt - 1] as SemanticNeighbor) < 0) {
+    insertAt -= 1;
+  }
+  pool.splice(insertAt, 0, candidate);
+  if (pool.length > CANDIDATE_POOL_SIZE) {
+    pool.pop();
+  }
+}
+
+export function buildSemanticNeighborhoodIndex(
+  vectors: readonly RepoSemanticVector[],
+): SemanticNeighborhoodIndex {
+  const repoIds: string[] = [];
+  const unitVectors: Float64Array[] = [];
+  const positionByRepoId = new Map<string, number>();
+
+  for (const item of vectors) {
+    if (item.embedding.length === 0 || positionByRepoId.has(item.repoId)) {
+      continue;
+    }
+    let squared = 0;
+    for (const value of item.embedding) {
+      squared += value * value;
+    }
+    const norm = Math.sqrt(squared);
+    if (norm === 0) {
+      // 零向量与任何向量都不可比，索引阶段直接剔除。
+      continue;
+    }
+    const unit = new Float64Array(item.embedding.length);
+    for (let index = 0; index < item.embedding.length; index += 1) {
+      unit[index] = (item.embedding[index] as number) / norm;
+    }
+    positionByRepoId.set(item.repoId, repoIds.length);
+    repoIds.push(item.repoId);
+    unitVectors.push(unit);
+  }
+
+  const poolCache = new Map<string, readonly SemanticNeighbor[]>();
+
+  const nearestPool = (repoId: string): readonly SemanticNeighbor[] => {
+    const cached = poolCache.get(repoId);
+    if (cached) {
+      return cached;
+    }
+    const position = positionByRepoId.get(repoId);
+    if (position === undefined) {
+      poolCache.set(repoId, []);
+      return [];
+    }
+    const source = unitVectors[position] as Float64Array;
+    const pool: SemanticNeighbor[] = [];
+    for (let index = 0; index < repoIds.length; index += 1) {
+      if (index === position) {
+        continue;
+      }
+      const similarity = dot(source, unitVectors[index] as Float64Array);
+      if (Number.isFinite(similarity)) {
+        pushBounded(pool, { repoId: repoIds[index] as string, similarity });
+      }
+    }
+    poolCache.set(repoId, pool);
+    return pool;
+  };
+
+  return {
+    size: repoIds.length,
+    has: (repoId) => positionByRepoId.has(repoId),
+    nearestPool,
+  };
 }
 
 /**
@@ -63,57 +140,23 @@ function compareNeighbors(left: SemanticNeighbor, right: SemanticNeighbor): numb
  * nearest-neighbor pool. The relationship may legitimately be empty.
  * Memory participates through the vectors themselves; no extra bonus is applied merely
  * because a repository has a non-empty Memory.
+ *
+ * 传入索引可以在多个锚点之间复用扫描结果；传入原始向量则按单次查询处理。
  */
 export function findMutualSemanticNeighbors(
-  vectors: readonly RepoSemanticVector[],
+  source: readonly RepoSemanticVector[] | SemanticNeighborhoodIndex,
   anchorRepoId: string,
 ): SemanticNeighbor[] {
-  const uniqueVectors = new Map<string, readonly number[]>();
-  for (const item of vectors) {
-    if (!uniqueVectors.has(item.repoId) && item.embedding.length > 0) {
-      uniqueVectors.set(item.repoId, item.embedding);
-    }
-  }
-  const anchor = uniqueVectors.get(anchorRepoId);
-  if (!anchor) {
+  const index = Array.isArray(source)
+    ? buildSemanticNeighborhoodIndex(source)
+    : (source as SemanticNeighborhoodIndex);
+  if (!index.has(anchorRepoId)) {
     return [];
   }
 
-  const norms = new Map<string, number>();
-  for (const [repoId, vector] of uniqueVectors) {
-    norms.set(repoId, vectorNorm(vector));
-  }
-
-  const nearestFor = (repoId: string): SemanticNeighbor[] => {
-    const source = uniqueVectors.get(repoId);
-    const sourceNorm = norms.get(repoId) ?? 0;
-    if (!source || sourceNorm === 0) {
-      return [];
-    }
-    const nearest: SemanticNeighbor[] = [];
-
-    for (const [candidateId, candidate] of uniqueVectors) {
-      if (candidateId === repoId) {
-        continue;
-      }
-      const similarity = cosineSimilarity(
-        source,
-        candidate,
-        sourceNorm,
-        norms.get(candidateId) ?? 0,
-      );
-      if (Number.isFinite(similarity)) {
-        nearest.push({ repoId: candidateId, similarity });
-      }
-    }
-    nearest.sort(compareNeighbors);
-    return nearest.slice(0, CANDIDATE_POOL_SIZE);
-  };
-
-  const candidates = nearestFor(anchorRepoId);
   const mutual: SemanticNeighbor[] = [];
-  for (const candidate of candidates) {
-    if (nearestFor(candidate.repoId).some((item) => item.repoId === anchorRepoId)) {
+  for (const candidate of index.nearestPool(anchorRepoId)) {
+    if (index.nearestPool(candidate.repoId).some((item) => item.repoId === anchorRepoId)) {
       mutual.push(candidate);
       if (mutual.length === RESULT_LIMIT) {
         break;

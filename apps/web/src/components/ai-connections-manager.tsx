@@ -46,7 +46,7 @@ import {
   useUpdateAiSettings,
 } from '../data/use-ai-connections';
 import type { AiConnection, AiConnectionStatus } from '../lib/ai-connections';
-import { readAskByok } from '../lib/ask-byok';
+import { readAskConsent } from '../lib/ask-byok';
 import { AiConnectionFormDialog } from './ai-connection-form-dialog';
 import { AiConnectionTestDialog } from './ai-connection-test-dialog';
 import { ConfirmDialog } from './confirm-dialog';
@@ -165,7 +165,9 @@ export function AiConnectionsManager() {
     if (!connection) {
       return;
     }
-    if (readAskByok(userId ?? '')?.consentedProvider === connection.adapter) {
+    // 同意按 Provider 生效（披露内容只与 Provider 有关）；换同 Provider 的另一条
+    // 连接时直接沿用，激活会把同意重新绑定到新连接。
+    if (readAskConsent(userId ?? '')?.consentedProvider === connection.adapter) {
       updateSettings.mutate({ generationConnectionId: connectionId }, { onError: failSettings });
       return;
     }

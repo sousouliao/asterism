@@ -30,7 +30,6 @@ import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-ope
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
 import { useMemoriesList } from '../data/use-memories-list';
-import { useMemoryNoteRepoIds } from '../data/use-memory-note-repo-ids';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useUnifiedRetrieval } from '../data/use-unified-retrieval';
@@ -43,7 +42,6 @@ import {
   toggleSelection,
 } from '../lib/bulk-selection';
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
-import { toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
 import { useListScrollStore } from '../stores/list-scroll';
@@ -71,12 +69,13 @@ function BrowseDataPage() {
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: bulkOperations } = useBulkOperations();
   const bulkActions = useBulkOperationActions();
-  const { data: noteRepoIds, isLoading: memoriesLoading } = useMemoryNoteRepoIds();
-  const { data: memoriesList } = useMemoriesList();
+  // 单一查询派生出检索上下文与 Note 标记：两者曾是两次独立请求，其中一次未纳入
+  // isLoading，导致首屏窗口期内个人记忆不参与检索却已显示「无匹配」。
+  const { data: memoriesList, isLoading: memoriesLoading } = useMemoriesList();
   const memoriesByRepoId = useMemo(() => {
     const map = new Map<string, Memory>();
-    for (const m of memoriesList ?? []) {
-      map.set(m.repoId, m);
+    for (const memory of memoriesList ?? []) {
+      map.set(memory.repoId, memory);
     }
     return map;
   }, [memoriesList]);
@@ -217,7 +216,15 @@ function BrowseDataPage() {
     }
     return map;
   }, [collections, collectionRepos]);
-  const noteRepoIdSet = useMemo(() => toRepoIdSet(noteRepoIds ?? []), [noteRepoIds]);
+  const noteRepoIdSet = useMemo(() => {
+    const ids = new Set<string>();
+    for (const memory of memoriesList ?? []) {
+      if (memory.note?.trim()) {
+        ids.add(memory.repoId);
+      }
+    }
+    return ids;
+  }, [memoriesList]);
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
   const activeFilter = hasActiveFilter(toRepoFilter(filters));

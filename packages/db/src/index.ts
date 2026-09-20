@@ -60,7 +60,6 @@ export {
 export {
   getMemory,
   listMemories,
-  listMemoryNoteRepoIds,
   saveMemory,
 } from './queries/memories';
 export type { StarredRepoRecord } from './queries/repos';

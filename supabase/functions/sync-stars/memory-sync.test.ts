@@ -3,39 +3,36 @@ import { ensureUserMemories, type MemorySyncStore } from './memory-sync';
 
 function store(overrides: Partial<MemorySyncStore> = {}): MemorySyncStore {
   return {
-    listUserStars: vi.fn().mockResolvedValue({
-      data: [{ repo_id: 'repo-1', starred_at: '2026-09-17T00:00:00.000Z' }],
-      error: null,
-    }),
-    insertMissingMemories: vi.fn().mockResolvedValue({ error: null }),
+    repairMemories: vi.fn().mockResolvedValue({ data: 3, error: null }),
     ...overrides,
   };
 }
 
 describe('ensureUserMemories', () => {
-  it('creates base Memories from Star source data', async () => {
+  it('repairs the calling user Memories and reports the affected row count', async () => {
     const memoryStore = store();
 
-    await expect(ensureUserMemories(memoryStore, 'user-1')).resolves.toBe(1);
-    expect(memoryStore.insertMissingMemories).toHaveBeenCalledWith([
-      {
-        user_id: 'user-1',
-        repo_id: 'repo-1',
-        source: 'github_star',
-        source_created_at: '2026-09-17T00:00:00.000Z',
-      },
-    ]);
+    await expect(ensureUserMemories(memoryStore, 'user-1')).resolves.toBe(3);
+    expect(memoryStore.repairMemories).toHaveBeenCalledWith('user-1');
   });
 
-  it('can retry the same repair set after a transient insert failure', async () => {
-    const insertMissingMemories = vi
+  it('treats a missing count as zero rather than failing the sync', async () => {
+    const memoryStore = store({
+      repairMemories: vi.fn().mockResolvedValue({ data: null, error: null }),
+    });
+
+    await expect(ensureUserMemories(memoryStore, 'user-1')).resolves.toBe(0);
+  });
+
+  it('can retry the repair after a transient failure', async () => {
+    const repairMemories = vi
       .fn()
-      .mockResolvedValueOnce({ error: { message: 'temporary outage' } })
-      .mockResolvedValueOnce({ error: null });
-    const memoryStore = store({ insertMissingMemories });
+      .mockResolvedValueOnce({ data: null, error: { message: 'temporary outage' } })
+      .mockResolvedValueOnce({ data: 1, error: null });
+    const memoryStore = store({ repairMemories });
 
     await expect(ensureUserMemories(memoryStore, 'user-1')).rejects.toThrow('temporary outage');
     await expect(ensureUserMemories(memoryStore, 'user-1')).resolves.toBe(1);
-    expect(insertMissingMemories).toHaveBeenCalledTimes(2);
+    expect(repairMemories).toHaveBeenCalledTimes(2);
   });
 });

@@ -105,8 +105,87 @@ describe('ask-generate HTTP boundary', () => {
     expect(JSON.parse(String(init.body))).toEqual({
       model: 'deepseek-chat',
       messages: validBody().messages,
+      max_tokens: 2048,
       response_format: { type: 'json_object' },
     });
+    // 白名单只约束首跳，禁止跟随重定向把 Authorization 带出白名单主机。
+    expect(init.redirect).toBe('manual');
+  });
+
+  it('caps completion tokens so a BYOK quota cannot be drained by one request', async () => {
+    const deps = dependencies();
+    await createAskGenerateHandler(deps)(request(validBody()));
+
+    const init = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const body = JSON.parse(String(init.body)) as { max_tokens?: unknown };
+    expect(body.max_tokens).toBe(2048);
+  });
+
+  it('rejects prototype keys that a naive `in` allowlist check would accept', async () => {
+    const deps = dependencies();
+    for (const provider of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      const response = await createAskGenerateHandler(deps)(request(validBody({ provider })));
+      expect(response.status).toBe(400);
+    }
+    expect(deps.fetchProvider).not.toHaveBeenCalled();
+  });
+
+  it('enforces message count and aggregate size limits', async () => {
+    const deps = dependencies();
+    const cases: Record<string, unknown>[] = [
+      // 超过 MAX_MESSAGES
+      validBody({
+        messages: Array.from({ length: 41 }, () => ({ role: 'user', content: 'x' })),
+      }),
+      // 单条超过 MAX_MESSAGE_CHARS
+      validBody({ messages: [{ role: 'user', content: 'x'.repeat(32_001) }] }),
+      // 合计超过 MAX_TOTAL_CHARS
+      validBody({
+        messages: Array.from({ length: 10 }, () => ({
+          role: 'user',
+          content: 'x'.repeat(31_000),
+        })),
+      }),
+    ];
+    for (const body of cases) {
+      const response = await createAskGenerateHandler(deps)(request(body));
+      expect(response.status).toBe(400);
+    }
+    expect(deps.fetchProvider).not.toHaveBeenCalled();
+  });
+
+  it('restricts CORS to configured origins while defaulting to open self-deploy', async () => {
+    const open = await createAskGenerateHandler(dependencies())(request(validBody()));
+    expect(open.headers.get('Access-Control-Allow-Origin')).toBe('*');
+
+    const scoped = createAskGenerateHandler(
+      dependencies({ allowedOrigins: ['https://app.example'] }),
+    );
+    const allowed = new Request('https://example.test/ask-generate', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer session-jwt',
+        'Content-Type': 'application/json',
+        Origin: 'https://app.example',
+      },
+      body: JSON.stringify(validBody()),
+    });
+    expect((await scoped(allowed)).headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://app.example',
+    );
+
+    const foreign = new Request('https://example.test/ask-generate', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer session-jwt',
+        'Content-Type': 'application/json',
+        Origin: 'https://evil.example',
+      },
+      body: JSON.stringify(validBody()),
+    });
+    expect((await scoped(foreign)).headers.get('Access-Control-Allow-Origin')).not.toBe(
+      'https://evil.example',
+    );
   });
 
   it('maps upstream 401 to invalid_provider_key without leaking the key', async () => {

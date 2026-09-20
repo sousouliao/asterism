@@ -10,7 +10,7 @@ import {
   writeAiConnections,
   writeAiSettings,
 } from '../lib/ai-connections';
-import { clearAskByok, saveAskByok } from '../lib/ask-byok';
+import { clearAskConsent, saveAskConsent } from '../lib/ask-byok';
 import { supabase } from '../lib/supabase';
 import { aiConnectionKeys, aiSettingsKeys } from './keys';
 
@@ -234,7 +234,7 @@ export function useDeleteAiConnection() {
       const settings = readAiSettings(userId);
       if (settings.generationConnectionId === connection.id) {
         writeAiSettings(userId, { ...settings, generationConnectionId: null });
-        clearAskByok(userId);
+        clearAskConsent(userId);
       }
       return Promise.resolve();
     },
@@ -265,7 +265,7 @@ export function useUpdateAiSettings() {
 
       if (input.generationConnectionId !== undefined) {
         if (input.generationConnectionId === null) {
-          clearAskByok(userId);
+          clearAskConsent(userId);
         } else {
           const connection = readAiConnections(userId).find(
             (candidate) => candidate.id === input.generationConnectionId,
@@ -275,10 +275,10 @@ export function useUpdateAiSettings() {
           if (connection?.status !== 'valid' || !model) {
             throw new Error('connection_not_valid');
           }
-          saveAskByok(userId, {
+          // 只记录同意；key 与 model 由 resolveAskByok 在使用时从本连接现取。
+          saveAskConsent(userId, {
+            connectionId: connection.id,
             provider: connection.adapter,
-            model,
-            providerKey: connection.apiKey,
           });
         }
       }

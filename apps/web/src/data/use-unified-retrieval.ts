@@ -6,7 +6,7 @@ import {
   retrieveRepos,
 } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from './use-semantic-search';
 
 export interface UseUnifiedRetrievalInput {
@@ -44,6 +44,9 @@ export function useUnifiedRetrieval({
   const { distanceByRepoId, isSearching } = useSemanticNeighbors(query, {
     enabled: semanticEnabled,
   });
+  // 时间基准在挂载时固定一次。直接调用 Date.now() 会让它成为 useMemo 的隐藏依赖：
+  // 结果随其它依赖变化而悄悄换一个「现在」，同一次会话里的新近度打分因此不可复现。
+  const [now] = useState(() => Date.now());
 
   const retrieval = useMemo(
     () =>
@@ -51,13 +54,13 @@ export function useUnifiedRetrieval({
         items: records as StarredRepoRecord[],
         filter,
         sort,
-        now: Date.now(),
+        now,
         collectionsByRepoId,
         memoriesByRepoId,
         distanceByRepoId,
         semanticLimit: SEMANTIC_MATCH_COUNT,
       }),
-    [records, filter, sort, collectionsByRepoId, memoriesByRepoId, distanceByRepoId],
+    [records, filter, sort, collectionsByRepoId, memoriesByRepoId, distanceByRepoId, now],
   );
 
   const primary = retrieval.primary;

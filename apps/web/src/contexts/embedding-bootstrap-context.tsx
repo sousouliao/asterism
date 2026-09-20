@@ -1,5 +1,5 @@
 import type { Memory } from '@asterism/core';
-import { createContext, type ReactNode, useContext, useMemo } from 'react';
+import { createContext, type ReactNode, use, useMemo } from 'react';
 import { useEmbeddingBootstrap } from '../data/use-embedding-bootstrap';
 import { useMemoriesList } from '../data/use-memories-list';
 import { useStarredRepos } from '../data/use-starred-repos';
@@ -36,7 +36,7 @@ export function EmbeddingBootstrapProvider({ children }: { children: ReactNode }
 }
 
 export function useEmbeddingBootstrapContext() {
-  const value = useContext(EmbeddingBootstrapContext);
+  const value = use(EmbeddingBootstrapContext);
   if (!value) {
     throw new Error('useEmbeddingBootstrapContext must be used within EmbeddingBootstrapProvider');
   }

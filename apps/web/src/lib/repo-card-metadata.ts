@@ -7,25 +7,3 @@ export function countCollectionsByRepo(links: readonly CollectionRepoLink[]): Ma
   }
   return counts;
 }
-
-export function toRepoIdSet(repoIds: readonly string[]): Set<string> {
-  return new Set(repoIds);
-}
-
-export function updateNoteRepoIds(
-  current: readonly string[] | undefined,
-  repoId: string,
-  hasNote: boolean,
-): string[] | undefined {
-  if (!current) {
-    return current;
-  }
-
-  const repoIds = new Set(current);
-  if (hasNote) {
-    repoIds.add(repoId);
-  } else {
-    repoIds.delete(repoId);
-  }
-  return [...repoIds];
-}

@@ -1,10 +1,12 @@
 import {
+  buildSemanticNeighborhoodIndex,
   DEFAULT_EMBEDDING_MODEL,
   type EmbeddableRepo,
   findKeywordFallbackNeighbors,
   findMutualSemanticNeighbors,
   type Memory,
   repoContentHash,
+  type SemanticNeighborhoodIndex,
 } from '@asterism/core';
 import { listRepoEmbeddings, type RepoEmbeddingRecord, type StarredRepoRecord } from '@asterism/db';
 import { useQuery } from '@tanstack/react-query';
@@ -34,15 +36,26 @@ export function selectSemanticNeighborhood(
 ): StarredRepoRecord[] {
   const freshVectors = selectFreshRepoEmbeddingVectors(starredRepos, embeddings, memoriesByRepoId);
   const repoById = new Map(starredRepos.map((record) => [record.repoId, record]));
-  return findMutualSemanticNeighbors(
-    freshVectors.map((record) => ({ repoId: record.repoId, embedding: record.vector })),
+  return resolveSemanticNeighbors(
+    buildSemanticNeighborhoodIndex(
+      freshVectors.map((record) => ({ repoId: record.repoId, embedding: record.vector })),
+    ),
     anchorRepoId,
-  )
+    repoById,
+  );
+}
+
+function resolveSemanticNeighbors(
+  index: SemanticNeighborhoodIndex,
+  anchorRepoId: string,
+  repoById: Map<string, StarredRepoRecord>,
+): StarredRepoRecord[] {
+  return findMutualSemanticNeighbors(index, anchorRepoId)
     .map((neighbor) => repoById.get(neighbor.repoId))
     .filter((record): record is StarredRepoRecord => Boolean(record));
 }
 
-type FreshRepoEmbedding = { repoId: string; vector: number[] };
+type FreshRepoEmbedding = { repoId: string; vector: readonly number[] };
 
 export function selectFreshRepoEmbeddingVectors(
   starredRepos: readonly StarredRepoRecord[],
@@ -60,7 +73,7 @@ export function selectFreshRepoEmbeddingVectors(
     const fresh =
       record.embeddingModel === DEFAULT_EMBEDDING_MODEL &&
       record.contentHash === repoContentHash(embeddable);
-    return fresh ? [{ repoId: record.repoId, vector: [...record.embedding] }] : [];
+    return fresh ? [{ repoId: record.repoId, vector: record.embedding }] : [];
   });
 }
 
@@ -85,56 +98,62 @@ export function useSemanticNeighborhood(anchorRepoId: string | undefined): Starr
     queryFn: () => (userId ? listRepoEmbeddings(supabase, userId) : Promise.resolve([])),
   });
 
+  const repoById = useMemo(
+    () => new Map((starredRepos ?? []).map((record) => [record.repoId, record])),
+    [starredRepos],
+  );
+
+  // 索引只依赖数据集本身：切换 Quick Look 的锚点不再重算归一化与全量扫描。
+  const index = useMemo(() => {
+    if (!starredRepos || !embeddings || availability !== 'available') {
+      return null;
+    }
+    return buildSemanticNeighborhoodIndex(
+      selectFreshRepoEmbeddingVectors(starredRepos, embeddings, memoriesByRepoId).map((record) => ({
+        repoId: record.repoId,
+        embedding: record.vector,
+      })),
+    );
+  }, [availability, embeddings, memoriesByRepoId, starredRepos]);
+
   return useMemo(() => {
     if (!anchorRepoId || !starredRepos) {
       return [];
     }
-    // 向量运行时不可用或向量读取失败时，使用可信的本地元数据 / Memory 降级。
-    if (availability === 'degraded' || embeddingsError) {
-      const repoById = new Map(starredRepos.map((record) => [record.repoId, record]));
+
+    const keywordFallback = (): StarredRepoRecord[] => {
       const anchor = repoById.get(anchorRepoId);
       if (!anchor) {
         return [];
       }
-      const fallback = findKeywordFallbackNeighbors({
+      return findKeywordFallbackNeighbors({
         anchorRepoId,
         anchorRepo: anchor.repo,
         items: starredRepos,
         memoriesByRepoId,
-      });
-      return fallback
+      })
         .map((item) => repoById.get(item.repoId))
         .filter((record): record is StarredRepoRecord => Boolean(record));
-    }
+    };
 
-    if (availability !== 'available' || !embeddings) {
+    // 向量运行时不可用或向量读取失败时，使用可信的本地元数据 / Memory 降级。
+    if (availability === 'degraded' || embeddingsError) {
+      return keywordFallback();
+    }
+    if (!index) {
       return [];
     }
 
-    const semanticNeighbors = selectSemanticNeighborhood(
-      anchorRepoId,
-      starredRepos,
-      embeddings,
-      memoriesByRepoId,
-    );
-    if (semanticNeighbors.length > 0) {
-      return semanticNeighbors;
-    }
-
-    // 向量库就绪但该仓库在向量空间互为近邻为空时，提供基于 Memory 意图与 Topics 的降级候补
-    const repoById = new Map(starredRepos.map((record) => [record.repoId, record]));
-    const anchor = repoById.get(anchorRepoId);
-    if (!anchor) {
-      return [];
-    }
-    const fallback = findKeywordFallbackNeighbors({
-      anchorRepoId,
-      anchorRepo: anchor.repo,
-      items: starredRepos,
-      memoriesByRepoId,
-    });
-    return fallback
-      .map((item) => repoById.get(item.repoId))
-      .filter((record): record is StarredRepoRecord => Boolean(record));
-  }, [anchorRepoId, availability, embeddings, embeddingsError, memoriesByRepoId, starredRepos]);
+    const semanticNeighbors = resolveSemanticNeighbors(index, anchorRepoId, repoById);
+    // 向量库就绪但该仓库在向量空间互为近邻为空时，回落到 Memory 意图与 Topics。
+    return semanticNeighbors.length > 0 ? semanticNeighbors : keywordFallback();
+  }, [
+    anchorRepoId,
+    availability,
+    embeddingsError,
+    index,
+    memoriesByRepoId,
+    repoById,
+    starredRepos,
+  ]);
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Memory } from '../models/memory';
 import type { Repo } from '../models/repo';
 import {
+  buildSemanticNeighborhoodIndex,
   findKeywordFallbackNeighbors,
   findMutualSemanticNeighbors,
   type RepoSemanticVector,
@@ -85,6 +86,44 @@ describe('findMutualSemanticNeighbors', () => {
     ];
 
     expect(findMutualSemanticNeighbors(vectors, 'anchor')).toHaveLength(5);
+  });
+
+  it('matches the per-call result when a shared index is reused across anchors', () => {
+    let seed = 7;
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    const vectors = Array.from({ length: 60 }, (_, index) =>
+      vector(
+        `repo-${index}`,
+        Array.from({ length: 16 }, () => random() - 0.5),
+      ),
+    );
+    const index = buildSemanticNeighborhoodIndex(vectors);
+
+    for (const anchor of ['repo-0', 'repo-13', 'repo-59']) {
+      expect(findMutualSemanticNeighbors(index, anchor)).toEqual(
+        findMutualSemanticNeighbors(vectors, anchor),
+      );
+    }
+  });
+
+  it('computes each repository pool once and serves later anchors from cache', () => {
+    const vectors = Array.from({ length: 8 }, (_, index) => {
+      const angle = (index * 7 * Math.PI) / 180;
+      return vector(`repo-${index}`, [Math.cos(angle), Math.sin(angle)]);
+    });
+    const index = buildSemanticNeighborhoodIndex(vectors);
+
+    const first = index.nearestPool('repo-0');
+    // 同一引用即证明第二次查询没有重新做全量点积扫描。
+    expect(index.nearestPool('repo-0')).toBe(first);
+
+    const neighbor = first[0]?.repoId as string;
+    const neighborPool = index.nearestPool(neighbor);
+    findMutualSemanticNeighbors(index, neighbor);
+    expect(index.nearestPool(neighbor)).toBe(neighborPool);
   });
 });
 

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   RESURFACE_SUPPRESSION_MS,
   readResurfaceFeedback,
@@ -7,6 +7,7 @@ import {
   resetResurfaceFeedbackState,
   resurfaceFeedbackStorageKey,
   resurfaceSuppressedRepoIds,
+  subscribeResurfaceFeedback,
 } from './resurface-feedback';
 
 const NOW = Date.parse('2026-06-30T00:00:00Z');
@@ -51,6 +52,41 @@ describe('resurface feedback persistence', () => {
   it('isolates feedback between users', () => {
     recordResurfaceFeedback(USER, 'r1', 'dismissed', NOW);
     expect(resurfaceSuppressedRepoIds('user-2', NOW)).toEqual(new Set());
+  });
+
+  it('releases a cached suppression once its window expires', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(NOW);
+      recordResurfaceFeedback(USER, 'r1', 'useful', NOW);
+      // 首次读取建立缓存快照。
+      expect(resurfaceSuppressedRepoIds(USER)).toEqual(new Set(['r1']));
+      // 缓存内重复读取复用同一引用，供 useSyncExternalStore 稳定比较。
+      expect(resurfaceSuppressedRepoIds(USER)).toBe(resurfaceSuppressedRepoIds(USER));
+
+      // 回归：缓存过去永不过期，用户不再提交反馈则该仓库永远无法重新浮现。
+      vi.setSystemTime(NOW + RESURFACE_SUPPRESSION_MS);
+      expect(resurfaceSuppressedRepoIds(USER)).toEqual(new Set());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('drops cached state when another tab records feedback', () => {
+    recordResurfaceFeedback(USER, 'r1', 'useful', NOW);
+    // 订阅后才会挂上 storage 监听；useResurfaceSuppressedRepoIds 在组件挂载时完成。
+    const unsubscribe = subscribeResurfaceFeedback(() => {});
+    try {
+      localStorage.setItem(
+        resurfaceFeedbackStorageKey(USER),
+        JSON.stringify({ version: 1, entries: { r2: { action: 'dismissed', at: NOW } } }),
+      );
+      window.dispatchEvent(new StorageEvent('storage', { key: resurfaceFeedbackStorageKey(USER) }));
+
+      expect(resurfaceSuppressedRepoIds(USER, NOW)).toEqual(new Set(['r2']));
+    } finally {
+      unsubscribe();
+    }
   });
 
   it('ignores corrupted storage instead of throwing', () => {

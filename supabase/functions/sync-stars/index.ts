@@ -216,27 +216,11 @@ Deno.serve(async (req: Request) => {
   }
   const userId = userData.user.id;
   const memoryStore = {
-    listUserStars: async (targetUserId: string, from: number, to: number) => {
-      const { data, error } = await admin
-        .from('user_stars')
-        .select('repo_id, starred_at')
-        .eq('user_id', targetUserId)
-        .order('id', { ascending: true })
-        .range(from, to);
-      return { data, error };
-    },
-    insertMissingMemories: async (
-      memoryRows: Array<{
-        user_id: string;
-        repo_id: string;
-        source: 'github_star';
-        source_created_at: string | null;
-      }>,
-    ) => {
-      const { error } = await admin
-        .from('memories')
-        .upsert(memoryRows, { onConflict: 'user_id,repo_id', ignoreDuplicates: true });
-      return { error };
+    repairMemories: async (targetUserId: string) => {
+      const { data, error } = await admin.rpc('ensure_user_memories', {
+        p_user_id: targetUserId,
+      });
+      return { data: typeof data === 'number' ? data : null, error };
     },
   };
 

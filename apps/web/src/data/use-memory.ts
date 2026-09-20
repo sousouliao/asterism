@@ -1,7 +1,7 @@
+import type { Memory } from '@asterism/core';
 import { getMemory, saveMemory } from '@asterism/db';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '../auth/use-session';
-import { updateNoteRepoIds } from '../lib/repo-card-metadata';
 import { supabase } from '../lib/supabase';
 import { memoryKeys } from './keys';
 
@@ -34,11 +34,16 @@ export function useSaveMemory() {
       if (!userId) {
         return;
       }
-      queryClient.setQueryData<string[] | undefined>(memoryKeys.noteRepoIds(userId), (current) =>
-        updateNoteRepoIds(current, memory.repoId, Boolean(memory.note?.trim())),
-      );
       queryClient.setQueryData(memoryKeys.detail(userId, memory.repoId), memory);
-      void queryClient.invalidateQueries({ queryKey: memoryKeys.noteRepoIds(userId) });
+      // Memory 列表是 Browse 检索上下文与 Note 标记的唯一来源：就地合并保存结果
+      // 让界面立刻反映，再由重新拉取收敛到权威数据。
+      queryClient.setQueryData<Memory[] | undefined>(memoryKeys.list(userId), (current) =>
+        current
+          ? current.some((item) => item.repoId === memory.repoId)
+            ? current.map((item) => (item.repoId === memory.repoId ? memory : item))
+            : [...current, memory]
+          : current,
+      );
       void queryClient.invalidateQueries({ queryKey: memoryKeys.list(userId) });
     },
   });

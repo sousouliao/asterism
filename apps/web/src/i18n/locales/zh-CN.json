@@ -302,6 +302,7 @@
     "resurface": {
       "title": "记忆唤醒",
       "description": "让沉睡的 Star 带着你记录的上下文重新出现。",
+      "loadError": "个人记忆加载失败，暂时无法唤醒任何内容。",
       "worthRemembering": "值得重温",
       "missingContext": "待补全记忆",
       "reasons": {

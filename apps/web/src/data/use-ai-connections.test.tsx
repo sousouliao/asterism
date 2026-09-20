@@ -11,12 +11,13 @@ import {
   readAiSettings,
   writeAiConnections,
 } from '../lib/ai-connections';
-import { readAskByok, resetAskByokState } from '../lib/ask-byok';
+import { resetAskByokState, resolveAskByok } from '../lib/ask-byok';
 import {
   useCreateAiConnection,
   useDeleteAiConnection,
   useDiscoverAiConnectionModels,
   useTestAiConnection,
+  useUpdateAiConnection,
   useUpdateAiSettings,
 } from './use-ai-connections';
 
@@ -165,7 +166,7 @@ describe('use-ai-connections mutations', () => {
     expect(models).toEqual(['deepseek-chat', 'deepseek-reasoner']);
   });
 
-  it('activates a valid connection by writing the ask-byok config', async () => {
+  it('activates a valid connection so Ask resolves its key from the library', async () => {
     writeAiConnections(USER, [storedConnection()]);
     const hook = await renderHookProbe(useUpdateAiSettings);
 
@@ -174,11 +175,11 @@ describe('use-ai-connections mutations', () => {
     });
 
     expect(readAiSettings(USER).generationConnectionId).toBe('conn-1');
-    expect(readAskByok(USER)).toMatchObject({
+    expect(resolveAskByok(USER)).toMatchObject({
+      connectionId: 'conn-1',
       provider: 'deepseek',
       model: 'deepseek-chat',
       providerKey: 'sk-test-key-123456',
-      consentedProvider: 'deepseek',
     });
   });
 
@@ -192,17 +193,54 @@ describe('use-ai-connections mutations', () => {
         await hook().mutateAsync({ generationConnectionId: 'conn-1' });
       }),
     ).rejects.toThrow('connection_not_valid');
-    expect(readAskByok(USER)).toBeNull();
+    expect(resolveAskByok(USER)).toBeNull();
 
     writeAiConnections(USER, [storedConnection()]);
     await act(async () => {
       await hook().mutateAsync({ generationConnectionId: 'conn-1' });
     });
-    expect(readAskByok(USER)).not.toBeNull();
+    expect(resolveAskByok(USER)).not.toBeNull();
     await act(async () => {
       await hook().mutateAsync({ generationConnectionId: null });
     });
-    expect(readAskByok(USER)).toBeNull();
+    expect(resolveAskByok(USER)).toBeNull();
+  });
+
+  it('stops Ask from using the old key the moment the active key is rotated', async () => {
+    writeAiConnections(USER, [storedConnection()]);
+    const settings = await renderHookProbe(useUpdateAiSettings);
+    await act(async () => {
+      await settings().mutateAsync({ generationConnectionId: 'conn-1' });
+    });
+    expect(resolveAskByok(USER)?.providerKey).toBe('sk-test-key-123456');
+
+    const update = await renderHookProbe(useUpdateAiConnection);
+    await act(async () => {
+      await update().mutateAsync({
+        connectionId: 'conn-1',
+        credential: { apiKey: 'sk-rotated-key-999999' },
+      });
+    });
+
+    // 轮换让连接回到未探测状态：Ask 必须立即失去配置，而不是继续用旧 key。
+    expect(resolveAskByok(USER)).toBeNull();
+    expect(readAiConnections(USER)[0]?.apiKey).toBe('sk-rotated-key-999999');
+  });
+
+  it('stops Ask from using a disabled active connection', async () => {
+    writeAiConnections(USER, [storedConnection()]);
+    const settings = await renderHookProbe(useUpdateAiSettings);
+    await act(async () => {
+      await settings().mutateAsync({ generationConnectionId: 'conn-1' });
+    });
+    expect(resolveAskByok(USER)).not.toBeNull();
+
+    const update = await renderHookProbe(useUpdateAiConnection);
+    await act(async () => {
+      await update().mutateAsync({ connectionId: 'conn-1', enabled: false });
+    });
+
+    expect(resolveAskByok(USER)).toBeNull();
   });
 
   it('deleting the active connection clears the preference and ask config', async () => {
@@ -216,7 +254,7 @@ describe('use-ai-connections mutations', () => {
 
     expect(readAiConnections(USER)).toHaveLength(0);
     expect(readAiSettings(USER).generationConnectionId).toBeNull();
-    expect(readAskByok(USER)).toBeNull();
+    expect(resolveAskByok(USER)).toBeNull();
   });
 });
 

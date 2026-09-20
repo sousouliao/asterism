@@ -1,4 +1,4 @@
-import type { AskCandidate, Repo } from '@asterism/core';
+import type { AskCandidate } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { Button, Dialog } from '@asterism/ui';
 import { useState } from 'react';
@@ -6,28 +6,8 @@ import { AskPanelContent, AskThread, type AskViewState } from '../components/ask
 import { RepoInspector } from '../components/repo-inspector';
 import { RepoInspectorProvider, useRepoInspector } from '../contexts/repo-inspector-context';
 import type { AskPhase, AskTurn } from '../data/use-ask-question';
+import { previewRepo } from '../fixtures/preview-repo';
 import { changeInterfaceLanguage } from '../i18n';
-
-function previewRepo(overrides: Partial<Repo>): Repo {
-  return {
-    githubId: 1,
-    fullName: 'owner/name',
-    name: 'name',
-    owner: 'owner',
-    description: 'Fixture repository for the Ask preview',
-    language: 'TypeScript',
-    topics: ['preview'],
-    stargazers: 500,
-    forks: 12,
-    homepage: null,
-    pushedAt: null,
-    repoCreatedAt: null,
-    archived: false,
-    isFork: false,
-    syncedAt: '2026-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
 
 const PREVIEW_RECORDS: StarredRepoRecord[] = [
   {

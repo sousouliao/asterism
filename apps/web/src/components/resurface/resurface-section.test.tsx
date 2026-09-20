@@ -251,7 +251,15 @@ describe('ResurfaceSection', () => {
     container.remove();
   });
 
-  it('renders nothing without a user id even if candidates exist', async () => {
+  it('hides the feedback controls without a user id but still shows the candidates', async () => {
+    const withUser = await renderSection();
+    const feedbackButtonCount = withUser.container.querySelectorAll(
+      'button[aria-label="忽略"], button',
+    ).length;
+    expect(withUser.container.textContent).toContain('有用');
+    await act(async () => withUser.root.unmount());
+    withUser.container.remove();
+
     const container = document.createElement('div');
     document.body.append(container);
     const root = createRoot(container);
@@ -265,8 +273,11 @@ describe('ResurfaceSection', () => {
       );
     });
 
-    // 无 userId 时反馈无法持久化，卡片仍然展示（只是反馈按钮不落盘）。
+    // 候选照常展示，但反馈按钮必须消失：没有会话时点击无处可存，
+    // 留一个静默失效的按钮比不给按钮更糟。
     expect(container.textContent).toContain('记忆唤醒');
+    expect(container.textContent).not.toContain('有用');
+    expect(container.querySelectorAll('button').length).toBeLessThan(feedbackButtonCount);
 
     await act(async () => root.unmount());
     container.remove();

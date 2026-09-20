@@ -3,8 +3,8 @@ import type { StarredRepoRecord } from '@asterism/db';
 import {
   createContext,
   type ReactNode,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -383,7 +383,7 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
 }
 
 export function useRepoInspector() {
-  const value = useContext(RepoInspectorContext);
+  const value = use(RepoInspectorContext);
   if (!value) {
     throw new Error('useRepoInspector must be used inside RepoInspectorProvider');
   }

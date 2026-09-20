@@ -58,12 +58,14 @@ export function ResurfaceSection({ records, memoriesByRepoId, userId }: Resurfac
     [inspector, inspectorContext],
   );
 
-  const handleFeedback = useCallback(
-    (repoId: string, action: ResurfaceFeedbackAction) => {
-      if (userId) {
-        recordResurfaceFeedback(userId, repoId, action);
-      }
-    },
+  // 无会话时反馈无处可存，交出 undefined 让卡片隐藏控件，而不是留一个点了没反应的按钮。
+  const handleFeedback = useMemo(
+    () =>
+      userId
+        ? (repoId: string, action: ResurfaceFeedbackAction) => {
+            recordResurfaceFeedback(userId, repoId, action);
+          }
+        : undefined,
     [userId],
   );
 
@@ -84,7 +86,7 @@ export function ResurfaceSection({ records, memoriesByRepoId, userId }: Resurfac
         >
           {t('dashboard.resurface.title')}
         </h2>
-        <p className="text-[13px] text-muted-foreground">{t('dashboard.resurface.description')}</p>
+        <p className="text-body text-muted-foreground">{t('dashboard.resurface.description')}</p>
       </div>
 
       <StreamGroup
@@ -125,7 +127,7 @@ function StreamGroup({
   memoriesByRepoId: ReadonlyMap<string, Memory>;
   selectedRepoId: string | undefined;
   onSelect: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
-  onFeedback: (repoId: string, action: ResurfaceFeedbackAction) => void;
+  onFeedback?: (repoId: string, action: ResurfaceFeedbackAction) => void;
 }) {
   if (candidates.length === 0) {
     return null;

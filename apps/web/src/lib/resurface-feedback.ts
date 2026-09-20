@@ -25,8 +25,14 @@ export const RESURFACE_SUPPRESSION_MS = 90 * 24 * 60 * 60 * 1000;
 const EMPTY_STORE: ResurfaceFeedbackStore = { version: 1, entries: {} };
 const EMPTY_SUPPRESSED = new Set<string>();
 
+/** 压制集合快照；`validUntil` 是其中最早一条压制到期的时刻。 */
+interface SuppressedSnapshot {
+  repoIds: Set<string>;
+  validUntil: number;
+}
+
 const storeCache = new Map<string, ResurfaceFeedbackStore>();
-const suppressedCache = new Map<string, Set<string>>();
+const suppressedCache = new Map<string, SuppressedSnapshot>();
 const listeners = new Set<() => void>();
 
 function emitChange() {
@@ -35,11 +41,32 @@ function emitChange() {
   }
 }
 
+/** 另一标签页写入反馈后，本页缓存必须失效，否则两页的压制集合会长期分叉。 */
+function handleStorageEvent(event: StorageEvent) {
+  if (event.key !== null && !event.key.startsWith('asterism:resurface-feedback:v1:')) {
+    return;
+  }
+  storeCache.clear();
+  suppressedCache.clear();
+  emitChange();
+}
+
 function subscribe(listener: () => void) {
+  if (listeners.size === 0) {
+    window.addEventListener('storage', handleStorageEvent);
+  }
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
+    if (listeners.size === 0) {
+      window.removeEventListener('storage', handleStorageEvent);
+    }
   };
+}
+
+/** 供非 React 调用方订阅反馈变化；订阅期间同时接管跨标签页的 storage 事件。 */
+export function subscribeResurfaceFeedback(listener: () => void) {
+  return subscribe(listener);
 }
 
 export function resurfaceFeedbackStorageKey(userId: string) {
@@ -122,27 +149,37 @@ export function recordResurfaceFeedback(
 
 /**
  * 当前仍在压制期内的 repoId 集合。
- * 不传 `now` 时返回按用户缓存的稳定快照（供 useSyncExternalStore 复用同一引用）；
- * 显式传入 `now` 时实时计算，不污染缓存。
+ *
+ * 不传 `now` 时返回按用户缓存的稳定快照（供 useSyncExternalStore 复用同一引用），
+ * 但缓存带到期时间：最早一条压制走完 90 天后自动重算，否则只要用户不再提交反馈，
+ * 该集合就永远冻结，被压制的仓库再也不会重新浮现。显式传入 `now` 时实时计算，
+ * 不读写缓存。
  */
 export function resurfaceSuppressedRepoIds(userId: string, now?: number): Set<string> {
+  const at = now ?? Date.now();
   if (now === undefined) {
     const cached = suppressedCache.get(userId);
-    if (cached) {
-      return cached;
+    if (cached && at < cached.validUntil) {
+      return cached.repoIds;
     }
   }
-  const cutoff = (now ?? Date.now()) - RESURFACE_SUPPRESSION_MS;
-  const suppressed = new Set<string>();
+  const cutoff = at - RESURFACE_SUPPRESSION_MS;
+  const repoIds = new Set<string>();
+  let earliestAt = Number.POSITIVE_INFINITY;
   for (const [repoId, entry] of Object.entries(readResurfaceFeedback(userId).entries)) {
     if (entry.at > cutoff) {
-      suppressed.add(repoId);
+      repoIds.add(repoId);
+      earliestAt = Math.min(earliestAt, entry.at);
     }
   }
   if (now === undefined) {
-    suppressedCache.set(userId, suppressed);
+    // 留存条目均满足 at > cutoff，故 validUntil 必定严格大于 at，重算可收敛。
+    suppressedCache.set(userId, {
+      repoIds,
+      validUntil: earliestAt + RESURFACE_SUPPRESSION_MS,
+    });
   }
-  return suppressed;
+  return repoIds;
 }
 
 export function useResurfaceSuppressedRepoIds(userId: string | undefined): Set<string> {

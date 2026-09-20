@@ -1,27 +1,41 @@
-const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
+const BASE_CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 /**
- * Provider 白名单（ADR 0042）。Edge Function 按仓库约定自包含，与 `packages/core`
- * 的 `ASK_PROVIDERS` 维护同一映射；新增 Provider 必须两侧同步并走 ADR。
+ * 本函数的请求体携带用户的 Provider key，因此允许部署方用 `ASK_ALLOWED_ORIGINS`
+ * （逗号分隔）把跨源访问收敛到自己的应用域名。未配置时回落到 `*`，保持自部署
+ * 开箱可用——同源策略已使第三方站点无法读取受害者 localStorage 中的 key，
+ * 收紧 CORS 是纵深防御而非唯一屏障。
  */
-const PROVIDER_BASE_URLS: Record<string, string> = {
-  deepseek: 'https://api.deepseek.com',
-  openai: 'https://api.openai.com/v1',
-  groq: 'https://api.groq.com/openai/v1',
-  openrouter: 'https://openrouter.ai/api/v1',
-};
+function resolveCorsHeaders(
+  request: Request,
+  allowedOrigins: readonly string[] | undefined,
+): Record<string, string> {
+  const [fallback] = allowedOrigins ?? [];
+  if (fallback === undefined) {
+    return { ...BASE_CORS_HEADERS, 'Access-Control-Allow-Origin': '*' };
+  }
+  const origin = request.headers.get('Origin');
+  const allowed = origin !== null && allowedOrigins?.includes(origin) === true;
+  return {
+    ...BASE_CORS_HEADERS,
+    // 不匹配时回显首个允许来源：浏览器据此拒绝该响应，且不泄漏允许列表全貌。
+    'Access-Control-Allow-Origin': allowed ? origin : fallback,
+    Vary: 'Origin',
+  };
+}
 
-/** 探针与生成是否启用 `response_format: json_object`；与 core `supportsJsonMode` 同步。 */
-const PROVIDER_JSON_MODE: Record<string, boolean> = {
-  deepseek: true,
-  openai: true,
-  groq: true,
-  openrouter: false,
-};
+/**
+ * Provider 白名单（ADR 0042）直接取自 `packages/core` 的共享注册表，两侧不再各存
+ * 一份副本；新增 Provider 只改注册表并走 ADR。该模块是零依赖叶子文件，可被 Deno
+ * 直接加载（同 `bulk-organize` 引用 `database.types.ts` 的既有做法）。
+ */
+import {
+  findAskProvider,
+  isAllowedAskProvider,
+} from '../../../packages/core/src/repos/ask-providers.ts';
 
 /** 模型检测返回条数上限（ADR 0043）：OpenRouter 会返回数百条，封顶约束响应体大小。 */
 const MAX_MODELS = 200;
@@ -37,6 +51,13 @@ const MAX_MESSAGE_CHARS = 32_000;
 const MAX_TOTAL_CHARS = 200_000;
 const DEFAULT_TIMEOUT_MS = 60_000;
 
+/**
+ * 生成回答的 completion 上限。BYOK 花的是用户自己的额度，代理必须给出上限，
+ * 否则任何持有效 JWT 的调用方都能用一次请求耗尽对方配额。Ask 的回答是
+ * 摘要 + 至多 5 条推荐索引的 JSON，2048 token 远超实际所需。
+ */
+const MAX_COMPLETION_TOKENS = 2048;
+
 interface ProviderMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -47,6 +68,8 @@ export interface AskGenerateDependencies {
   fetchProvider: typeof fetch;
   /** 上游请求超时（毫秒）；测试注入小值。 */
   timeoutMs?: number;
+  /** 允许的浏览器来源；留空表示不限制（自部署默认）。 */
+  allowedOrigins?: readonly string[];
 }
 
 interface ValidatedBody {
@@ -67,11 +90,21 @@ interface ValidatedTestBody extends ValidatedModelsBody {
   model: string;
 }
 
-function json(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+function createJsonResponder(cors: Record<string, string>) {
+  return (body: Record<string, unknown>, status = 200): Response =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...cors, 'Content-Type': 'application/json' },
+    });
+}
+
+/** 上游 base URL；调用点已通过 `isAllowedAskProvider` 校验，故必定命中。 */
+function providerBaseUrl(provider: string): string {
+  const definition = findAskProvider(provider);
+  if (!definition) {
+    throw new Error(`Unlisted provider reached dispatch: ${provider}`);
+  }
+  return definition.baseUrl;
 }
 
 function isModelId(value: unknown): value is string {
@@ -92,7 +125,7 @@ function validateBody(raw: unknown): ValidatedBody | null {
   }
   const body = raw as Record<string, unknown>;
   const provider = body.provider;
-  if (typeof provider !== 'string' || !(provider in PROVIDER_BASE_URLS)) {
+  if (typeof provider !== 'string' || !isAllowedAskProvider(provider)) {
     return null;
   }
   if (!isModelId(body.model) || !isProviderKey(body.providerKey)) {
@@ -159,7 +192,7 @@ function validateModelsBody(raw: unknown): ValidatedModelsBody | null {
     return null;
   }
   const body = raw as Record<string, unknown>;
-  if (typeof body.provider !== 'string' || !(body.provider in PROVIDER_BASE_URLS)) {
+  if (typeof body.provider !== 'string' || !isAllowedAskProvider(body.provider)) {
     return null;
   }
   if (!isProviderKey(body.providerKey)) {
@@ -202,6 +235,9 @@ function parseModelList(payload: unknown): string[] {
 
 export function createAskGenerateHandler(dependencies: AskGenerateDependencies) {
   return async (request: Request): Promise<Response> => {
+    const corsHeaders = resolveCorsHeaders(request, dependencies.allowedOrigins);
+    const json = createJsonResponder(corsHeaders);
+
     if (request.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders });
     }
@@ -241,10 +277,11 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
       let modelsResponse: Response;
       try {
         modelsResponse = await dependencies.fetchProvider(
-          `${PROVIDER_BASE_URLS[modelsBody.provider]}/models`,
+          `${providerBaseUrl(modelsBody.provider)}/models`,
           {
             method: 'GET',
             headers: { Authorization: `Bearer ${modelsBody.providerKey}` },
+            redirect: 'manual',
             signal: AbortSignal.timeout(dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS),
           },
         );
@@ -279,13 +316,13 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
         temperature: 0,
         max_tokens: 512,
       };
-      if (PROVIDER_JSON_MODE[testBody.provider]) {
+      if (findAskProvider(testBody.provider)?.supportsJsonMode) {
         probeBody.response_format = { type: 'json_object' };
       }
       let probeResponse: Response;
       try {
         probeResponse = await dependencies.fetchProvider(
-          `${PROVIDER_BASE_URLS[testBody.provider]}/chat/completions`,
+          `${providerBaseUrl(testBody.provider)}/chat/completions`,
           {
             method: 'POST',
             headers: {
@@ -293,6 +330,7 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(probeBody),
+            redirect: 'manual',
             signal: AbortSignal.timeout(dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS),
           },
         );
@@ -334,6 +372,7 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
     const upstreamBody: Record<string, unknown> = {
       model: body.model,
       messages: body.messages,
+      max_tokens: MAX_COMPLETION_TOKENS,
     };
     if (body.temperature !== undefined) {
       upstreamBody.temperature = body.temperature;
@@ -345,7 +384,7 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
     let response: Response;
     try {
       response = await dependencies.fetchProvider(
-        `${PROVIDER_BASE_URLS[body.provider]}/chat/completions`,
+        `${providerBaseUrl(body.provider)}/chat/completions`,
         {
           method: 'POST',
           headers: {
@@ -353,6 +392,9 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(upstreamBody),
+          // 白名单只约束首跳；跟随重定向会让被劫持或被滥用的上游把请求
+          // （连同 Authorization 头）带到白名单外的主机。
+          redirect: 'manual',
           signal: AbortSignal.timeout(dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS),
         },
       );

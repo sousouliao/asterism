@@ -15,7 +15,8 @@ export interface ResurfaceCardProps {
   memory?: Memory;
   selected?: boolean;
   onSelect: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
-  onFeedback: (repoId: string, action: ResurfaceFeedbackAction) => void;
+  /** 省略表示反馈无法持久化（无会话）：此时不渲染反馈控件，而非渲染一个静默无效的按钮。 */
+  onFeedback?: (repoId: string, action: ResurfaceFeedbackAction) => void;
 }
 
 export const ResurfaceCard = memo(function ResurfaceCard({
@@ -58,7 +59,7 @@ export const ResurfaceCard = memo(function ResurfaceCard({
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-3 pointer-events-none">
         <div className="flex min-w-0 items-start justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-2 text-[13px]">
+          <span className="flex min-w-0 items-center gap-2 text-body">
             <span
               aria-hidden="true"
               className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
@@ -120,31 +121,33 @@ export const ResurfaceCard = memo(function ResurfaceCard({
               {t('dashboard.resurface.addWhySaved')}
             </Button>
           ) : null}
-          <div className="ml-auto flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={() => onFeedback(candidate.repoId, 'useful')}
-            >
-              <ThumbsUpIcon className="size-3.5" aria-hidden="true" />
-              {t('dashboard.resurface.useful')}
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={dismissLabel}
-                  onClick={() => onFeedback(candidate.repoId, 'dismissed')}
-                >
-                  <XIcon className="size-4" aria-hidden="true" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent sideOffset={6}>{dismissLabel}</TooltipContent>
-            </Tooltip>
-          </div>
+          {onFeedback ? (
+            <div className="ml-auto flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => onFeedback(candidate.repoId, 'useful')}
+              >
+                <ThumbsUpIcon className="size-3.5" aria-hidden="true" />
+                {t('dashboard.resurface.useful')}
+              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={dismissLabel}
+                    onClick={() => onFeedback(candidate.repoId, 'dismissed')}
+                  >
+                    <XIcon className="size-4" aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={6}>{dismissLabel}</TooltipContent>
+              </Tooltip>
+            </div>
+          ) : null}
         </div>
       </div>
     </Card>

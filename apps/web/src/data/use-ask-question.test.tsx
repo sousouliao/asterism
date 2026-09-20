@@ -5,7 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resetAskByokState, saveAskByok } from '../lib/ask-byok';
+import {
+  type AiConnection,
+  clearAiConnectionsState,
+  writeAiConnections,
+} from '../lib/ai-connections';
+import { resetAskByokState, saveAskConsent } from '../lib/ask-byok';
 import { useAskQuestion } from './use-ask-question';
 import { QUERY_DEBOUNCE_MS } from './use-semantic-search';
 
@@ -146,8 +151,28 @@ beforeEach(() => {
   mocks.embed.mockReset();
   mocks.session.current = { user: { id: 'user-a' } };
   mocks.embedding.current = { optedIn: false, phase: 'idle', backend: null };
-  saveAskByok('user-a', { provider: 'openai', model: 'gpt-4o-mini', providerKey: 'sk-test' });
+  configureAskConnection();
 });
+
+/** Ask 的可用配置 = 已同意 + 一条通过探针的连接（key 在使用时现取）。 */
+function configureAskConnection(overrides: Partial<AiConnection> = {}) {
+  const connection: AiConnection = {
+    id: 'conn-1',
+    adapter: 'openai',
+    name: 'Test key',
+    baseUrl: null,
+    status: 'valid',
+    credentialHint: 'sk-…test',
+    apiKey: 'sk-test',
+    generationCapability: { ok: true, model: 'gpt-4o-mini', testedAt: 'now', reason: null },
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
+  writeAiConnections('user-a', [connection]);
+  saveAskConsent('user-a', { connectionId: connection.id, provider: connection.adapter });
+  return connection;
+}
 
 afterEach(async () => {
   if (root) {
@@ -159,6 +184,7 @@ afterEach(async () => {
   container = undefined;
   queryClient = undefined;
   resetAskByokState();
+  clearAiConnectionsState();
   window.localStorage.clear();
 });
 

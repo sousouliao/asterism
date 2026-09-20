@@ -16,6 +16,20 @@ function nullableString(value: unknown): value is string | null {
   return value === null || typeof value === 'string';
 }
 
+/** 按 PAGE_SIZE 翻页直到取回不足一页为止，把 range 计算收在一处。 */
+async function collectPages<T>(
+  fetchPage: (from: number, to: number) => Promise<T[]>,
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const page = await fetchPage(from, from + PAGE_SIZE - 1);
+    all.push(...page);
+    if (page.length < PAGE_SIZE) {
+      return all;
+    }
+  }
+}
+
 function mapMemoryRow(value: MemoryRow): Memory {
   if (
     typeof value.repo_id !== 'string' ||
@@ -36,60 +50,27 @@ function mapMemoryRow(value: MemoryRow): Memory {
   };
 }
 
-/** 读取当前用户的全部 Memory，供导出与列表上下文使用。 */
+/**
+ * 读取当前用户的全部 Memory，供导出、Browse 检索上下文与 Note 标记共用。
+ *
+ * 这里刻意只保留这一个列表查询：曾经并存的「仅取有 Note 的 repo_id」查询是同一份
+ * 数据的第二次往返，两个查询各自的加载态很容易漏纳入界面判断，从而在首屏出现
+ * 记忆尚未到达却已按「无匹配」渲染的窗口。派生远比再查一次安全。
+ */
 export async function listMemories(client: SupabaseClient, userId: string): Promise<Memory[]> {
-  const memories: Memory[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
+  return collectPages(async (from, to) => {
     const { data, error } = await client
       .from('memories')
       .select(MEMORY_COLUMNS)
       .eq('user_id', userId)
       .order('repo_id', { ascending: true })
-      .range(from, from + PAGE_SIZE - 1);
+      .range(from, to);
 
     if (error) {
       throw error;
     }
-
-    const rows = data ?? [];
-    memories.push(...rows.map((row) => mapMemoryRow(row)));
-    if (rows.length < PAGE_SIZE) {
-      return memories;
-    }
-  }
-}
-
-/** 读取当前用户所有含非空 Note 的仓库 ID，供列表状态展示。 */
-export async function listMemoryNoteRepoIds(
-  client: SupabaseClient,
-  userId: string,
-): Promise<string[]> {
-  const repoIds: string[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await client
-      .from('memories')
-      .select('repo_id, note')
-      .eq('user_id', userId)
-      .not('note', 'is', null)
-      .order('repo_id', { ascending: true })
-      .range(from, from + PAGE_SIZE - 1);
-
-    if (error) {
-      throw error;
-    }
-
-    const rows = data ?? [];
-    repoIds.push(
-      ...rows.flatMap((row) =>
-        typeof row.repo_id === 'string' && typeof row.note === 'string' && row.note.trim()
-          ? [row.repo_id]
-          : [],
-      ),
-    );
-    if (rows.length < PAGE_SIZE) {
-      return repoIds;
-    }
-  }
+    return (data ?? []).map((row) => mapMemoryRow(row));
+  });
 }
 
 /** 读取某仓库的 Memory；尚无基础记录时返回 null。 */
@@ -115,44 +96,36 @@ function normalizeText(value: string): string | null {
   return value.trim() || null;
 }
 
-/** 保存个人上下文；清空字段写为 null，基础 Memory 始终保留。 */
+/**
+ * 保存个人上下文；清空字段写为 null，基础 Memory 始终保留。
+ *
+ * 用单条 upsert 而非「先 update 再 insert」：后者在 update 未命中与 insert 之间
+ * 留有窗口，同一用户并发保存（多标签页，或 sync 正好补齐基础 Memory）会让 insert
+ * 撞上唯一约束而整次保存失败。载荷不含 source_created_at，冲突更新不会覆盖
+ * sync 写入的收藏时间。
+ */
 export async function saveMemory(
   client: SupabaseClient,
   input: { userId: string; repoId: string; whySaved: string; note: string },
 ): Promise<Memory> {
-  const personalFields = {
-    why_saved: normalizeText(input.whySaved),
-    note: normalizeText(input.note),
-  };
-  const { data: updated, error: updateError } = await client
+  const { data, error } = await client
     .from('memories')
-    .update(personalFields)
-    .eq('user_id', input.userId)
-    .eq('repo_id', input.repoId)
-    .select(MEMORY_COLUMNS)
-    .maybeSingle();
-
-  if (updateError) {
-    throw updateError;
-  }
-  if (updated) {
-    return mapMemoryRow(updated);
-  }
-
-  const { data: inserted, error: insertError } = await client
-    .from('memories')
-    .insert({
-      user_id: input.userId,
-      repo_id: input.repoId,
-      source: 'github_star',
-      ...personalFields,
-    })
+    .upsert(
+      {
+        user_id: input.userId,
+        repo_id: input.repoId,
+        source: 'github_star',
+        why_saved: normalizeText(input.whySaved),
+        note: normalizeText(input.note),
+      },
+      { onConflict: 'user_id,repo_id' },
+    )
     .select(MEMORY_COLUMNS)
     .single();
 
-  if (insertError) {
-    throw insertError;
+  if (error) {
+    throw error;
   }
 
-  return mapMemoryRow(inserted);
+  return mapMemoryRow(data);
 }

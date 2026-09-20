@@ -92,12 +92,15 @@ export const MatchExplanationBadge = memo(function MatchExplanationBadge({
             {t('browse.matchReasons.additionalMatches')}
           </div>
           <div className="flex flex-col gap-1">
-            {reasons.slice(1).map((r) => {
+            {reasons.slice(1).map((r, rIndex) => {
               const rLabel = getMatchReasonLabel(r, t);
               const rText = r.fullText || r.snippet;
               return (
                 <div
-                  key={`${r.kind}:${r.matchedField ?? ''}:${r.snippet ?? ''}`}
+                  // 同一条解释里可能出现 kind / field / snippet 三者都相同的原因，
+                  // 内容键会撞车。这是一份静态、不重排、无内部状态的列表，位置即身份。
+                  // biome-ignore lint/suspicious/noArrayIndexKey: 静态只读列表，位置即稳定身份
+                  key={rIndex}
                   className="flex items-start gap-1"
                 >
                   <span>·</span>

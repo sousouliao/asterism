@@ -46,7 +46,12 @@ export function DashboardPage() {
   } = useStarredRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
-  const { data: memories, isLoading: memoriesLoading, isError: memoriesError } = useMemoriesList();
+  const {
+    data: memories,
+    isLoading: memoriesLoading,
+    isError: memoriesError,
+    refetch: refetchMemories,
+  } = useMemoriesList();
   const isLoading = starredReposLoading || collectionsLoading || collectionReposLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
@@ -126,7 +131,18 @@ export function DashboardPage() {
           <>
             {memoriesLoading ? (
               <ResurfaceSectionSkeleton />
-            ) : memoriesError || !memories ? null : (
+            ) : memoriesError ? (
+              // 记忆是唤醒的全部依据：加载失败必须说明，静默留白会被读成「无内容可唤醒」。
+              <div
+                role="alert"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+              >
+                <p className="text-destructive text-sm">{t('dashboard.resurface.loadError')}</p>
+                <Button variant="outline" size="sm" onClick={() => void refetchMemories()}>
+                  {t('common.retry')}
+                </Button>
+              </div>
+            ) : !memories ? null : (
               <ResurfaceSection
                 records={records}
                 memoriesByRepoId={memoriesByRepoId}

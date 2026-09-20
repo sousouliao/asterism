@@ -302,6 +302,7 @@
     "resurface": {
       "title": "Resurface",
       "description": "Dormant stars brought back with the context you recorded.",
+      "loadError": "Could not load your memories, so nothing can resurface right now.",
       "worthRemembering": "Worth remembering",
       "missingContext": "Missing context",
       "reasons": {

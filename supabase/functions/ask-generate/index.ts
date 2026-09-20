@@ -14,12 +14,18 @@ Deno.serve(async (request: Request) => {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const allowedOrigins = (Deno.env.get('ASK_ALLOWED_ORIGINS') ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+
   const handler = createAskGenerateHandler({
     authenticate: async (jwt) => {
       const { data, error } = await admin.auth.getUser(jwt);
       return error ? null : (data.user?.id ?? null);
     },
     fetchProvider: fetch,
+    allowedOrigins,
   });
 
   return handler(request);

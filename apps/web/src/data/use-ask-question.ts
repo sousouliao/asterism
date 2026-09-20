@@ -10,8 +10,8 @@ import { invokeAskGenerate, type StarredRepoRecord } from '@asterism/db';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/use-session';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
-import { readAiSettings } from '../lib/ai-connections';
-import { readAskByok } from '../lib/ask-byok';
+import { useAiSettingsValue } from '../lib/ai-connections';
+import { useAskByok } from '../lib/ask-byok';
 import { supabase } from '../lib/supabase';
 import { useMemoriesList } from './use-memories-list';
 import { useSemanticNeighbors } from './use-semantic-search';
@@ -55,8 +55,10 @@ interface Submission {
 export function useAskQuestion() {
   const { session } = useSession();
   const userId = session?.user.id;
-  const byok = readAskByok(userId ?? '');
-  const includeNotes = readAiSettings(userId ?? '').includeNotesInAi;
+  // 订阅而非快照读取：Settings 里改 key、停用连接或撤销同意时，本 Hook 立即
+  // 反映最新状态，不会继续使用已失效的凭据。
+  const byok = useAskByok(userId);
+  const includeNotes = useAiSettingsValue(userId).includeNotesInAi;
   const embedding = useEmbeddingBootstrapContext();
   const semanticEnabled =
     embedding.optedIn && (embedding.phase === 'ready' || embedding.backend !== null);
@@ -112,6 +114,14 @@ export function useAskQuestion() {
     if (!submission || settledId.current === submission.id) {
       return;
     }
+    if (!byok) {
+      // 问答途中连接被停用 / key 被轮换 / 同意被撤销：立即停下，回到未配置态，
+      // 绝不拿已失效的凭据继续出网。面板会转为配置引导。
+      settledId.current = submission.id;
+      setSubmission(null);
+      setPhase({ kind: 'idle' });
+      return;
+    }
     const records = reposQuery.data;
     if (!records || (semanticEnabled && isSearching)) {
       // 仓库列表未到或语义检索仍在进行时等待；语义未启用则直接词法召回。
@@ -135,7 +145,7 @@ export function useAskQuestion() {
       }
 
       setPhase({ kind: 'generating', question: submission.question });
-      const provider = findAskProvider(byok?.provider ?? '');
+      const provider = findAskProvider(byok.provider);
       const prompt = buildAskPrompt({
         question: submission.question,
         candidates,
@@ -145,9 +155,9 @@ export function useAskQuestion() {
         includeNotes,
       });
       const outcome = await invokeAskGenerate(supabase, {
-        provider: byok?.provider ?? '',
-        model: byok?.model ?? provider?.defaultModel ?? '',
-        providerKey: byok?.providerKey ?? '',
+        provider: byok.provider,
+        model: byok.model,
+        providerKey: byok.providerKey,
         messages: [
           { role: 'system', content: prompt.system },
           { role: 'user', content: prompt.user },

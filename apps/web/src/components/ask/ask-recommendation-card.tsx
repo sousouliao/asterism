@@ -40,7 +40,7 @@ export const AskRecommendationCard = memo(function AskRecommendationCard({
         className="flex w-full flex-col gap-2 rounded-md p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={(event) => onSelect(candidate.item, event.detail === 0 ? 'keyboard' : 'pointer')}
       >
-        <span className="flex min-w-0 items-center gap-2 text-[13px]">
+        <span className="flex min-w-0 items-center gap-2 text-body">
           <span
             aria-hidden="true"
             className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}

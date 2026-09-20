@@ -18,7 +18,7 @@ const hooks = vi.hoisted(() => ({
   useUpdateAiSettings: vi.fn(),
 }));
 
-const askByok = vi.hoisted(() => ({ readAskByok: vi.fn() }));
+const askByok = vi.hoisted(() => ({ readAskConsent: vi.fn() }));
 
 vi.mock('../data/use-ai-connections', () => hooks);
 vi.mock('../auth/use-session', () => ({
@@ -78,7 +78,7 @@ beforeEach(() => {
   hooks.useDeleteAiConnection.mockReturnValue(idleMutation());
   hooks.useDiscoverAiConnectionModels.mockReturnValue(idleMutation());
   hooks.useUpdateAiSettings.mockReturnValue(idleMutation());
-  askByok.readAskByok.mockReturnValue(null);
+  askByok.readAskConsent.mockReturnValue(null);
 });
 
 afterEach(async () => {
@@ -184,7 +184,7 @@ describe('AiConnectionsManager', () => {
     hooks.useUpdateAiSettings.mockReturnValue(updateSettings);
     hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
     hooks.useAiSettings.mockReturnValue({ data: { ...settings, generationConnectionId: null } });
-    askByok.readAskByok.mockReturnValue(null);
+    askByok.readAskConsent.mockReturnValue(null);
     await render();
 
     await pickActiveConnection('Personal DeepSeek');
@@ -210,7 +210,7 @@ describe('AiConnectionsManager', () => {
     hooks.useUpdateAiSettings.mockReturnValue(updateSettings);
     hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
     hooks.useAiSettings.mockReturnValue({ data: { ...settings, generationConnectionId: null } });
-    askByok.readAskByok.mockReturnValue({ consentedProvider: 'deepseek' });
+    askByok.readAskConsent.mockReturnValue({ consentedProvider: 'deepseek' });
     await render();
 
     await pickActiveConnection('Personal DeepSeek');
