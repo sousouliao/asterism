@@ -16,7 +16,7 @@ vi.mock('./ai-connections-manager', () => ({
   }: {
     title?: string;
     description?: string;
-    badge?: unknown;
+    badge?: string;
   }) => (
     <div data-testid="ai-connections-manager">
       {title}

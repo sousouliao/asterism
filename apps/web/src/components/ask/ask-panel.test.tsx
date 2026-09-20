@@ -6,7 +6,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AskPhase, AskTurn } from '../../data/use-ask-question';
 import '../../i18n';
-import { AskPanel } from './ask-panel';
+import { AskDockContent } from './ask-panel';
 
 const askMock = vi.hoisted(() => vi.fn());
 const requestOpen = vi.hoisted(() => vi.fn());
@@ -87,14 +87,22 @@ beforeEach(() => {
   root = createRoot(container);
 });
 
-async function renderPanel(open = true) {
+async function renderPanel() {
   await act(async () => {
-    root.render(<AskPanel open={open} onOpenChange={() => {}} />);
+    root.render(
+      <AskDockContent
+        ask={{
+          phase: phaseOverride ?? { kind: 'idle' },
+          turns: turnsOverride,
+          ask: askMock,
+          configured: configuredOverride,
+        }}
+      />,
+    );
   });
 }
 
 function text(): string {
-  // Dialog 渲染在 body 的 Radix portal 中，不在测试容器内。
   return document.body.textContent ?? '';
 }
 
@@ -120,7 +128,7 @@ async function setInputValue(input: Element, value: string) {
   });
 }
 
-describe('AskPanel states', () => {
+describe('AskDock states', () => {
   it('guides to settings when no byok key is configured', async () => {
     configuredOverride = false;
     await renderPanel();
@@ -198,5 +206,14 @@ describe('AskPanel states', () => {
     phaseOverride = { kind: 'generating', question: 'q' };
     await renderPanel();
     expect(text()).toContain(i18next.t('ask.generating', { lng: 'en' }));
+  });
+
+  it('lets clicks pass through the dock wrapper around the cabin', async () => {
+    await renderPanel();
+
+    const wrapper = document.body.querySelector('[data-ask-dock]');
+    const cabin = wrapper?.querySelector('section');
+    expect(wrapper?.className).toContain('pointer-events-none');
+    expect(cabin?.className).toContain('pointer-events-auto');
   });
 });

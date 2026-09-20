@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AppTopbar } from '../components/app-topbar';
+import { AskDock, isAskShortcut } from '../components/ask/ask-panel';
 import { RepoInspector } from '../components/repo-inspector';
 import { SidebarNav } from '../components/sidebar-nav';
 import { EmbeddingBootstrapProvider } from '../contexts/embedding-bootstrap-context';
@@ -16,6 +18,20 @@ export function AppLayout() {
 }
 
 function AppLayoutContent() {
+  const [askFocusRequest, setAskFocusRequest] = useState(0);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isAskShortcut(event)) {
+        return;
+      }
+      event.preventDefault();
+      setAskFocusRequest((value) => value + 1);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   return (
     <div className="asterism-glass-page flex h-svh">
       <aside className="hidden w-60 shrink-0 border-sidebar-border border-r bg-sidebar lg:block">
@@ -28,6 +44,7 @@ function AppLayoutContent() {
         </main>
       </div>
       <RepoInspector />
+      <AskDock focusRequest={askFocusRequest} />
     </div>
   );
 }

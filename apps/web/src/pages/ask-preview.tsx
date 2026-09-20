@@ -1,8 +1,8 @@
 import type { AskCandidate } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { Button, Dialog } from '@asterism/ui';
+import { Button } from '@asterism/ui';
 import { useState } from 'react';
-import { AskPanelContent, AskThread, type AskViewState } from '../components/ask/ask-panel';
+import { AskDockContent, AskThread, type AskViewState } from '../components/ask/ask-panel';
 import { RepoInspector } from '../components/repo-inspector';
 import { RepoInspectorProvider, useRepoInspector } from '../contexts/repo-inspector-context';
 import type { AskPhase, AskTurn } from '../data/use-ask-question';
@@ -141,12 +141,6 @@ function AskPreviewContent() {
     inspector.requestOpen(record, { sourceKey: 'ask-preview', records }, modality);
   };
   const activeFixture = DOCK_FIXTURES.find((fixture) => fixture.label === activeDock);
-  const closeDock = (open: boolean) => {
-    if (!open) {
-      setActiveDock(null);
-    }
-  };
-
   return (
     <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 pb-40">
@@ -168,8 +162,8 @@ function AskPreviewContent() {
         <section className="flex flex-col gap-3">
           <h2 className="font-medium text-sm text-muted-foreground">bottom dock · real chrome</h2>
           <p className="text-caption text-muted-foreground">
-            打开真实的底部居中对话舱（composer、遮罩、底部定位均为生产实现）；Esc
-            或关闭按钮退出后可切换下一个状态。
+            直接在真实的底部输入区查看各状态（composer、定位与生长均为生产实现）；
+            点击其它状态按钮即可切换。
           </p>
           <div className="flex flex-wrap gap-2">
             {DOCK_FIXTURES.map(({ label }) => (
@@ -201,11 +195,7 @@ function AskPreviewContent() {
         ))}
       </div>
 
-      <Dialog open={activeDock !== null} onOpenChange={closeDock}>
-        {activeFixture ? (
-          <AskPanelContent ask={activeFixture.ask} onOpenChange={closeDock} />
-        ) : null}
-      </Dialog>
+      {activeFixture ? <AskDockContent ask={activeFixture.ask} /> : null}
     </div>
   );
 }

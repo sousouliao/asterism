@@ -17,7 +17,6 @@ import {
   DownloadIcon,
   LoaderCircleIcon,
   MenuIcon,
-  MessageCircleQuestionIcon,
   RefreshCwIcon,
   SearchIcon,
   TriangleAlertIcon,
@@ -32,7 +31,6 @@ import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-co
 import { useSyncStars } from '../data/use-sync-stars';
 import { dismissEmbeddingPrompt, readEmbeddingPromptDismissal } from '../lib/embedding-consent';
 import { useBrowseFilters } from '../stores/browse-filters';
-import { AskPanel, askShortcutLabel } from './ask/ask-panel';
 import { LanguageToggle } from './language-toggle';
 import { SearchInputIcon } from './search-input-icon';
 import { SidebarNav } from './sidebar-nav';
@@ -44,7 +42,6 @@ export function AppTopbar() {
   const { pathname } = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [searchPopoverOpen, setSearchPopoverOpen] = useState(false);
-  const [askOpen, setAskOpen] = useState(false);
   const [embeddingPromptDismissed, setEmbeddingPromptDismissed] = useState(false);
   const { session } = useSession();
   const userId = session?.user.id;
@@ -225,28 +222,6 @@ export function AppTopbar() {
       ) : null}
 
       <div className="ml-auto flex items-center gap-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="xs"
-              className="h-8 gap-1.5 px-3 text-body"
-              aria-label={t('ask.openMenu')}
-              aria-keyshortcuts={askShortcutLabel()}
-              onClick={() => setAskOpen(true)}
-            >
-              <MessageCircleQuestionIcon className="size-3.5" aria-hidden="true" />
-              <span className="hidden md:inline">{t('ask.title')}</span>
-              <kbd className="hidden h-5 items-center rounded-sm bg-muted px-1.5 font-mono text-micro text-muted-foreground md:flex">
-                {askShortcutLabel()}
-              </kbd>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6} className="max-w-none whitespace-nowrap">
-            {t('ask.openMenu')} · {askShortcutLabel()}
-          </TooltipContent>
-        </Tooltip>
-        <AskPanel open={askOpen} onOpenChange={setAskOpen} />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
