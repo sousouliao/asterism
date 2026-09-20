@@ -5,12 +5,16 @@
 ## 当前状态
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
-- **当前状态**：GitHub #41 Ask Asterism 本地实现交付：BYOK 生成（客户端存 key + 无状态 `ask-generate` 代理）、个人库词法/语义召回、引用校验、Settings 配置与同意流、Command Palette 面板、双语 i18n 与 dev 预览路由全部落地；四道门禁与 impeccable 视觉检查（桌面明暗 + 移动 + 检测器零发现）通过。待办：远端部署 `ask-generate`、真实账号 smoke 与 production 验收后关闭 issue。
+- **当前状态**：GitHub #41 Ask Asterism 本地实现交付：BYOK 生成（客户端存 key + 无状态 `ask-generate` 代理）、个人库词法/语义召回、引用校验、Settings 配置与同意流、常驻底部输入区（⌘K / Ctrl K 仅聚焦）、双语 i18n 与 dev 预览路由全部落地；四道门禁与最新 dock 视觉检查通过。待办：远端部署 `ask-generate`、真实账号 smoke 与 production 验收后关闭 issue。
 - **当前工程 frontier**：三个纵向切片中的 #39、#40 已完成；#41（Ask Asterism 私有问答）本地实现已交付（ADR 0042：客户端 BYOK + 无状态代理 + 引用校验、无抽取式兜底），剩余远端部署与真实环境验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
 
 ## 已完成里程碑
+
+- **2026-09-20 · Ask Bugbot 修复**：v1 出网同意升级时绑定到现有连接，不再只删快照导致 Ask 失效；dock 保持浮层 overlay，仅让舱体外点击穿透，不把主内容顶上去。见 `logs/2026-09-20-ask-bugbot-findings.md`。
+
+- **2026-09-20 · Ask 常驻底部输入区**：Ask 从唤起式 Dialog 改为 App Shell 内常驻的非模态底部输入区；⌘K / Ctrl K 只聚焦 composer，顶栏入口移除。四道门禁全绿，answered / idle 预览视觉检查通过。见 `logs/2026-09-20-ask-persistent-bottom-dock.md`。
 
 - **2026-09-20 · #36 以来的代码复核与整改**：对产品转向至今的改动做系统复核并逐项整改。根因是一条贯穿性的「双份存储」反模式，
   统一改为单一真相源：BYOK 只存同意、key 运行时从连接库解析（轮换 / 停用即时生效）；`ask-generate` 补 `max_tokens`、

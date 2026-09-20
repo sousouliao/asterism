@@ -164,9 +164,15 @@ export function writeAiSettings(userId: string, settings: AiSettings) {
   emitChange();
 }
 
+const DEFAULT_AI_SETTINGS: AiSettings = defaultAiSettingsValue();
+
+function defaultAiSettingsValue(): AiSettings {
+  return Object.freeze({ generationConnectionId: null, includeNotesInAi: true });
+}
+
 /** 与 ADR 0042 的同意范围一致：默认带入 Memory 笔记，用户可在此关闭。 */
 export function defaultAiSettings(): AiSettings {
-  return { generationConnectionId: null, includeNotesInAi: true };
+  return DEFAULT_AI_SETTINGS;
 }
 
 export function clearAiConnectionsState() {

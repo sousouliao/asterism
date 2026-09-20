@@ -1,6 +1,11 @@
 import { type AskProviderId, findAskProvider, readTestedModel } from '@asterism/core';
 import { useSyncExternalStore } from 'react';
-import { type AiConnection, readAiConnections, subscribeAiConnections } from './ai-connections';
+import {
+  type AiConnection,
+  readAiConnections,
+  readAiSettings,
+  subscribeAiConnections,
+} from './ai-connections';
 
 /**
  * Ask Asterism 的出网同意存储（ADR 0042）。
@@ -56,13 +61,89 @@ export function askConsentStorageKey(userId: string) {
   return `asterism:ask-consent:v2:${userId}`;
 }
 
-/** v1 键里存过明文 key 的快照；读取时顺手清除，避免旧副本长期留在浏览器。 */
+function legacyByokStorageKey(userId: string) {
+  return `asterism:ask-byok:v1:${userId}`;
+}
+
+/** v1 键里存过明文 key 的快照；读取后必须删除，避免旧副本长期留在浏览器。 */
 function purgeLegacyByokSnapshot(userId: string) {
   try {
-    window.localStorage.removeItem(`asterism:ask-byok:v1:${userId}`);
+    window.localStorage.removeItem(legacyByokStorageKey(userId));
   } catch {
     // Storage restrictions leave the legacy key untouched; it is never read again.
   }
+}
+
+function parseLegacyConsent(raw: string | null): {
+  provider: AskProviderId;
+  consentedAt: string;
+} | null {
+  if (!raw) {
+    return null;
+  }
+  try {
+    const value = JSON.parse(raw) as Record<string, unknown>;
+    const provider = value.consentedProvider ?? value.provider;
+    if (typeof provider !== 'string' || !findAskProvider(provider)) {
+      return null;
+    }
+    const consentedAt =
+      typeof value.consentedAt === 'string' && value.consentedAt.length > 0
+        ? value.consentedAt
+        : new Date().toISOString();
+    return { provider: provider as AskProviderId, consentedAt };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 把仍有效的 v1 出网同意绑定到当前连接库，而不是只删快照。
+ * 明文 key 一律丢弃，运行时仍从连接库现取。
+ */
+function migrateLegacyConsent(userId: string): AskConsent | null {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(legacyByokStorageKey(userId));
+  } catch {
+    return null;
+  }
+  const legacy = parseLegacyConsent(raw);
+  purgeLegacyByokSnapshot(userId);
+  if (!legacy) {
+    return null;
+  }
+
+  const connections = readAiConnections(userId);
+  const activeId = readAiSettings(userId).generationConnectionId;
+  const bindable = activeId
+    ? connections.find(
+        (candidate) => candidate.id === activeId && candidate.adapter === legacy.provider,
+      )
+    : uniqueMatchingConnection(connections, legacy.provider);
+  if (!bindable) {
+    return null;
+  }
+
+  const consent: AskConsent = {
+    connectionId: bindable.id,
+    consentedProvider: legacy.provider,
+    consentedAt: legacy.consentedAt,
+  };
+  try {
+    window.localStorage.setItem(askConsentStorageKey(userId), JSON.stringify(consent));
+  } catch {
+    // In-memory consent keeps Ask usable for this session.
+  }
+  return consent;
+}
+
+function uniqueMatchingConnection(
+  connections: readonly AiConnection[],
+  provider: AskProviderId,
+): AiConnection | undefined {
+  const matches = connections.filter((candidate) => candidate.adapter === provider);
+  return matches.length === 1 ? matches[0] : undefined;
 }
 
 function parseStoredConsent(raw: string | null): AskConsent | null {
@@ -98,8 +179,12 @@ export function readAskConsent(userId: string): AskConsent | null {
   }
   let consent: AskConsent | null = null;
   try {
-    purgeLegacyByokSnapshot(userId);
     consent = parseStoredConsent(window.localStorage.getItem(askConsentStorageKey(userId)));
+    if (consent) {
+      purgeLegacyByokSnapshot(userId);
+    } else {
+      consent = migrateLegacyConsent(userId);
+    }
   } catch {
     // Storage restrictions keep Ask unconfigured for this session.
   }
