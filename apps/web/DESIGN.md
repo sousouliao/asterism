@@ -37,6 +37,7 @@ Color strategy: **Restrained** — blue is reserved for primary actions, current
 ## Spacing & Layout
 
 - **4px grid**: xs 4 · sm 8 · md 12 · lg 16 · xl 20 · 2xl 24 · 3xl 32.
+- **Heading cluster**: title + optional badge + one-line description + optional actions stay together. Title ↔ description is xs (`gap-1` / 4px); cluster → body is lg (`gap-4` / 16px); page sections stack at 2xl (`gap-6` / 24px). Centered empty/login clusters may use sm (8px). Never `gap-0.5` or `mb-4` between a heading and its own description. Section titles use `--text-section-title`, never `text-base`.
 - `AppLayout` main content region is `flex flex-col overflow-hidden`; individual pages own their own scroll region (`flex-1 min-h-0 overflow-y-auto`), Browse page uses a fixed header + scrolling list split. Never add `position: sticky` or extra `main` padding to work around this — follow the pattern already in `ui-ux.md` § Scrollbar.
 - Custom thin-pill scrollbar (`--scrollbar-size: 8px`, always visible, theme-aware via `color-mix`) — reuse, don't reinvent per-component scrollbars.
 

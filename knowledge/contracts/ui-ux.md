@@ -101,13 +101,15 @@
 | Token | 值 | 用途 |
 | --- | --- | --- |
 | `--spacing-unit` | `0.25rem`（4px） | 基准单位 |
-| xs | 4px | 紧凑间隙 |
-| sm | 8px | 筛选 chip 间距 |
+| xs | 4px | 紧凑间隙；标题与其说明 |
+| sm | 8px | 筛选 chip 间距；空状态 / 登录等居中簇的标题与说明 |
 | md | 12px | 卡片内 section 间距 |
-| lg | 16px | 卡片 padding、网格 gap |
+| lg | 16px | 卡片 padding、网格 gap；标题簇到正文 |
 | xl | 20px | Browse 内容区 section gap |
-| 2xl | 24px | 页面内容 padding（Browse）、Topbar 水平 padding |
+| 2xl | 24px | 页面内容 padding（Browse）、Topbar 水平 padding、内容页区块之间 |
 | 3xl | 32px | Collections/Settings 页面 padding |
+
+**标题簇**（页面标题、区块标题、设置行标题都适用）：标题、可选徽章、一句说明、可选主操作是同一簇。标题与说明用 **xs / `gap-1`（4px）**，不得用 `gap-0.5`（2px，偏栅格）或把说明推到 `mb-4` 之外。簇与下面的列表 / 表单 / 卡片用 **lg / `gap-4`（16px）**。内容页（Settings / 集合 / 导入导出 / 洞察）区块之间用 **2xl / `gap-6`（24px）**。空状态与登录的居中簇可用 sm（8px），不当成设置行或区块标题的规范。芯片、按钮图标缝（`gap-1.5`）不属于标题簇。区块标题必须用 `--text-section-title`，禁止 `text-base` 充当标题。
 
 ### Scrollbar · 滚动条（定稿）
 

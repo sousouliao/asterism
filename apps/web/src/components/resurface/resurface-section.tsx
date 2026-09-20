@@ -11,6 +11,7 @@ import {
 } from '../../lib/resurface-feedback';
 import type { RepoOpenModality } from '../../stores/repo-inspector';
 import { useRepoInspectorStore } from '../../stores/repo-inspector';
+import { SectionHeader } from '../section-header';
 import { ResurfaceCard } from './resurface-card';
 
 export interface ResurfaceSectionProps {
@@ -79,15 +80,11 @@ export function ResurfaceSection({ records, memoriesByRepoId, userId }: Resurfac
 
   return (
     <section aria-labelledby="resurface-section-title" className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h2
-          id="resurface-section-title"
-          className="font-semibold text-section-title tracking-tight text-foreground"
-        >
-          {t('dashboard.resurface.title')}
-        </h2>
-        <p className="text-body text-muted-foreground">{t('dashboard.resurface.description')}</p>
-      </div>
+      <SectionHeader
+        titleId="resurface-section-title"
+        title={t('dashboard.resurface.title')}
+        description={t('dashboard.resurface.description')}
+      />
 
       <StreamGroup
         label={t('dashboard.resurface.worthRemembering')}

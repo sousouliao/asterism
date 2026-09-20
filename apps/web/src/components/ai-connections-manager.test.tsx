@@ -88,13 +88,13 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-async function render() {
+async function render(props: { title?: string; description?: string } = {}) {
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
   await act(async () => {
     await i18n.changeLanguage('en');
-    root.render(<AiConnectionsManager />);
+    root.render(<AiConnectionsManager {...props} />);
   });
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -154,6 +154,19 @@ describe('AiConnectionsManager', () => {
     expect(container.textContent).toContain('deepseek-chat');
     expect(container.textContent).toContain('Last test:');
     expect(container.textContent).toContain('DeepSeek');
+    expect(container.textContent).not.toContain('Generation connections');
+  });
+
+  it('uses the host section title instead of a nested generation heading', async () => {
+    hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
+    hooks.useAiSettings.mockReturnValue({ data: settings });
+
+    await render({ title: 'Ask Asterism', description: 'Bring your own key.' });
+
+    expect(container.querySelector('h2')?.textContent).toBe('Ask Asterism');
+    expect(container.textContent).toContain('Bring your own key.');
+    expect(container.textContent).toContain('Add connection');
+    expect(container.textContent).not.toContain('Generation connections');
   });
 
   it('exposes enable or disable as a real connection lifecycle action', async () => {

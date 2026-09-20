@@ -32,7 +32,7 @@ import {
   SparklesIcon,
   Trash2Icon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
 import {
@@ -51,6 +51,7 @@ import { AiConnectionFormDialog } from './ai-connection-form-dialog';
 import { AiConnectionTestDialog } from './ai-connection-test-dialog';
 import { ConfirmDialog } from './confirm-dialog';
 import { EmptyState } from './empty-state';
+import { SectionHeader } from './section-header';
 
 const NONE_VALUE = '__none__';
 
@@ -97,8 +98,17 @@ function ConnectionStatusBadge({ status }: { status: AiConnectionStatus }) {
  * Settings 里的生成连接管理器：连接列表 + 增删改探活，以及活跃连接 / 模型 / 笔记偏好。
  * 自旧 ADR 0018 Registry 的管理器还原（ADR 0043）；连接存储换为浏览器本地库，激活
  * 连接前必须通过 ADR 0042 的出网披露同意（Provider 变更时重新披露）。
+ * 区块标题由调用方传入，避免与 Ask 分区再叠一层「生成连接」标题。
  */
-export function AiConnectionsManager() {
+export function AiConnectionsManager({
+  title,
+  description,
+  badge,
+}: {
+  title?: string;
+  description?: string;
+  badge?: ReactNode;
+} = {}) {
   const { t, i18n } = useTranslation();
   const { session } = useSession();
   const userId = session?.user.id;
@@ -178,20 +188,21 @@ export function AiConnectionsManager() {
     ? connections.find((candidate) => candidate.id === pendingActivation.connectionId)
     : undefined;
 
+  const addButton =
+    connections.length > 0 ? (
+      <Button size="sm" onClick={openCreate}>
+        <PlusIcon className="size-4" />
+        {t('settings.ai.addConnection')}
+      </Button>
+    ) : null;
+
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="font-semibold text-base text-foreground">{t('settings.ai.title')}</h2>
-          <p className="text-muted-foreground text-sm">{t('settings.ai.description')}</p>
-        </div>
-        {connections.length > 0 ? (
-          <Button size="sm" onClick={openCreate}>
-            <PlusIcon className="size-4" />
-            {t('settings.ai.addConnection')}
-          </Button>
-        ) : null}
-      </div>
+      {title ? (
+        <SectionHeader title={title} description={description} badge={badge} actions={addButton} />
+      ) : addButton ? (
+        <div className="flex justify-end">{addButton}</div>
+      ) : null}
 
       {connectionsQuery.isLoading ? (
         <div role="status" aria-busy="true" className="flex flex-col gap-3 rounded-lg border p-4">
@@ -347,7 +358,7 @@ export function AiConnectionsManager() {
           </div>
           <Separator />
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1">
               <span className="font-medium text-foreground text-sm">
                 {t('settings.ai.modelLabel')}
               </span>
@@ -365,7 +376,7 @@ export function AiConnectionsManager() {
           </div>
           <Separator />
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1">
               <span className="font-medium text-foreground text-sm">
                 {t('settings.ai.includeNotesLabel')}
               </span>

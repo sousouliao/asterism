@@ -9,7 +9,21 @@ import { SettingsAskSection } from './settings-ask-section';
 const byok = vi.hoisted(() => ({ useAskByok: vi.fn() }));
 
 vi.mock('./ai-connections-manager', () => ({
-  AiConnectionsManager: () => <div data-testid="ai-connections-manager" />,
+  AiConnectionsManager: ({
+    title,
+    description,
+    badge,
+  }: {
+    title?: string;
+    description?: string;
+    badge?: unknown;
+  }) => (
+    <div data-testid="ai-connections-manager">
+      {title}
+      {badge}
+      {description}
+    </div>
+  ),
 }));
 vi.mock('../auth/use-session', () => ({
   useSession: () => ({ session: { user: { id: 'ask-settings-user' } } }),
@@ -48,6 +62,7 @@ describe('SettingsAskSection', () => {
     expect(container.textContent).toContain('Ask Asterism');
     expect(container.textContent).toContain('Not configured');
     expect(container.textContent).toContain('key is stored only in this browser');
+    expect(container.textContent).not.toContain('Generation connections');
     expect(container.querySelector('[data-testid="ai-connections-manager"]')).not.toBeNull();
   });
 

@@ -14,6 +14,7 @@ import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
 import { ImportExportContentSkeleton } from '../components/page-loading-states';
+import { SectionHeader } from '../components/section-header';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
 import {
@@ -128,13 +129,11 @@ export function ImportExportPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             <section className="overflow-hidden rounded-lg border bg-card">
-              <div className="flex flex-col gap-1.5 border-b p-5">
-                <h2 className="font-semibold text-section-title text-foreground">
-                  {t('importExport.exportTitle')}
-                </h2>
-                <p className="text-body text-muted-foreground">
-                  {t('importExport.exportDescription')}
-                </p>
+              <div className="border-b p-5">
+                <SectionHeader
+                  title={t('importExport.exportTitle')}
+                  description={t('importExport.exportDescription')}
+                />
               </div>
               <div className="divide-y">
                 {FORMAT_OPTIONS.map((option) => {
@@ -178,12 +177,10 @@ export function ImportExportPage() {
             </section>
 
             <section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
-              <h2 className="font-semibold text-section-title text-foreground">
-                {t('importExport.importTitle')}
-              </h2>
-              <p className="text-body text-muted-foreground">
-                {t('importExport.importDescription')}
-              </p>
+              <SectionHeader
+                title={t('importExport.importTitle')}
+                description={t('importExport.importDescription')}
+              />
               {/* 拖拽区交互不适合原生 button，按用户要求使用 div 承载 role=button */}
               {/* biome-ignore lint/a11y/useSemanticElements: 交互形态不适合原生 button，按用户要求使用 div */}
               <div

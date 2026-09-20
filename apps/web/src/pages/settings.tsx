@@ -22,6 +22,7 @@ import { useSession } from '../auth/use-session';
 import { ConfirmDialog } from '../components/confirm-dialog';
 import { PageHeader } from '../components/page-header';
 import { PendingActionContent } from '../components/pending-action-content';
+import { SectionHeader } from '../components/section-header';
 import { SettingsAskSection } from '../components/settings-ask-section';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
 import { changeInterfaceLanguage } from '../i18n';
@@ -50,7 +51,7 @@ function SettingRow({
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 py-4">
-      <div className="flex flex-col gap-0.5 sm:min-w-0 sm:flex-1">
+      <div className="flex flex-col gap-1 sm:min-w-0 sm:flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-medium text-foreground text-sm">{title}</p>
           {badge}
@@ -60,15 +61,6 @@ function SettingRow({
       <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 sm:ml-auto">
         {control}
       </div>
-    </div>
-  );
-}
-
-function SectionTitle({ children, badge }: { children: ReactNode; badge?: ReactNode }) {
-  return (
-    <div className="mb-4 flex items-center gap-2">
-      <h2 className="font-semibold text-section-title text-foreground">{children}</h2>
-      {badge}
     </div>
   );
 }
@@ -150,100 +142,104 @@ export function SettingsPage() {
 
   return (
     <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <PageHeader title={t('settings.title')} />
 
-        <section className="flex flex-col">
-          <SectionTitle>{t('settings.appearance')}</SectionTitle>
-          <SettingRow
-            title={t('settings.theme')}
-            description={t('settings.themeDescription')}
-            control={
-              <SegmentedControl<Theme>
-                value={theme}
-                onValueChange={setTheme}
-                ariaLabel={t('settings.theme')}
-                size="md"
-                options={THEME_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: t(option.labelKey),
-                }))}
-              />
-            }
-          />
-          <Separator />
-          <SettingRow
-            title={t('settings.language')}
-            description={t('settings.languageDescription')}
-            control={
-              <Select
-                value={i18n.resolvedLanguage}
-                onValueChange={(value) => void changeInterfaceLanguage(value)}
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">{t('languageNames.english')}</SelectItem>
-                  <SelectItem value="zh-CN">{t('languageNames.simplifiedChinese')}</SelectItem>
-                </SelectContent>
-              </Select>
-            }
-          />
+        <section className="flex flex-col gap-4">
+          <SectionHeader title={t('settings.appearance')} />
+          <div>
+            <SettingRow
+              title={t('settings.theme')}
+              description={t('settings.themeDescription')}
+              control={
+                <SegmentedControl<Theme>
+                  value={theme}
+                  onValueChange={setTheme}
+                  ariaLabel={t('settings.theme')}
+                  size="md"
+                  options={THEME_OPTIONS.map((option) => ({
+                    value: option.value,
+                    label: t(option.labelKey),
+                  }))}
+                />
+              }
+            />
+            <Separator />
+            <SettingRow
+              title={t('settings.language')}
+              description={t('settings.languageDescription')}
+              control={
+                <Select
+                  value={i18n.resolvedLanguage}
+                  onValueChange={(value) => void changeInterfaceLanguage(value)}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">{t('languageNames.english')}</SelectItem>
+                    <SelectItem value="zh-CN">{t('languageNames.simplifiedChinese')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              }
+            />
+          </div>
         </section>
 
-        <section className="flex flex-col">
-          <SectionTitle>{t('settings.search')}</SectionTitle>
-          <SettingRow
-            title={t('settings.semanticSearch')}
-            badge={embeddingBadge}
-            description={t('settings.semanticSearchDescription')}
-            control={
-              maintenance ? (
-                <>
-                  <Button
-                    variant="outline"
-                    disabled={embeddingBusy}
-                    aria-busy={embeddingAction === maintenance.action}
-                    onClick={() => void runEmbeddingAction(maintenance.action)}
-                  >
-                    <PendingActionContent
-                      pending={embeddingBusy}
-                      idleLabel={maintenance.label}
-                      pendingLabel={maintenance.pendingLabel}
-                    />
+        <section className="flex flex-col gap-4">
+          <SectionHeader title={t('settings.search')} />
+          <div>
+            <SettingRow
+              title={t('settings.semanticSearch')}
+              badge={embeddingBadge}
+              description={t('settings.semanticSearchDescription')}
+              control={
+                maintenance ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      disabled={embeddingBusy}
+                      aria-busy={embeddingAction === maintenance.action}
+                      onClick={() => void runEmbeddingAction(maintenance.action)}
+                    >
+                      <PendingActionContent
+                        pending={embeddingBusy}
+                        idleLabel={maintenance.label}
+                        pendingLabel={maintenance.pendingLabel}
+                      />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className={DESTRUCTIVE_OUTLINE_CLASS}
+                      disabled={embeddingBusy}
+                      onClick={() => setClearDialogOpen(true)}
+                    >
+                      {t('settings.clearSearchModel')}
+                    </Button>
+                  </>
+                ) : preparing ? null : embedding.repositoryCount === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    {t('settings.semanticSearchNeedsRepositories')}
+                  </p>
+                ) : (
+                  <Button disabled={embeddingBusy} onClick={() => void runEmbeddingAction('start')}>
+                    {t('settings.enableSemanticSearch')}
                   </Button>
-                  <Button
-                    variant="outline"
-                    className={DESTRUCTIVE_OUTLINE_CLASS}
-                    disabled={embeddingBusy}
-                    onClick={() => setClearDialogOpen(true)}
-                  >
-                    {t('settings.clearSearchModel')}
-                  </Button>
-                </>
-              ) : preparing ? null : embedding.repositoryCount === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  {t('settings.semanticSearchNeedsRepositories')}
-                </p>
-              ) : (
-                <Button disabled={embeddingBusy} onClick={() => void runEmbeddingAction('start')}>
-                  {t('settings.enableSemanticSearch')}
-                </Button>
-              )
-            }
-          />
-          {embeddingError ? (
-            <p role="alert" className="pb-2 text-caption text-destructive">
-              {t('settings.searchActionError')}
-            </p>
-          ) : null}
+                )
+              }
+            />
+            {embeddingError ? (
+              <p role="alert" className="pb-2 text-caption text-destructive">
+                {t('settings.searchActionError')}
+              </p>
+            ) : null}
+          </div>
         </section>
 
         <SettingsAskSection />
 
-        <section className="flex flex-col gap-3">
-          <SectionTitle>{t('settings.account')}</SectionTitle>
+        <section className="flex flex-col gap-4">
+          <SectionHeader title={t('settings.account')} />
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4">
             <div className="flex items-center gap-3">
               <Avatar className="size-10">

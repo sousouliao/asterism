@@ -18,6 +18,8 @@
   `ensure_user_memories` SQL 函数；删除 note-repo-ids 冗余查询消除检索竞态；语义近邻抽出可复用索引（归一化 + Top-K 记忆化），
   切换锚点不再全量重扫；`repo-inspector.tsx`（1265→754）与 `repos/ask.ts`（571→72）按职责拆分。四道门禁全绿。
   见 `logs/2026-09-20-pivot-review-remediation.md`。
+- **2026-09-20 · 标题簇间距统一**：标题与说明收成 xs（4px）一簇，簇到正文 lg，内容页区块 2xl；Ask 去掉叠层的「生成连接」标题。见 `logs/2026-09-20-heading-cluster-spacing.md`。
+
 - **2026-09-20 · 洞察页名称统一**：侧栏、页面标题与登录卖点统一为 Insights / 洞察，不再对用户露出 Dashboard / 仪表盘；侧栏顺序改为浏览 → 洞察 → 集合；内部路由仍为 `/dashboard`。见 `logs/2026-09-20-insights-nav-label.md`。
 - **2026-09-20 · Ask 面板底部对话舱重设计**：Ask 弹层从 Command Palette 式改为对话式底部 dock（composer 舱底直输、消息向上逐条弹出、用户气泡靠右 / Agent 纯文本靠左、遮罩减淡 30%、玻璃关闭小按钮）；`DialogContent` 增加 `overlayClassName`；修复 React 19.2 StrictMode + Portal 下挂载期 effect 早于 ref 附加导致的贴底滚动失效（改走 ref callback）；`/dev/ask-preview` 支持真实壳层逐状态预览；双语 i18n、253 单测、明暗 + 移动视觉检查全绿。见 `logs/2026-09-20-ask-bottom-dock-redesign.md` 与 ui-ux 契约「Ask 对话舱例外」。
 

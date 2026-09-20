@@ -158,7 +158,7 @@ export function ImportExportContentSkeleton() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card className="overflow-hidden rounded-lg p-0">
-        <div className="flex flex-col gap-2 border-b p-5">
+        <div className="flex flex-col gap-1 border-b p-5">
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-3 w-5/6" />
         </div>
@@ -174,8 +174,10 @@ export function ImportExportContentSkeleton() {
         ))}
       </Card>
       <Card className="flex flex-col gap-4 p-5">
-        <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-3 w-full" />
+        <div className="flex flex-col gap-1">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-3 w-full" />
+        </div>
         <Skeleton className="min-h-36 w-full flex-1 rounded-lg" />
       </Card>
     </div>
@@ -197,13 +199,13 @@ export function SettingsRouteLoading({ label }: { label: string }) {
       label={label}
       className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-hidden px-6 py-6"
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-8">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6">
         <PageHeaderSkeleton />
         {THREE_KEYS.map((key) => (
           <section key={key} className="flex flex-col gap-4">
             <Skeleton className="h-5 w-28" />
             <div className="flex items-center justify-between gap-4 py-4">
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
                 <Skeleton className="h-3.5 w-32" />
                 <Skeleton className="h-3 w-52" />
               </div>
