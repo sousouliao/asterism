@@ -3,12 +3,13 @@
 import i18next from 'i18next';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AskPhase, AskTurn } from '../../data/use-ask-question';
 import '../../i18n';
 import { AskDockContent } from './ask-panel';
 
 const askMock = vi.hoisted(() => vi.fn());
+const resetMock = vi.hoisted(() => vi.fn());
 const requestOpen = vi.hoisted(() => vi.fn());
 const navigate = vi.hoisted(() => vi.fn());
 
@@ -77,6 +78,7 @@ let root: Root;
 
 beforeEach(() => {
   askMock.mockClear();
+  resetMock.mockClear();
   requestOpen.mockClear();
   navigate.mockClear();
   phaseOverride = { kind: 'idle' };
@@ -87,6 +89,13 @@ beforeEach(() => {
   root = createRoot(container);
 });
 
+afterEach(() => {
+  act(() => {
+    root.unmount();
+  });
+  container.remove();
+});
+
 async function renderPanel() {
   await act(async () => {
     root.render(
@@ -95,6 +104,7 @@ async function renderPanel() {
           phase: phaseOverride ?? { kind: 'idle' },
           turns: turnsOverride,
           ask: askMock,
+          reset: resetMock,
           configured: configuredOverride,
         }}
       />,
@@ -139,22 +149,24 @@ describe('AskDock states', () => {
     expect(navigate).toHaveBeenCalledWith('/settings');
   });
 
-  it('shows the empty hint and submits a trimmed question', async () => {
+  it('renders pill composer without empty hint and submits a trimmed question', async () => {
     await renderPanel();
 
-    expect(text()).toContain(i18next.t('ask.emptyHint', { lng: 'en' }));
+    expect(text()).not.toContain(i18next.t('ask.emptyHint', { lng: 'en' }));
 
     const input = document.body.querySelector('input');
     expect(input).not.toBeNull();
-    await setInputValue(input as Element, '  websocket rust  ');
     const form = document.body.querySelector('form');
+    expect(form?.className).toContain('rounded-full');
+
+    await setInputValue(input as Element, '  websocket rust  ');
     await act(async () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     });
     expect(askMock).toHaveBeenCalledWith('websocket rust');
   });
 
-  it('renders an answered turn with validated recommendation cards', async () => {
+  it('renders an answered turn with validated recommendation cards and can be closed', async () => {
     turnsOverride = [turn()];
     phaseOverride = { kind: 'answered', turn: turn() };
     await renderPanel();
@@ -163,11 +175,28 @@ describe('AskDock states', () => {
     expect(text()).toContain('[0] fits your note about push latency.');
     expect(text()).toContain('tungstenite');
 
+    const closeButton = document.body.querySelector('button[aria-label="Close"]');
+    expect(closeButton).not.toBeNull();
+    await click(closeButton);
+    expect(resetMock).toHaveBeenCalledTimes(1);
+
     await click(buttonByText('tungstenite'));
     expect(requestOpen).toHaveBeenCalledTimes(1);
     const context = requestOpen.mock.calls[0]?.[1];
     expect(context.sourceKey).toBe('ask');
     expect(context.records).toHaveLength(1);
+  });
+
+  it('closes thread on Escape when composer input is empty', async () => {
+    turnsOverride = [turn()];
+    phaseOverride = { kind: 'answered', turn: turn() };
+    await renderPanel();
+
+    const input = document.body.querySelector('input');
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(resetMock).toHaveBeenCalledTimes(1);
   });
 
   it('queues the in-flight question as the user turn while recalling', async () => {
@@ -208,12 +237,19 @@ describe('AskDock states', () => {
     expect(text()).toContain(i18next.t('ask.generating', { lng: 'en' }));
   });
 
-  it('lets clicks pass through the dock wrapper around the cabin', async () => {
+  it('lets clicks pass through the dock wrapper around the interactive composer and cabin', async () => {
     await renderPanel();
 
     const wrapper = document.body.querySelector('[data-ask-dock]');
-    const cabin = wrapper?.querySelector('section');
+    const composer = wrapper?.querySelector('form');
     expect(wrapper?.className).toContain('pointer-events-none');
+    expect(composer?.className).toContain('pointer-events-auto');
+
+    // 有问答时，上方 cabin 也是 pointer-events-auto
+    turnsOverride = [turn()];
+    phaseOverride = { kind: 'answered', turn: turn() };
+    await renderPanel();
+    const cabin = document.body.querySelector('section');
     expect(cabin?.className).toContain('pointer-events-auto');
   });
 });

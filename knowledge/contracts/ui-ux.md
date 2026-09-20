@@ -264,9 +264,8 @@ ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。主体
 - 页脚动作默认 `size="sm"`，右对齐；窄屏需要时改为同宽单列。
 
 **Ask 对话舱例外**：Ask Asterism 是常驻页面底部的非模态输入区，不是唤起式弹层；⌘K / Ctrl K 只聚焦 composer。
-使用底部居中 dock 变体——`max-w-2xl`（672px）、贴底（`bottom-4` / `sm:bottom-6`）、内容随问答生长
-（`max-h-[min(32rem, calc(100dvh - 6rem))]`，超出后消息区内部滚动并保持贴底）；composer 固定舱底直接可输入。
-外层全宽包装必须是 `pointer-events-none`，只有舱体 `pointer-events-auto`，避免挡住两侧页面点击。
+使用底部居中 dock 变体——`max-w-2xl`（672px）、贴底（`bottom-4` / `sm:bottom-6`）。未提问时仅渲染独立的 `rounded-full` 输入胶囊（pill composer，48px 高度，无多余外框嵌套与空态提示大白框），绝不遮挡主内容区；提问后对话卡片（`rounded-2xl`）在输入框正上方生长展示（`max-h-[min(28rem, calc(100dvh - 8rem))]`，超出后内部滚动并保持贴底），支持右上角关闭或 Esc 快捷收起回到纯输入框状态。
+外层全宽包装必须是 `pointer-events-none`，只有卡片与输入框 `pointer-events-auto`，避免挡住两侧页面点击。
 Ask dock 是浮在页面上的 overlay，不得用布局占位把主内容顶上去。
 消息布局：用户消息为石墨蓝调 `accent` 气泡靠右（尾角收窄），Asterism 回答为无气泡纯文本 + 证据卡片靠左；新消息
 `slide-in-from-bottom-2 + fade-in`（200ms / `--ease-out-quart`，reduced-motion 关闭）。消息区使用 `role="log"`，

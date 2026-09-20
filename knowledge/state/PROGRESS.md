@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-20 · Ask 底部输入区胶囊化**：移除未提问时的上方大白框与 emptyHint，输入框去除多层包裹改为独立的 `rounded-full` 胶囊（pill composer）；问答在上方以 `rounded-2xl` 独立卡片展开，支持右上角关闭或 Esc 收起。四道门禁全绿。见 `logs/2026-09-20-ask-dock-pill-composer.md`。
+
 - **2026-09-20 · Ask Bugbot 修复**：v1 出网同意升级时绑定到现有连接，不再只删快照导致 Ask 失效；dock 保持浮层 overlay，仅让舱体外点击穿透，不把主内容顶上去。见 `logs/2026-09-20-ask-bugbot-findings.md`。
 
 - **2026-09-20 · Ask 常驻底部输入区**：Ask 从唤起式 Dialog 改为 App Shell 内常驻的非模态底部输入区；⌘K / Ctrl K 只聚焦 composer，顶栏入口移除。四道门禁全绿，answered / idle 预览视觉检查通过。见 `logs/2026-09-20-ask-persistent-bottom-dock.md`。

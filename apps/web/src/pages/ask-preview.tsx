@@ -195,7 +195,14 @@ function AskPreviewContent() {
         ))}
       </div>
 
-      {activeFixture ? <AskDockContent ask={activeFixture.ask} /> : null}
+      {activeFixture ? (
+        <AskDockContent
+          ask={{
+            ...activeFixture.ask,
+            reset: () => setActiveDock(null),
+          }}
+        />
+      ) : null}
     </div>
   );
 }

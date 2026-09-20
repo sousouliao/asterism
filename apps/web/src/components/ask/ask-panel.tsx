@@ -6,9 +6,11 @@ import {
   SearchXIcon,
   SettingsIcon,
   TriangleAlertIcon,
+  XIcon,
 } from 'lucide-react';
 import {
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   useEffect,
   useLayoutEffect,
@@ -27,6 +29,7 @@ export interface AskViewState {
   phase: AskPhase;
   turns: readonly AskTurn[];
   ask: (question: string) => void;
+  reset?: () => void;
   configured: boolean;
 }
 
@@ -45,15 +48,15 @@ export function askShortcutLabel(): string {
   return /mac/i.test(navigator.platform) ? '⌘K' : 'Ctrl K';
 }
 
-/** 生产接线：常驻 shell 底部输入区；内容随问答生长，未提问时只显示 composer。 */
+/** 生产接线：常驻 shell 底部输入区；未提问时仅显示 full 圆角输入胶囊，内容随问答在上方生长。 */
 export function AskDock({ focusRequest }: { focusRequest?: number }) {
   const ask = useAskQuestion();
   return <AskDockContent ask={ask} focusRequest={focusRequest} />;
 }
 
 /**
- * 底部居中的对话舱：composer 固定在舱底、直接可输入；消息自下而上生长，
- * 用户消息靠右、Asterism 回答靠左，超出高度后消息区内部滚动并贴底。
+ * 底部居中的对话舱：composer 为独立的 full 圆角输入胶囊，未提问时不遮挡页面；
+ * 问答在输入框上方生长展现，用户消息靠右、Asterism 回答靠左，支持右上角关闭或 Esc 收起。
  */
 export function AskDockContent({
   ask,
@@ -70,6 +73,7 @@ export function AskDockContent({
   const scrollRef = useRef<HTMLDivElement>(null);
   const firstScroll = useRef(true);
   const busy = ask.phase.kind === 'recalling' || ask.phase.kind === 'generating';
+  const hasThread = ask.configured ? ask.turns.length > 0 || ask.phase.kind !== 'idle' : true;
   const openSettings = () => navigate('/settings');
 
   useEffect(() => {
@@ -90,6 +94,7 @@ export function AskDockContent({
   const attachLog = (node: HTMLDivElement | null) => {
     scrollRef.current = node;
     if (!node) {
+      firstScroll.current = true;
       return;
     }
     scrollLogToBottom('auto');
@@ -115,6 +120,16 @@ export function AskDockContent({
     setQuestion('');
   };
 
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      if (question) {
+        setQuestion('');
+      } else if (hasThread && ask.reset) {
+        ask.reset();
+      }
+    }
+  };
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: turns/phase 变化即需平滑贴底
   useLayoutEffect(() => {
     if (firstScroll.current) {
@@ -129,76 +144,81 @@ export function AskDockContent({
   return (
     <div
       data-ask-dock
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4 sm:pb-6"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center justify-end px-4 pb-4 sm:pb-6"
     >
-      <section
-        aria-label={t('ask.title')}
-        className="pointer-events-auto flex max-h-[min(32rem,calc(100dvh_-_6rem))] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface-strong)] shadow-[var(--glass-shadow)] backdrop-blur-[12px]"
-      >
-        <p className="sr-only">{t('ask.description')}</p>
-
-        {/* role="log"：新消息只播报增量；空态与引导同容器挂载，保证首问也能被播报 */}
-        <div
-          ref={attachLog}
-          role="log"
-          aria-label={t('ask.title')}
-          className="asterism-scroll-gutter flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pt-4 pb-4"
-        >
-          {ask.configured ? (
-            ask.turns.length > 0 || ask.phase.kind !== 'idle' ? (
-              <AskThread
-                turns={ask.turns}
-                phase={ask.phase}
-                onOpenRepo={openRepo}
-                onRetry={ask.ask}
-                onOpenSettings={openSettings}
-              />
-            ) : (
-              <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
-                <MessageCircleQuestionIcon
-                  className="size-5 text-muted-foreground/70"
-                  aria-hidden="true"
-                />
-                <p className="max-w-[40ch] text-caption text-muted-foreground">
-                  {t('ask.emptyHint')}
-                </p>
-              </div>
-            )
-          ) : (
-            <AskSetupView onOpenSettings={openSettings} />
-          )}
-        </div>
-
-        <div className="shrink-0 border-t p-3">
-          <form
-            onSubmit={submit}
-            className="flex items-center gap-2.5 rounded-lg border border-input bg-[var(--glass-surface)] px-3.5 shadow-[inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[8px] transition-colors duration-150 [transition-timing-function:var(--ease-out-quart)] focus-within:border-foreground/60"
+      <div className="flex w-full max-w-2xl flex-col items-center gap-2.5">
+        {hasThread ? (
+          <section
+            aria-label={t('ask.title')}
+            className="pointer-events-auto flex max-h-[min(28rem,calc(100dvh_-_8rem))] w-full flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-surface-strong)] shadow-[var(--glass-shadow)] backdrop-blur-[16px] animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none"
           >
-            <MessageCircleQuestionIcon
-              className="size-4 shrink-0 text-muted-foreground"
+            <div className="flex items-center justify-between border-b border-[var(--glass-border)]/60 px-4 py-2.5">
+              <span className="font-medium text-caption text-foreground">{t('ask.title')}</span>
+              {ask.reset ? (
+                <button
+                  type="button"
+                  onClick={ask.reset}
+                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label={t('common.close')}
+                >
+                  <XIcon className="size-3.5" aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+
+            <p className="sr-only">{t('ask.description')}</p>
+
+            {/* role="log"：新消息只播报增量 */}
+            <div
+              ref={attachLog}
+              role="log"
+              aria-label={t('ask.title')}
+              className="asterism-scroll-gutter flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4"
+            >
+              {ask.configured ? (
+                <AskThread
+                  turns={ask.turns}
+                  phase={ask.phase}
+                  onOpenRepo={openRepo}
+                  onRetry={ask.ask}
+                  onOpenSettings={openSettings}
+                />
+              ) : (
+                <AskSetupView onOpenSettings={openSettings} />
+              )}
+            </div>
+          </section>
+        ) : null}
+
+        <form
+          onSubmit={submit}
+          className="pointer-events-auto flex h-12 w-full items-center gap-3 rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface-strong)] px-4 shadow-[var(--glass-shadow),inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[16px] transition-all duration-150 [transition-timing-function:var(--ease-out-quart)] focus-within:border-foreground/50 focus-within:ring-2 focus-within:ring-ring/40"
+        >
+          <MessageCircleQuestionIcon
+            className="size-4 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            ref={inputRef}
+            value={question}
+            aria-label={t('ask.questionLabel')}
+            placeholder={t('ask.placeholder')}
+            onChange={(inputEvent) => setQuestion(inputEvent.target.value)}
+            onKeyDown={handleKeyDown}
+            className="h-full border-0 bg-transparent px-0 text-body shadow-none backdrop-blur-none focus-visible:ring-0 dark:bg-transparent"
+          />
+          {busy ? (
+            <LoaderCircleIcon
+              className="size-4 shrink-0 animate-spin text-link motion-reduce:animate-none"
               aria-hidden="true"
             />
-            <Input
-              ref={inputRef}
-              value={question}
-              aria-label={t('ask.questionLabel')}
-              placeholder={t('ask.placeholder')}
-              onChange={(inputEvent) => setQuestion(inputEvent.target.value)}
-              className="h-11 border-0 bg-transparent px-0 text-body shadow-none backdrop-blur-none focus-visible:ring-0 dark:bg-transparent"
-            />
-            {busy ? (
-              <LoaderCircleIcon
-                className="size-4 shrink-0 animate-spin text-link motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <kbd className="hidden h-5 shrink-0 items-center rounded-sm bg-muted px-1.5 font-mono text-micro text-muted-foreground sm:flex">
-                ↵
-              </kbd>
-            )}
-          </form>
-        </div>
-      </section>
+          ) : (
+            <kbd className="hidden h-5 shrink-0 items-center rounded-sm bg-muted px-1.5 font-mono text-micro text-muted-foreground sm:flex">
+              ↵
+            </kbd>
+          )}
+        </form>
+      </div>
     </div>
   );
 }
