@@ -11,7 +11,7 @@
 - **关系尽量规范化**：多对多关系（仓库↔集合）用独立连接表表达。
 - **Memory 是个人上下文的一等关系（ADR 0037）**：首版每个 `user × repo` 一条，Star 同步只幂等创建缺失记录，用户内容不得被覆盖。
 - **用户组织只保留 Collection（ADR 0035）**：用户命名的分组、工作列表与状态型短标记都写入 `collections` / `collection_repos`。Collection 是次级组织能力，暂停扩展其管理功能。
-- **进阶能力保持解耦**：`bulk_operations` / `bulk_operation_items` 提供可靠手动批量写入；`user_repo_embeddings` 保存浏览器生成的 derived 向量。AI Provider、草稿、任务与计划表已由 ADR 0032 退役。ADR 0042 的 Ask BYOK 不新增任何服务端表：Provider key 与同意状态存于浏览器 localStorage，服务端零存储。
+- **进阶能力保持解耦**：`bulk_operations` / `bulk_operation_items` 提供可靠手动批量写入；`user_repo_embeddings` 保存浏览器生成的 derived 向量，服务于统一 Retrieval 与 Related Stars，**不**进入 Ask 路径（ADR 0045）。AI Provider、草稿、任务与计划表已由 ADR 0032 退役。ADR 0042 / 0045 的 Ask BYOK 不新增任何服务端表：Provider key 与同意状态存于浏览器 localStorage（同意键 `asterism:ask-consent:v3:{userId}`），服务端零存储。v1 / v2 同意不得静默升级。
 
 约定：所有表含 `id`（主键，uuid 或 bigint，下文不再逐一重复）、`created_at`、`updated_at`（时间戳）。`user_id` 引用 Supabase `auth.users(id)`。
 

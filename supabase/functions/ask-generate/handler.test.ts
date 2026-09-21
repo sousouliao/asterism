@@ -100,7 +100,7 @@ describe('ask-generate HTTP boundary', () => {
     expect(JSON.parse(String(init.body))).toEqual({
       model: 'deepseek-chat',
       messages: validBody().messages,
-      max_tokens: 2048,
+      max_tokens: 4096,
       stream: true,
     });
     // 白名单只约束首跳，禁止跟随重定向把 Authorization 带出白名单主机。
@@ -113,7 +113,41 @@ describe('ask-generate HTTP boundary', () => {
 
     const init = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
     const body = JSON.parse(String(init.body)) as { max_tokens?: unknown };
-    expect(body.max_tokens).toBe(2048);
+    expect(body.max_tokens).toBe(4096);
+  });
+
+  it('forwards tool messages and tools to the upstream completion', async () => {
+    const deps = dependencies();
+    const tools = [
+      { type: 'function', function: { name: 'expand', parameters: { type: 'object' } } },
+    ];
+    const response = await createAskGenerateHandler(deps)(
+      request(
+        validBody({
+          messages: [
+            { role: 'system', content: 'catalog' },
+            {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'c1',
+                  type: 'function',
+                  function: { name: 'expand', arguments: '{"ids":["a"]}' },
+                },
+              ],
+            },
+            { role: 'tool', tool_call_id: 'c1', content: '{"repoId":"a"}' },
+          ],
+          tools,
+        }),
+      ),
+    );
+    expect(response.status).toBe(200);
+    const init = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(body.tools).toEqual(tools);
+    expect(body.messages).toHaveLength(3);
   });
 
   it('rejects prototype keys that a naive `in` allowlist check would accept', async () => {
@@ -130,15 +164,15 @@ describe('ask-generate HTTP boundary', () => {
     const cases: Record<string, unknown>[] = [
       // 超过 MAX_MESSAGES
       validBody({
-        messages: Array.from({ length: 41 }, () => ({ role: 'user', content: 'x' })),
+        messages: Array.from({ length: 81 }, () => ({ role: 'user', content: 'x' })),
       }),
       // 单条超过 MAX_MESSAGE_CHARS
-      validBody({ messages: [{ role: 'user', content: 'x'.repeat(32_001) }] }),
+      validBody({ messages: [{ role: 'user', content: 'x'.repeat(250_001) }] }),
       // 合计超过 MAX_TOTAL_CHARS
       validBody({
-        messages: Array.from({ length: 10 }, () => ({
+        messages: Array.from({ length: 3 }, () => ({
           role: 'user',
-          content: 'x'.repeat(31_000),
+          content: 'x'.repeat(200_001),
         })),
       }),
     ];
@@ -259,6 +293,42 @@ describe('ask-generate HTTP boundary', () => {
     expect(body).toContain('"text":"Hel"');
     expect(body).toContain('"text":"lo"');
     expect(body).toContain('event: done');
+  });
+
+  it('converts streamed tool_calls into Asterism tool_call events', async () => {
+    const upstream = [
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            delta: {
+              tool_calls: [{ index: 0, id: 'call_1', function: { name: 'expand', arguments: '' } }],
+            },
+          },
+        ],
+      })}\n\n`,
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            delta: { tool_calls: [{ index: 0, function: { arguments: '{"ids":["axum"]}' } }] },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      })}\n\n`,
+      'data: [DONE]\n\n',
+    ].join('');
+    const deps = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(
+        new Response(upstream, {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        }),
+      ),
+    });
+    const response = await createAskGenerateHandler(deps)(request(validBody()));
+    const body = await response.text();
+    expect(body).toContain('event: tool_call');
+    expect(body).toContain('"name":"expand"');
+    expect(body).toContain('"arguments":"{\\"ids\\":[\\"axum\\"]}"');
   });
 
   it('emits a timeout error event when the stream goes idle', async () => {
@@ -409,7 +479,14 @@ describe('ask-generate test action', () => {
     });
     const response = await createAskGenerateHandler(deps)(request(testBody()));
     expect(response.status).toBe(200);
-    await expect(outcome(response)).resolves.toEqual({ status: 'success', ok: true, reason: null });
+    await expect(outcome(response)).resolves.toEqual({
+      status: 'success',
+      ok: true,
+      reason: null,
+      tools: false,
+      longContext: false,
+      mode: 'fixed',
+    });
 
     const call = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(call?.[0]).toBe('https://api.deepseek.com/chat/completions');
@@ -456,5 +533,63 @@ describe('ask-generate test action', () => {
     });
     const response = await createAskGenerateHandler(deps)(request(testBody()));
     await expect(outcome(response)).resolves.toEqual({ status: 'invalid_provider_key' });
+  });
+
+  it('grades a model as agent when tool calls locate the catalog needle', async () => {
+    const ping = new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              tool_calls: [
+                {
+                  id: 'c1',
+                  type: 'function',
+                  function: { name: 'ping', arguments: '{"ok":true}' },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+      { status: 200 },
+    );
+    const expand = new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              tool_calls: [
+                {
+                  id: 'c2',
+                  type: 'function',
+                  function: {
+                    name: 'expand',
+                    arguments: '{"ids":["needle-unique-asterism"]}',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+      { status: 200 },
+    );
+    const deps = dependencies({
+      fetchProvider: vi
+        .fn()
+        .mockResolvedValueOnce(providerSuccess('{"ok":true}'))
+        .mockResolvedValueOnce(ping)
+        .mockResolvedValueOnce(expand),
+    });
+    const response = await createAskGenerateHandler(deps)(request(testBody()));
+    await expect(outcome(response)).resolves.toEqual({
+      status: 'success',
+      ok: true,
+      reason: null,
+      tools: true,
+      longContext: true,
+      mode: 'agent',
+    });
   });
 });

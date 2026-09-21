@@ -1,40 +1,49 @@
 import {
+  ASK_TOOL_DEFINITIONS,
   type AskCandidate,
   type AskExchange,
+  type AskLoopState,
+  buildAskCatalog,
+  buildAskFixedPrompt,
   buildAskPrompt,
+  canContinueAskLoop,
+  createAskLoopState,
+  executeAskTool,
+  noteAskToolRound,
+  parseAskFixedResponse,
   parseAskResponse,
   selectAskCandidates,
   splitAskStream,
 } from '@asterism/core';
-import { type StarredRepoRecord, streamAskGenerate } from '@asterism/db';
+import { type AskGenerateMessage, type StarredRepoRecord, streamAskGenerate } from '@asterism/db';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/use-session';
-import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
 import { useAiSettingsValue } from '../lib/ai-connections';
 import { useAskByok } from '../lib/ask-byok';
 import { supabase } from '../lib/supabase';
 import { useMemoriesList } from './use-memories-list';
-import { useSemanticNeighbors } from './use-semantic-search';
 import { useStarredRepos } from './use-starred-repos';
 
-/** 一轮完成的问答：问题、回答与其引用的候选（供证据卡片渲染）。 */
+/** 一轮完成的问答：问题、回答与通过 read gate 的推荐。 */
 export interface AskTurn {
   /** 稳定标识（提交序号），供列表渲染作 key。 */
   id: number;
   question: string;
   summary: string;
-  /** 本轮送入 prompt 的全部候选（索引与 prompt 一致）。 */
-  candidates: AskCandidate<StarredRepoRecord>[];
-  /** 通过校验的推荐（索引 ∈ candidates）。 */
-  recommendations: { index: number; repoId: string }[];
+  recommendations: AskCandidate<StarredRepoRecord>[];
 }
 
 export type AskPhase =
   | { kind: 'idle' }
-  | { kind: 'recalling'; question: string }
-  | { kind: 'generating'; question: string; text: string }
+  | { kind: 'generating'; question: string; text: string; toolLabel?: string }
   | { kind: 'answered'; turn: AskTurn }
   | { kind: 'not_found'; question: string }
+  | {
+      kind: 'budget_exhausted';
+      question: string;
+      text: string;
+      recommendations: AskCandidate<StarredRepoRecord>[];
+    }
   | {
       kind: 'error';
       question: string;
@@ -45,27 +54,50 @@ interface Submission {
   id: number;
   question: string;
   history: AskExchange[];
+  resume?: boolean;
 }
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
+function toCandidate(record: StarredRepoRecord): AskCandidate<StarredRepoRecord> {
+  return { item: record, repoId: record.repoId, lexicalScore: null, reasons: [] };
+}
+
+function mapRecommendations(
+  repoIds: readonly { repoId: string }[],
+  records: readonly StarredRepoRecord[],
+): AskCandidate<StarredRepoRecord>[] {
+  const byId = new Map(records.map((record) => [record.repoId, record]));
+  return repoIds.flatMap((entry) => {
+    const record = byId.get(entry.repoId);
+    return record ? [toCandidate(record)] : [];
+  });
+}
+
+function toolLabelFor(name: string): string {
+  if (name === 'filter') {
+    return 'filtering';
+  }
+  if (name === 'search') {
+    return 'searching';
+  }
+  if (name === 'expand') {
+    return 'expanding';
+  }
+  return 'working';
+}
+
 /**
- * Ask Asterism 编排（GitHub #41，ADR 0042 / 0044）：本地召回（词法 + 可选语义近邻）→
- * BYOK 流式生成 → 客户端引用校验。召回为空时不调用 LLM，直接进入 not_found；
- * embedding 未授权 / 未就绪时语义通道自动缺席，纯词法召回照常工作。
+ * Ask Asterism 编排（GitHub #41，ADR 0045）：目录常驻 Agent 循环；
+ * 能力不足的模型降级到固定 top-K 召回。空库不调用 LLM。
  */
 export function useAskQuestion() {
   const { session } = useSession();
   const userId = session?.user.id;
-  // 订阅而非快照读取：Settings 里改 key、停用连接或撤销同意时，本 Hook 立即
-  // 反映最新状态，不会继续使用已失效的凭据。
   const byok = useAskByok(userId);
   const includeNotes = useAiSettingsValue(userId).includeNotesInAi;
-  const embedding = useEmbeddingBootstrapContext();
-  const semanticEnabled =
-    embedding.optedIn && (embedding.phase === 'ready' || embedding.backend !== null);
 
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [phase, setPhase] = useState<AskPhase>({ kind: 'idle' });
@@ -76,6 +108,11 @@ export function useAskQuestion() {
   const stopRef = useRef(false);
   const deltaRef = useRef('');
   const rafRef = useRef<number | null>(null);
+  const resumeRef = useRef<{
+    messages: AskGenerateMessage[];
+    loop: AskLoopState;
+    question: string;
+  } | null>(null);
 
   const reposQuery = useStarredRepos();
   const memoriesQuery = useMemoriesList();
@@ -86,11 +123,6 @@ export function useAskQuestion() {
     }
     return map;
   }, [memoriesQuery.data]);
-
-  const pendingQuestion = phase.kind === 'recalling' ? (submission?.question ?? '') : '';
-  const { distanceByRepoId, isSearching } = useSemanticNeighbors(pendingQuestion, {
-    enabled: semanticEnabled && phase.kind === 'recalling',
-  });
 
   const cancelInFlight = useCallback((asStop: boolean) => {
     stopRef.current = asStop;
@@ -109,19 +141,29 @@ export function useAskQuestion() {
         return;
       }
       cancelInFlight(false);
+      resumeRef.current = null;
       const history: AskExchange[] = turns.map((turn) => ({
         question: turn.question,
         summary: turn.summary,
       }));
-      // id 必须逐次自增：effect 以 settledId 防重入，同 id 的后续提交（追问 / 重试）
-      // 会被视为已处理而永远停在 recalling。
       const id = nextId.current;
       nextId.current += 1;
       setSubmission({ id, question, history });
-      setPhase({ kind: 'recalling', question });
+      setPhase({ kind: 'generating', question, text: '' });
     },
     [byok, cancelInFlight, turns],
   );
+
+  const continueAsk = useCallback(() => {
+    if (!byok || !resumeRef.current || phase.kind !== 'budget_exhausted') {
+      return;
+    }
+    cancelInFlight(false);
+    const id = nextId.current;
+    nextId.current += 1;
+    setSubmission({ id, question: resumeRef.current.question, history: [], resume: true });
+    setPhase({ kind: 'generating', question: resumeRef.current.question, text: '' });
+  }, [byok, cancelInFlight, phase.kind]);
 
   const stop = useCallback(() => {
     if (phase.kind !== 'generating') {
@@ -132,6 +174,7 @@ export function useAskQuestion() {
 
   const reset = useCallback(() => {
     cancelInFlight(false);
+    resumeRef.current = null;
     setSubmission(null);
     setPhase({ kind: 'idle' });
     setTurns([]);
@@ -142,16 +185,13 @@ export function useAskQuestion() {
       return;
     }
     if (!byok) {
-      // 问答途中连接被停用 / key 被轮换 / 同意被撤销：立即停下，回到未配置态，
-      // 绝不拿已失效的凭据继续出网。面板会转为配置引导。
       settledId.current = submission.id;
       setSubmission(null);
       setPhase({ kind: 'idle' });
       return;
     }
     const records = reposQuery.data;
-    if (!records || (semanticEnabled && isSearching)) {
-      // 仓库列表未到或语义检索仍在进行时等待；语义未启用则直接词法召回。
+    if (!records) {
       return;
     }
 
@@ -161,20 +201,80 @@ export function useAskQuestion() {
     deltaRef.current = '';
 
     const run = async () => {
-      const candidates = selectAskCandidates({
-        question: submission.question,
-        items: records,
-        memoriesByRepoId,
-        distanceByRepoId,
-      });
-      if (candidates.length === 0) {
-        // 结构性防幻觉：召回为空不发起生成（ADR 0042）。
+      if (records.length === 0) {
         setPhase({ kind: 'not_found', question: submission.question });
         return;
       }
 
+      if (byok.mode === 'fixed') {
+        await runFixed(token, records);
+        return;
+      }
+      await runAgent(token, records);
+    };
+
+    const flushText = (question: string, toolLabel?: string) => {
+      rafRef.current = null;
+      if (settledId.current !== token) {
+        return;
+      }
+      setPhase({
+        kind: 'generating',
+        question,
+        text: splitAskStream(deltaRef.current).body,
+        toolLabel,
+      });
+    };
+
+    const streamOnce = async (
+      messages: AskGenerateMessage[],
+      question: string,
+      withTools: boolean,
+    ) => {
+      const controller = new AbortController();
+      abortRef.current = controller;
+      deltaRef.current = '';
+      const outcome = await streamAskGenerate(
+        supabase,
+        {
+          provider: byok.provider,
+          model: byok.model,
+          providerKey: byok.providerKey,
+          messages,
+          ...(withTools ? { tools: [...ASK_TOOL_DEFINITIONS] } : {}),
+        },
+        {
+          signal: controller.signal,
+          onDelta: (text) => {
+            if (settledId.current !== token) {
+              return;
+            }
+            deltaRef.current += text;
+            if (rafRef.current === null) {
+              rafRef.current = requestAnimationFrame(() => flushText(question));
+            }
+          },
+        },
+      );
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      return outcome;
+    };
+
+    const runFixed = async (currentToken: number, records: StarredRepoRecord[]) => {
+      const candidates = selectAskCandidates({
+        question: submission.question,
+        items: records,
+        memoriesByRepoId,
+      });
+      if (candidates.length === 0) {
+        setPhase({ kind: 'not_found', question: submission.question });
+        return;
+      }
       setPhase({ kind: 'generating', question: submission.question, text: '' });
-      const prompt = buildAskPrompt({
+      const prompt = buildAskFixedPrompt({
         question: submission.question,
         candidates,
         memoriesByRepoId,
@@ -182,76 +282,18 @@ export function useAskQuestion() {
         language: document.documentElement.lang || undefined,
         includeNotes,
       });
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      const flushText = () => {
-        rafRef.current = null;
-        if (settledId.current !== token) {
-          return;
-        }
-        setPhase({
-          kind: 'generating',
-          question: submission.question,
-          text: splitAskStream(deltaRef.current).body,
-        });
-      };
-
-      const settle = (raw: string, allowEmpty: boolean) => {
-        const parsed = parseAskResponse(raw, candidates);
-        if (!parsed.ok) {
-          if (allowEmpty) {
-            setPhase({ kind: 'idle' });
-            return;
-          }
-          setPhase({ kind: 'error', question: submission.question, reason: 'unparsable' });
-          return;
-        }
-        const turn: AskTurn = {
-          id: submission.id,
-          question: submission.question,
-          summary: parsed.answer.summary,
-          candidates,
-          recommendations: parsed.answer.recommendations,
-        };
-        setTurns((current) => [...current, turn]);
-        setPhase({ kind: 'answered', turn });
-      };
-
       try {
-        const outcome = await streamAskGenerate(
-          supabase,
-          {
-            provider: byok.provider,
-            model: byok.model,
-            providerKey: byok.providerKey,
-            messages: [
-              { role: 'system', content: prompt.system },
-              { role: 'user', content: prompt.user },
-            ],
-          },
-          {
-            signal: controller.signal,
-            onDelta: (text) => {
-              if (settledId.current !== token) {
-                return;
-              }
-              deltaRef.current += text;
-              if (rafRef.current === null) {
-                rafRef.current = requestAnimationFrame(flushText);
-              }
-            },
-          },
+        const outcome = await streamOnce(
+          [
+            { role: 'system', content: prompt.system },
+            { role: 'user', content: prompt.user },
+          ],
+          submission.question,
+          false,
         );
-
-        if (settledId.current !== token) {
+        if (settledId.current !== currentToken) {
           return;
         }
-        if (rafRef.current !== null) {
-          cancelAnimationFrame(rafRef.current);
-          rafRef.current = null;
-        }
-
         if (outcome.status !== 'success') {
           setPhase({
             kind: 'error',
@@ -267,13 +309,189 @@ export function useAskQuestion() {
           });
           return;
         }
-        settle(outcome.content, false);
+        const parsed = parseAskFixedResponse(outcome.content, candidates);
+        if (!parsed.ok) {
+          if (stopRef.current) {
+            setPhase({ kind: 'idle' });
+            return;
+          }
+          setPhase({ kind: 'error', question: submission.question, reason: 'unparsable' });
+          return;
+        }
+        const turn: AskTurn = {
+          id: submission.id,
+          question: submission.question,
+          summary: parsed.answer.summary,
+          recommendations: parsed.answer.recommendations.flatMap((recommendation) => {
+            const candidate = candidates.find((entry) => entry.repoId === recommendation.repoId);
+            return candidate ? [candidate] : [];
+          }),
+        };
+        setTurns((current) => [...current, turn]);
+        setPhase({ kind: 'answered', turn });
       } catch (error) {
-        if (settledId.current !== token) {
+        if (settledId.current !== currentToken) {
           return;
         }
         if (isAbortError(error) && stopRef.current) {
-          settle(deltaRef.current, true);
+          setPhase({ kind: 'idle' });
+          return;
+        }
+        if (isAbortError(error)) {
+          return;
+        }
+        setPhase({ kind: 'error', question: submission.question, reason: 'retryable' });
+      }
+    };
+
+    const runAgent = async (currentToken: number, records: StarredRepoRecord[]) => {
+      const catalog = buildAskCatalog({ items: records });
+      const prompt = buildAskPrompt({
+        question: submission.question,
+        catalog: catalog.text,
+        history: submission.resume ? undefined : submission.history,
+        language: document.documentElement.lang || undefined,
+        includeNotes,
+      });
+      const toolContext = { items: records, memoriesByRepoId, includeNotes };
+      let messages: AskGenerateMessage[] = submission.resume
+        ? (resumeRef.current?.messages ?? [])
+        : [
+            { role: 'system', content: prompt.system },
+            { role: 'user', content: prompt.user },
+          ];
+      let loop = submission.resume
+        ? {
+            ...createAskLoopState(),
+            expandedRepoIds: resumeRef.current?.loop.expandedRepoIds ?? [],
+          }
+        : createAskLoopState();
+
+      setPhase({ kind: 'generating', question: submission.question, text: '' });
+
+      try {
+        while (true) {
+          const outcome = await streamOnce(messages, submission.question, true);
+          if (settledId.current !== currentToken) {
+            return;
+          }
+          if (outcome.status !== 'success') {
+            setPhase({
+              kind: 'error',
+              question: submission.question,
+              reason:
+                outcome.status === 'timeout'
+                  ? 'timeout'
+                  : outcome.status === 'invalid_provider_key'
+                    ? 'invalid_key'
+                    : outcome.status === 'provider_rejected'
+                      ? 'provider_rejected'
+                      : 'retryable',
+            });
+            return;
+          }
+
+          if (outcome.toolCalls.length > 0) {
+            messages = [
+              ...messages,
+              {
+                role: 'assistant',
+                content: outcome.content,
+                tool_calls: outcome.toolCalls.map((call) => ({
+                  id: call.id,
+                  type: 'function',
+                  function: { name: call.name, arguments: call.arguments },
+                })),
+              },
+            ];
+            let resultChars = 0;
+            const expandedIds: string[] = [];
+            for (const call of outcome.toolCalls) {
+              setPhase({
+                kind: 'generating',
+                question: submission.question,
+                text: '',
+                toolLabel: toolLabelFor(call.name),
+              });
+              const executed = executeAskTool(toolContext, call.name, call.arguments);
+              const payload = executed.ok
+                ? JSON.stringify(executed.result)
+                : JSON.stringify({ error: executed.error });
+              resultChars += payload.length;
+              if (executed.ok) {
+                expandedIds.push(...executed.expandedIds);
+              }
+              messages = [...messages, { role: 'tool', tool_call_id: call.id, content: payload }];
+            }
+            loop = noteAskToolRound(loop, { resultChars, expandedIds });
+            if (!canContinueAskLoop(loop)) {
+              const closing = await streamOnce(messages, submission.question, false);
+              if (settledId.current !== currentToken) {
+                return;
+              }
+              if (closing.status !== 'success') {
+                setPhase({
+                  kind: 'error',
+                  question: submission.question,
+                  reason: 'retryable',
+                });
+                return;
+              }
+              const parsed = parseAskResponse(closing.content, loop.expandedRepoIds);
+              const recommendations = parsed.ok
+                ? mapRecommendations(parsed.answer.recommendations, records)
+                : [];
+              const text = parsed.ok ? parsed.answer.summary : splitAskStream(closing.content).body;
+              resumeRef.current = { messages, loop, question: submission.question };
+              setPhase({
+                kind: 'budget_exhausted',
+                question: submission.question,
+                text,
+                recommendations,
+              });
+              return;
+            }
+            continue;
+          }
+
+          const parsed = parseAskResponse(outcome.content, loop.expandedRepoIds);
+          if (!parsed.ok) {
+            if (stopRef.current) {
+              setPhase({ kind: 'idle' });
+              return;
+            }
+            setPhase({ kind: 'error', question: submission.question, reason: 'unparsable' });
+            return;
+          }
+          resumeRef.current = null;
+          const turn: AskTurn = {
+            id: submission.id,
+            question: submission.question,
+            summary: parsed.answer.summary,
+            recommendations: mapRecommendations(parsed.answer.recommendations, records),
+          };
+          setTurns((current) => [...current, turn]);
+          setPhase({ kind: 'answered', turn });
+          return;
+        }
+      } catch (error) {
+        if (settledId.current !== currentToken) {
+          return;
+        }
+        if (isAbortError(error) && stopRef.current) {
+          const parsed = parseAskResponse(deltaRef.current, loop.expandedRepoIds);
+          if (parsed.ok) {
+            const turn: AskTurn = {
+              id: submission.id,
+              question: submission.question,
+              summary: parsed.answer.summary,
+              recommendations: mapRecommendations(parsed.answer.recommendations, records),
+            };
+            setTurns((current) => [...current, turn]);
+            setPhase({ kind: 'answered', turn });
+            return;
+          }
+          setPhase({ kind: 'idle' });
           return;
         }
         if (isAbortError(error)) {
@@ -284,16 +502,7 @@ export function useAskQuestion() {
     };
 
     void run();
-  }, [
-    submission,
-    reposQuery.data,
-    memoriesByRepoId,
-    distanceByRepoId,
-    isSearching,
-    semanticEnabled,
-    byok,
-    includeNotes,
-  ]);
+  }, [submission, reposQuery.data, memoriesByRepoId, byok, includeNotes]);
 
-  return { phase, turns, ask, stop, reset, configured: Boolean(byok) };
+  return { phase, turns, ask, continueAsk, stop, reset, configured: Boolean(byok) };
 }

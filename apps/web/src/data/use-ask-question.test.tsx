@@ -12,22 +12,12 @@ import {
 } from '../lib/ai-connections';
 import { resetAskByokState, saveAskConsent } from '../lib/ask-byok';
 import { useAskQuestion } from './use-ask-question';
-import { QUERY_DEBOUNCE_MS } from './use-semantic-search';
 
 const mocks = vi.hoisted(() => ({
   streamAskGenerate: vi.fn(),
   listStarredRepos: vi.fn(),
   listMemories: vi.fn(),
-  searchRepoEmbeddings: vi.fn(),
-  embed: vi.fn(),
   session: { current: { user: { id: 'user-a' } } as { user: { id: string } } | null },
-  embedding: {
-    current: { optedIn: false, phase: 'idle', backend: null } as {
-      optedIn: boolean;
-      phase: string;
-      backend: unknown;
-    },
-  },
 }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -37,19 +27,10 @@ vi.mock('@asterism/db', async (importOriginal) => ({
   streamAskGenerate: mocks.streamAskGenerate,
   listStarredRepos: mocks.listStarredRepos,
   listMemories: mocks.listMemories,
-  searchRepoEmbeddings: mocks.searchRepoEmbeddings,
 }));
 
 vi.mock('../auth/use-session', () => ({
   useSession: () => ({ session: mocks.session.current }),
-}));
-
-vi.mock('../contexts/embedding-bootstrap-context', () => ({
-  useEmbeddingBootstrapContext: () => mocks.embedding.current,
-}));
-
-vi.mock('../lib/embedding-runtime', () => ({
-  getEmbeddingRuntime: () => ({ embed: mocks.embed }),
 }));
 
 function repoRecord(
@@ -92,7 +73,7 @@ const RECORDS: StarredRepoRecord[] = [
   }),
 ];
 
-const ANSWER = '[0] Tungstenite is the match.\n\n```asterism-recommendations\n[0]\n```';
+const ANSWER = 'Tungstenite is the match.\n\n```asterism-recommendations\n["repo-ws"]\n```';
 
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
@@ -129,13 +110,6 @@ async function flushWork() {
   }
 }
 
-async function flushDebounce() {
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, QUERY_DEBOUNCE_MS + 20));
-  });
-  await flushWork();
-}
-
 async function ask(question: string) {
   await act(async () => {
     latest?.ask(question);
@@ -146,14 +120,11 @@ async function ask(question: string) {
 beforeEach(() => {
   mocks.streamAskGenerate.mockReset().mockImplementation(async (_client, _request, options) => {
     options.onDelta(ANSWER);
-    return { status: 'success', content: ANSWER };
+    return { status: 'success', content: ANSWER, toolCalls: [] };
   });
   mocks.listStarredRepos.mockReset().mockResolvedValue(RECORDS);
   mocks.listMemories.mockReset().mockResolvedValue([]);
-  mocks.searchRepoEmbeddings.mockReset();
-  mocks.embed.mockReset();
   mocks.session.current = { user: { id: 'user-a' } };
-  mocks.embedding.current = { optedIn: false, phase: 'idle', backend: null };
   configureAskConnection();
 });
 
@@ -167,7 +138,15 @@ function configureAskConnection(overrides: Partial<AiConnection> = {}) {
     status: 'valid',
     credentialHint: 'sk-…test',
     apiKey: 'sk-test',
-    generationCapability: { ok: true, model: 'gpt-4o-mini', testedAt: 'now', reason: null },
+    generationCapability: {
+      ok: true,
+      model: 'gpt-4o-mini',
+      testedAt: 'now',
+      reason: null,
+      tools: true,
+      longContext: true,
+      mode: 'agent',
+    },
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -200,7 +179,7 @@ describe('useAskQuestion', () => {
     await flushWork();
     expect(latest?.phase.kind).toBe('answered');
 
-    // 回归：提交 id 不自增时，第二问被 settledId 判为已处理而永远停在 recalling。
+    // 回归：提交 id 不自增时，第二问被 settledId 判为已处理而永远停在 generating。
     await ask('websocket stream');
     await flushWork();
     expect(latest?.phase.kind).toBe('answered');
@@ -213,7 +192,7 @@ describe('useAskQuestion', () => {
       .mockResolvedValueOnce({ status: 'provider_rejected' })
       .mockImplementationOnce(async (_client, _request, options) => {
         options.onDelta(ANSWER);
-        return { status: 'success', content: ANSWER };
+        return { status: 'success', content: ANSWER, toolCalls: [] };
       });
     await renderHarness();
     await flushWork();
@@ -228,34 +207,44 @@ describe('useAskQuestion', () => {
     expect(mocks.streamAskGenerate).toHaveBeenCalledTimes(2);
   });
 
-  it('waits for the semantic channel instead of bypassing it', async () => {
-    mocks.embedding.current = { optedIn: true, phase: 'ready', backend: {} };
-    mocks.embed.mockResolvedValue([[0.1, 0.2]]);
-    let resolveNeighbors: (value: { repoId: string; distance: number }[]) => void = () => {};
-    mocks.searchRepoEmbeddings.mockReturnValue(
-      new Promise((resolve) => {
-        resolveNeighbors = resolve;
-      }),
-    );
+  it('executes an expand tool call before accepting recommendations', async () => {
+    mocks.streamAskGenerate
+      .mockImplementationOnce(async () => ({
+        status: 'success',
+        content: '',
+        toolCalls: [{ id: 'c1', name: 'expand', arguments: '{"ids":["repo-ws"]}' }],
+      }))
+      .mockImplementationOnce(async (_client, _request, options) => {
+        options.onDelta(ANSWER);
+        return { status: 'success', content: ANSWER, toolCalls: [] };
+      });
     await renderHarness();
     await flushWork();
-
-    await ask('daily journaling');
-    await flushDebounce();
-    // 语义检索仍在途：不得进入 generating，也不得提前发起生成。
-    expect(latest?.phase.kind).toBe('recalling');
-    expect(mocks.streamAskGenerate).not.toHaveBeenCalled();
-
-    await act(async () => {
-      resolveNeighbors([{ repoId: 'repo-memo', distance: 0.31 }]);
-      await Promise.resolve();
-    });
+    await ask('websocket library');
     await flushWork();
     expect(latest?.phase.kind).toBe('answered');
-    // 无词法命中的 repo-memo 只能经语义通道成为候选。
-    const turn = latest?.turns[0];
-    expect(turn?.candidates.map((candidate) => candidate.repoId)).toEqual(['repo-memo']);
-    expect(turn?.candidates[0]?.lexicalScore).toBeNull();
+    expect(latest?.turns[0]?.recommendations.map((item) => item.repoId)).toEqual(['repo-ws']);
+    expect(mocks.streamAskGenerate).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to a single fixed generation when the model cannot drive tools', async () => {
+    configureAskConnection({
+      generationCapability: {
+        ok: true,
+        model: 'gpt-4o-mini',
+        testedAt: 'now',
+        reason: null,
+        tools: false,
+        longContext: false,
+        mode: 'fixed',
+      },
+    });
+    await renderHarness();
+    await flushWork();
+    await ask('websocket library');
+    await flushWork();
+    expect(latest?.phase.kind).toBe('answered');
     expect(mocks.streamAskGenerate).toHaveBeenCalledTimes(1);
+    expect(mocks.streamAskGenerate.mock.calls[0]?.[1]).not.toHaveProperty('tools');
   });
 });

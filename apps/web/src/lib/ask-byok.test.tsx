@@ -91,7 +91,7 @@ describe('ask consent storage', () => {
     expect(readAskConsent('user-a')).toBeNull();
   });
 
-  it('migrates v1 consent onto the active connection without copying the key', () => {
+  it('does not upgrade v1 or v2 consent to the catalog-wide v3 scope', () => {
     const record = connection();
     writeAiConnections('user-a', [record]);
     writeAiSettings('user-a', { generationConnectionId: record.id, includeNotesInAi: true });
@@ -104,71 +104,19 @@ describe('ask consent storage', () => {
         consentedAt: '2026-02-01T00:00:00Z',
       }),
     );
-
-    expect(readAskConsent('user-a')).toEqual({
-      connectionId: 'conn-1',
-      consentedProvider: 'deepseek',
-      consentedAt: '2026-02-01T00:00:00Z',
-    });
-    expect(localStorage.getItem('asterism:ask-byok:v1:user-a')).toBeNull();
-    expect(localStorage.getItem(askConsentStorageKey('user-a')) ?? '').not.toContain('sk-leaked');
-    expect(resolveAskByok('user-a')).toMatchObject({
-      connectionId: 'conn-1',
-      providerKey: 'sk-original-123456',
-    });
-  });
-
-  it('binds v1 consent to the sole matching connection when no active id is set', () => {
-    writeAiConnections('user-a', [connection()]);
     localStorage.setItem(
-      'asterism:ask-byok:v1:user-a',
-      JSON.stringify({ provider: 'deepseek', providerKey: 'sk-leaked' }),
-    );
-
-    expect(readAskConsent('user-a')?.connectionId).toBe('conn-1');
-    expect(resolveAskByok('user-a')?.providerKey).toBe('sk-original-123456');
-  });
-
-  it('does not guess among multiple matching connections', () => {
-    writeAiConnections('user-a', [
-      connection({ id: 'conn-1' }),
-      connection({ id: 'conn-2', name: 'Second' }),
-    ]);
-    localStorage.setItem(
-      'asterism:ask-byok:v1:user-a',
-      JSON.stringify({ provider: 'deepseek', providerKey: 'sk-leaked' }),
+      'asterism:ask-consent:v2:user-a',
+      JSON.stringify({
+        connectionId: 'conn-1',
+        consentedProvider: 'deepseek',
+        consentedAt: '2026-02-01T00:00:00Z',
+      }),
     );
 
     expect(readAskConsent('user-a')).toBeNull();
     expect(resolveAskByok('user-a')).toBeNull();
     expect(localStorage.getItem('asterism:ask-byok:v1:user-a')).toBeNull();
-  });
-
-  it('refuses to migrate v1 consent onto a different provider', () => {
-    const record = connection({ adapter: 'openai' });
-    writeAiConnections('user-a', [record]);
-    writeAiSettings('user-a', { generationConnectionId: record.id, includeNotesInAi: true });
-    localStorage.setItem(
-      'asterism:ask-byok:v1:user-a',
-      JSON.stringify({ provider: 'deepseek', providerKey: 'sk-leaked' }),
-    );
-
-    expect(readAskConsent('user-a')).toBeNull();
-    expect(resolveAskByok('user-a')).toBeNull();
-    expect(localStorage.getItem('asterism:ask-byok:v1:user-a')).toBeNull();
-  });
-
-  it('keeps v2 consent and still purges a leftover v1 snapshot', () => {
-    configure('user-a');
-    localStorage.setItem(
-      'asterism:ask-byok:v1:user-a',
-      JSON.stringify({ provider: 'openai', providerKey: 'sk-leaked' }),
-    );
-    resetAskByokState();
-
-    expect(readAskConsent('user-a')?.connectionId).toBe('conn-1');
-    expect(localStorage.getItem('asterism:ask-byok:v1:user-a')).toBeNull();
-    expect(resolveAskByok('user-a')?.providerKey).toBe('sk-original-123456');
+    expect(localStorage.getItem('asterism:ask-consent:v2:user-a')).toBeNull();
   });
 
   it('resolves the key from the connection library at use time', () => {

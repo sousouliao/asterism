@@ -165,7 +165,15 @@ export function useTestAiConnection() {
       });
       const capability =
         outcome.status === 'passed'
-          ? { ok: true, reason: null, model: input.model, testedAt: new Date().toISOString() }
+          ? {
+              ok: true,
+              reason: null,
+              model: input.model,
+              testedAt: new Date().toISOString(),
+              tools: outcome.tools,
+              longContext: outcome.longContext,
+              mode: outcome.mode,
+            }
           : {
               ok: false,
               reason: outcome.status === 'unavailable' ? 'network' : outcome.reason,

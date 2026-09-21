@@ -115,7 +115,12 @@ describe('use-ai-connections mutations', () => {
     writeAiConnections(USER, [
       storedConnection({ status: 'untested', generationCapability: null }),
     ]);
-    db.invokeAskTest.mockResolvedValue({ status: 'passed' });
+    db.invokeAskTest.mockResolvedValue({
+      status: 'passed',
+      tools: true,
+      longContext: true,
+      mode: 'agent',
+    });
     const hook = await renderHookProbe(useTestAiConnection);
 
     let updated: AiConnection | undefined;
@@ -129,7 +134,13 @@ describe('use-ai-connections mutations', () => {
       providerKey: 'sk-test-key-123456',
     });
     expect(updated?.status).toBe('valid');
-    expect(updated?.generationCapability).toMatchObject({ ok: true, model: 'deepseek-reasoner' });
+    expect(updated?.generationCapability).toMatchObject({
+      ok: true,
+      model: 'deepseek-reasoner',
+      tools: true,
+      longContext: true,
+      mode: 'agent',
+    });
   });
 
   it('marks a rejected credential invalid with the unauthorized reason', async () => {

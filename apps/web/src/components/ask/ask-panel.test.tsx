@@ -9,6 +9,7 @@ import '../../i18n';
 import { AskDockContent } from './ask-panel';
 
 const askMock = vi.hoisted(() => vi.fn());
+const continueMock = vi.hoisted(() => vi.fn());
 const resetMock = vi.hoisted(() => vi.fn());
 const requestOpen = vi.hoisted(() => vi.fn());
 const navigate = vi.hoisted(() => vi.fn());
@@ -22,6 +23,7 @@ vi.mock('../../data/use-ask-question', () => ({
     phase: phaseOverride ?? { kind: 'idle' },
     turns: turnsOverride,
     ask: askMock,
+    continueAsk: continueMock,
     reset: vi.fn(),
     configured: configuredOverride,
   }),
@@ -40,7 +42,7 @@ function turn(overrides: Partial<AskTurn> = {}): AskTurn {
     id: 1,
     question: 'Which rust websocket library?',
     summary: '[0] fits your note about push latency.',
-    candidates: [
+    recommendations: [
       {
         item: {
           repoId: 'repo-ws',
@@ -68,7 +70,6 @@ function turn(overrides: Partial<AskTurn> = {}): AskTurn {
         reasons: [{ kind: 'note', snippet: 'push latency', fullText: 'push latency is fine' }],
       },
     ],
-    recommendations: [{ index: 0, repoId: 'repo-ws' }],
     ...overrides,
   };
 }
@@ -78,6 +79,7 @@ let root: Root;
 
 beforeEach(() => {
   askMock.mockClear();
+  continueMock.mockClear();
   resetMock.mockClear();
   requestOpen.mockClear();
   navigate.mockClear();
@@ -104,6 +106,7 @@ async function renderPanel() {
           phase: phaseOverride ?? { kind: 'idle' },
           turns: turnsOverride,
           ask: askMock,
+          continueAsk: continueMock,
           reset: resetMock,
           configured: configuredOverride,
         }}
@@ -199,12 +202,12 @@ describe('AskDock states', () => {
     expect(resetMock).toHaveBeenCalledTimes(1);
   });
 
-  it('queues the in-flight question as the user turn while recalling', async () => {
-    phaseOverride = { kind: 'recalling', question: 'virtual scroll tools?' };
+  it('queues the in-flight question as the user turn while generating', async () => {
+    phaseOverride = { kind: 'generating', question: 'virtual scroll tools?', text: '' };
     await renderPanel();
 
     expect(text()).toContain('virtual scroll tools?');
-    expect(text()).toContain(i18next.t('ask.recalling', { lng: 'en' }));
+    expect(text()).toContain(i18next.t('ask.generating', { lng: 'en' }));
   });
 
   it('states an honest no-match without calling the provider', async () => {
@@ -227,14 +230,29 @@ describe('AskDock states', () => {
     expect(buttonByText(i18next.t('common.retry', { lng: 'en' }))).toBeNull();
   });
 
-  it('surfaces the two-phase progress labels', async () => {
-    phaseOverride = { kind: 'recalling', question: 'q' };
-    await renderPanel();
-    expect(text()).toContain(i18next.t('ask.recalling', { lng: 'en' }));
-
+  it('surfaces generating and tool-round progress labels', async () => {
     phaseOverride = { kind: 'generating', question: 'q', text: '' };
     await renderPanel();
     expect(text()).toContain(i18next.t('ask.generating', { lng: 'en' }));
+
+    phaseOverride = { kind: 'generating', question: 'q', text: '', toolLabel: 'searching' };
+    await renderPanel();
+    expect(text()).toContain(i18next.t('ask.searching', { lng: 'en' }));
+  });
+
+  it('offers continue after a budget-exhausted turn without calling it not found', async () => {
+    phaseOverride = {
+      kind: 'budget_exhausted',
+      question: 'Which rust websocket library?',
+      text: 'Partial findings so far.',
+      recommendations: [],
+    };
+    await renderPanel();
+
+    expect(text()).toContain(i18next.t('ask.budgetExhausted', { lng: 'en' }));
+    expect(text()).not.toContain(i18next.t('ask.notFound', { lng: 'en' }));
+    await click(buttonByText(i18next.t('ask.continueExploring', { lng: 'en' })));
+    expect(continueMock).toHaveBeenCalledTimes(1);
   });
 
   it('shows streaming markdown and a stop control while generating', async () => {

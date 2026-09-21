@@ -37,6 +37,7 @@ describe('streamAskGenerate', () => {
     await expect(streamAskGenerate(client, request(), { onDelta })).resolves.toEqual({
       status: 'success',
       content: 'Hello from Ask.',
+      toolCalls: [],
     });
     expect(onDelta).toHaveBeenCalledWith('Hello from Ask.');
     expect(invoke).toHaveBeenCalledWith('ask-generate', {
@@ -60,8 +61,30 @@ describe('streamAskGenerate', () => {
     await expect(streamAskGenerate(client, request(), { onDelta })).resolves.toEqual({
       status: 'success',
       content: 'Hello',
+      toolCalls: [],
     });
     expect(onDelta.mock.calls.map((call) => call[0])).toEqual(['Hel', 'lo']);
+  });
+
+  it('forwards in-stream tool_call events', async () => {
+    const sse =
+      'event: tool_call\ndata: {"id":"c1","name":"expand","arguments":"{\\"ids\\":[\\"axum\\"]}"}\n\nevent: done\ndata: {}\n\n';
+    const { client } = clientReturning(
+      new Response(sse, { headers: { 'Content-Type': 'text/event-stream' } }),
+    );
+    const onToolCall = vi.fn();
+    await expect(
+      streamAskGenerate(client, request(), { onDelta: vi.fn(), onToolCall }),
+    ).resolves.toEqual({
+      status: 'success',
+      content: '',
+      toolCalls: [{ id: 'c1', name: 'expand', arguments: '{"ids":["axum"]}' }],
+    });
+    expect(onToolCall).toHaveBeenCalledWith({
+      id: 'c1',
+      name: 'expand',
+      arguments: '{"ids":["axum"]}',
+    });
   });
 
   it('surfaces an in-stream timeout error event', async () => {
@@ -169,7 +192,12 @@ describe('invokeAskTest', () => {
   it('sends the test action and reports a passed probe', async () => {
     const { client, invoke } = clientReturning({ status: 'success', ok: true, reason: null });
 
-    await expect(invokeAskTest(client, testRequest)).resolves.toEqual({ status: 'passed' });
+    await expect(invokeAskTest(client, testRequest)).resolves.toEqual({
+      status: 'passed',
+      tools: false,
+      longContext: false,
+      mode: 'fixed',
+    });
     expect(invoke).toHaveBeenCalledWith('ask-generate', {
       body: {
         action: 'test',

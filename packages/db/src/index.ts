@@ -2,6 +2,7 @@ export type {
   AskGenerateMessage,
   AskGenerateOutcome,
   AskGenerateRequest,
+  AskGenerateToolCall,
   AskModelsOutcome,
   AskModelsRequest,
   AskTestOutcome,

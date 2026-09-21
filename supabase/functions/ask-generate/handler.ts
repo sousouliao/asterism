@@ -38,7 +38,8 @@ import {
 } from '../../../packages/core/src/repos/ask-providers.ts';
 import {
   type AskSseEvent,
-  createOpenAiDeltaDecoder,
+  createOpenAiStreamDecoder,
+  createOpenAiToolCallAssembler,
   encodeAskSseEvent,
 } from '../../../packages/core/src/repos/ask-sse.ts';
 
@@ -51,9 +52,10 @@ const PROBE_MESSAGES: ProviderMessage[] = [
   { role: 'user', content: 'connection probe' },
 ];
 
-const MAX_MESSAGES = 40;
-const MAX_MESSAGE_CHARS = 32_000;
-const MAX_TOTAL_CHARS = 200_000;
+const MAX_MESSAGES = 80;
+const MAX_MESSAGE_CHARS = 250_000;
+const MAX_TOTAL_CHARS = 600_000;
+const MAX_TOOLS = 8;
 const DEFAULT_TIMEOUT_MS = 60_000;
 /** 流式生成：连续无 delta 才判失败，避免把正常的长回答掐断（ADR 0044）。 */
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
@@ -61,13 +63,21 @@ const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 /**
  * 生成回答的 completion 上限。BYOK 花的是用户自己的额度，代理必须给出上限，
  * 否则任何持有效 JWT 的调用方都能用一次请求耗尽对方配额。Ask 的回答是
- * 摘要 + 至多 5 条推荐索引的 JSON，2048 token 远超实际所需。
+ * 摘要 + 至多 5 条推荐，4096 token 覆盖工具循环中的短思考与最终回答。
  */
-const MAX_COMPLETION_TOKENS = 2048;
+const MAX_COMPLETION_TOKENS = 4096;
+
+interface ProviderToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
 
 interface ProviderMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_call_id?: string;
+  tool_calls?: ProviderToolCall[];
 }
 
 export interface AskGenerateDependencies {
@@ -87,6 +97,8 @@ interface ValidatedBody {
   providerKey: string;
   messages: ProviderMessage[];
   temperature?: number;
+  tools?: unknown[];
+  toolChoice?: unknown;
 }
 
 interface ValidatedModelsBody {
@@ -154,18 +166,36 @@ function validateBody(raw: unknown): ValidatedBody | null {
     if (entry === null || typeof entry !== 'object') {
       return null;
     }
-    const { role, content } = entry as Record<string, unknown>;
-    if (role !== 'system' && role !== 'user' && role !== 'assistant') {
+    const record = entry as Record<string, unknown>;
+    const { role, content } = record;
+    if (role !== 'system' && role !== 'user' && role !== 'assistant' && role !== 'tool') {
       return null;
     }
-    if (typeof content !== 'string' || content.length === 0 || content.length > MAX_MESSAGE_CHARS) {
+    if (typeof content !== 'string' || content.length > MAX_MESSAGE_CHARS) {
+      return null;
+    }
+    if (role !== 'assistant' && content.length === 0) {
       return null;
     }
     totalChars += content.length;
     if (totalChars > MAX_TOTAL_CHARS) {
       return null;
     }
-    messages.push({ role, content });
+    const message: ProviderMessage = { role, content };
+    if (role === 'tool') {
+      if (typeof record.tool_call_id !== 'string' || record.tool_call_id.length === 0) {
+        return null;
+      }
+      message.tool_call_id = record.tool_call_id;
+    }
+    if (role === 'assistant' && record.tool_calls !== undefined) {
+      const toolCalls = parseToolCalls(record.tool_calls);
+      if (!toolCalls) {
+        return null;
+      }
+      message.tool_calls = toolCalls;
+    }
+    messages.push(message);
   }
 
   let temperature: number | undefined;
@@ -176,13 +206,53 @@ function validateBody(raw: unknown): ValidatedBody | null {
     temperature = body.temperature;
   }
 
+  let tools: unknown[] | undefined;
+  if (body.tools !== undefined) {
+    if (!Array.isArray(body.tools) || body.tools.length === 0 || body.tools.length > MAX_TOOLS) {
+      return null;
+    }
+    tools = body.tools;
+  }
+
   return {
     provider,
     model: body.model,
     providerKey: body.providerKey,
     messages,
     temperature,
+    tools,
+    toolChoice: body.tool_choice,
   };
+}
+
+function parseToolCalls(raw: unknown): ProviderToolCall[] | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_TOOLS) {
+    return null;
+  }
+  const calls: ProviderToolCall[] = [];
+  for (const entry of raw) {
+    if (entry === null || typeof entry !== 'object') {
+      return null;
+    }
+    const record = entry as Record<string, unknown>;
+    const fn = record.function;
+    if (
+      typeof record.id !== 'string' ||
+      record.id.length === 0 ||
+      record.type !== 'function' ||
+      fn === null ||
+      typeof fn !== 'object'
+    ) {
+      return null;
+    }
+    const name = (fn as Record<string, unknown>).name;
+    const args = (fn as Record<string, unknown>).arguments;
+    if (typeof name !== 'string' || name.length === 0 || typeof args !== 'string') {
+      return null;
+    }
+    calls.push({ id: record.id, type: 'function', function: { name, arguments: args } });
+  }
+  return calls;
 }
 
 function createSseResponder(cors: Record<string, string>) {
@@ -209,7 +279,8 @@ function createHeaderTimeout(ms: number): { signal: AbortSignal; dispose: () => 
 }
 
 function transformOpenAiStream(idleTimeoutMs: number): TransformStream<Uint8Array, Uint8Array> {
-  const decoder = createOpenAiDeltaDecoder();
+  const decoder = createOpenAiStreamDecoder();
+  const assembler = createOpenAiToolCallAssembler();
   const textDecoder = new TextDecoder();
   const textEncoder = new TextEncoder();
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -221,6 +292,36 @@ function transformOpenAiStream(idleTimeoutMs: number): TransformStream<Uint8Arra
     event: AskSseEvent,
   ) => {
     controller.enqueue(textEncoder.encode(encodeAskSseEvent(event)));
+  };
+
+  const emitParts = (
+    controller: TransformStreamDefaultController<Uint8Array>,
+    parts: ReturnType<ReturnType<typeof createOpenAiStreamDecoder>['push']>,
+  ) => {
+    let active = false;
+    for (const part of parts) {
+      assembler.push(part);
+      if (part.kind === 'text') {
+        emitted = true;
+        active = true;
+        enqueue(controller, { event: 'delta', text: part.text });
+      } else if (part.kind === 'tool_delta') {
+        active = true;
+      }
+    }
+    return active;
+  };
+
+  const flushToolCalls = (controller: TransformStreamDefaultController<Uint8Array>) => {
+    for (const call of assembler.finish()) {
+      emitted = true;
+      enqueue(controller, {
+        event: 'tool_call',
+        id: call.id,
+        name: call.name,
+        arguments: call.arguments,
+      });
+    }
   };
 
   const clearIdle = () => {
@@ -255,12 +356,8 @@ function transformOpenAiStream(idleTimeoutMs: number): TransformStream<Uint8Arra
       if (finished) {
         return;
       }
-      const deltas = decoder.push(textDecoder.decode(chunk, { stream: true }));
-      for (const text of deltas) {
-        emitted = true;
-        enqueue(controller, { event: 'delta', text });
-      }
-      if (deltas.length > 0) {
+      const parts = decoder.push(textDecoder.decode(chunk, { stream: true }));
+      if (emitParts(controller, parts)) {
         armIdle(controller);
       }
     },
@@ -270,10 +367,8 @@ function transformOpenAiStream(idleTimeoutMs: number): TransformStream<Uint8Arra
         return;
       }
       finished = true;
-      for (const text of decoder.end()) {
-        emitted = true;
-        enqueue(controller, { event: 'delta', text });
-      }
+      emitParts(controller, decoder.end());
+      flushToolCalls(controller);
       if (!emitted) {
         enqueue(controller, { event: 'error', status: 'retryable_error' });
       }
@@ -327,6 +422,151 @@ function parseModelList(payload: unknown): string[] {
     }
   }
   return [...ids].sort((a, b) => a.localeCompare(b)).slice(0, MAX_MODELS);
+}
+
+const PING_TOOL = {
+  type: 'function',
+  function: {
+    name: 'ping',
+    description: 'Acknowledge the capability probe.',
+    parameters: {
+      type: 'object',
+      properties: { ok: { type: 'boolean' } },
+      required: ['ok'],
+    },
+  },
+};
+
+const EXPAND_TOOL = {
+  type: 'function',
+  function: {
+    name: 'expand',
+    description: 'Read a repository by id.',
+    parameters: {
+      type: 'object',
+      properties: { ids: { type: 'array', items: { type: 'string' } } },
+      required: ['ids'],
+    },
+  },
+};
+
+function extractToolCalls(payload: unknown): { name: string; arguments: string }[] {
+  const choices = (payload as { choices?: { message?: { tool_calls?: unknown } }[] } | null)
+    ?.choices;
+  const raw = choices?.[0]?.message?.tool_calls;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.flatMap((entry) => {
+    if (entry === null || typeof entry !== 'object') {
+      return [];
+    }
+    const fn = (entry as { function?: { name?: unknown; arguments?: unknown } }).function;
+    if (typeof fn?.name !== 'string' || typeof fn.arguments !== 'string') {
+      return [];
+    }
+    return [{ name: fn.name, arguments: fn.arguments }];
+  });
+}
+
+async function fetchJsonCompletion(
+  dependencies: AskGenerateDependencies,
+  input: ValidatedTestBody,
+  body: Record<string, unknown>,
+): Promise<unknown | null> {
+  try {
+    const response = await dependencies.fetchProvider(
+      `${providerBaseUrl(input.provider)}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${input.providerKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        redirect: 'manual',
+        signal: AbortSignal.timeout(dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+      },
+    );
+    if (!response.ok) {
+      return null;
+    }
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function hasNamedToolCall(
+  payload: unknown,
+  name: string,
+  predicate: (args: Record<string, unknown>) => boolean,
+): boolean {
+  for (const call of extractToolCalls(payload)) {
+    if (call.name !== name) {
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(call.arguments) as unknown;
+      if (
+        parsed !== null &&
+        typeof parsed === 'object' &&
+        predicate(parsed as Record<string, unknown>)
+      ) {
+        return true;
+      }
+    } catch {
+      // 忽略无法解析的 arguments
+    }
+  }
+  return false;
+}
+
+async function probeGenerationCapability(
+  dependencies: AskGenerateDependencies,
+  input: ValidatedTestBody,
+): Promise<{ tools: boolean; longContext: boolean }> {
+  const toolsPayload = await fetchJsonCompletion(dependencies, input, {
+    model: input.model,
+    messages: [
+      { role: 'system', content: 'Call the ping tool. Do not write prose.' },
+      { role: 'user', content: 'Call ping with ok=true.' },
+    ],
+    tools: [PING_TOOL],
+    tool_choice: { type: 'function', function: { name: 'ping' } },
+    temperature: 0,
+    max_tokens: 128,
+  });
+  const tools = hasNamedToolCall(toolsPayload, 'ping', (args) => args.ok === true);
+
+  const catalog = [
+    ...Array.from({ length: 12 }, (_, index) => `r_${index} | owner/repo-${index} | Go | web`),
+    'needle-unique-asterism | owner/needle-unique-asterism | Rust | probe',
+    ...Array.from(
+      { length: 11 },
+      (_, index) => `r_${index + 13} | owner/repo-${index + 13} | Go | web`,
+    ),
+  ].join('\n');
+  const longPayload = await fetchJsonCompletion(dependencies, input, {
+    model: input.model,
+    messages: [
+      {
+        role: 'system',
+        content: `Catalog:\n${catalog}\nCall expand with the repoId of owner/needle-unique-asterism.`,
+      },
+      { role: 'user', content: 'Locate the needle repository and expand it.' },
+    ],
+    tools: [EXPAND_TOOL],
+    tool_choice: { type: 'function', function: { name: 'expand' } },
+    temperature: 0,
+    max_tokens: 128,
+  });
+  const longContext = hasNamedToolCall(longPayload, 'expand', (args) => {
+    const ids = args.ids;
+    return Array.isArray(ids) && ids.includes('needle-unique-asterism');
+  });
+
+  return { tools, longContext };
 }
 
 export function createAskGenerateHandler(dependencies: AskGenerateDependencies) {
@@ -451,10 +691,19 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
         if (typeof content !== 'string' || content.length === 0) {
           return json({ status: 'success', ok: false, reason: 'empty_response' });
         }
-        return json({ status: 'success', ok: true, reason: null });
       } catch {
         return json({ status: 'retryable_error' }, 502);
       }
+
+      const capability = await probeGenerationCapability(dependencies, testBody);
+      return json({
+        status: 'success',
+        ok: true,
+        reason: null,
+        tools: capability.tools,
+        longContext: capability.longContext,
+        mode: capability.tools && capability.longContext ? 'agent' : 'fixed',
+      });
     }
     if (action !== undefined) {
       return json({ error: 'Invalid ask-generate request' }, 400);
@@ -474,6 +723,12 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
     };
     if (body.temperature !== undefined) {
       upstreamBody.temperature = body.temperature;
+    }
+    if (body.tools) {
+      upstreamBody.tools = body.tools;
+    }
+    if (body.toolChoice !== undefined) {
+      upstreamBody.tool_choice = body.toolChoice;
     }
 
     const headerTimeout = createHeaderTimeout(dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS);
@@ -514,14 +769,41 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
     if (!contentType.toLowerCase().includes('text/event-stream')) {
       try {
         const payload = (await response.json()) as {
-          choices?: { message?: { content?: unknown } }[];
+          choices?: {
+            message?: {
+              content?: unknown;
+              tool_calls?: {
+                id?: unknown;
+                function?: { name?: unknown; arguments?: unknown };
+              }[];
+            };
+          }[];
         };
-        const content = payload.choices?.[0]?.message?.content;
-        if (typeof content !== 'string' || content.length === 0) {
+        const message = payload.choices?.[0]?.message;
+        const content = typeof message?.content === 'string' ? message.content : '';
+        const toolCalls = (message?.tool_calls ?? []).flatMap((call) => {
+          if (
+            typeof call.id === 'string' &&
+            typeof call.function?.name === 'string' &&
+            typeof call.function.arguments === 'string'
+          ) {
+            return [
+              encodeAskSseEvent({
+                event: 'tool_call',
+                id: call.id,
+                name: call.function.name,
+                arguments: call.function.arguments,
+              }),
+            ];
+          }
+          return [];
+        });
+        if (content.length === 0 && toolCalls.length === 0) {
           return json({ status: 'retryable_error' }, 502);
         }
         return sse(
-          encodeAskSseEvent({ event: 'delta', text: content }) +
+          (content.length > 0 ? encodeAskSseEvent({ event: 'delta', text: content }) : '') +
+            toolCalls.join('') +
             encodeAskSseEvent({ event: 'done' }),
         );
       } catch {

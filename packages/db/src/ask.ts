@@ -1,10 +1,23 @@
-import { type AskSseErrorStatus, type AskSseEvent, createAskSseDecoder } from '@asterism/core';
+import {
+  type AskSseErrorStatus,
+  type AskSseEvent,
+  type AskToolCall,
+  createAskSseDecoder,
+} from '@asterism/core';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import type { SupabaseClient } from './client';
 
+export interface AskGenerateToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
 export interface AskGenerateMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_call_id?: string;
+  tool_calls?: AskGenerateToolCall[];
 }
 
 export interface AskGenerateRequest {
@@ -13,10 +26,12 @@ export interface AskGenerateRequest {
   /** 用户 BYOK 的 Provider key：仅随本次请求透传，由调用方从本地存储读取。 */
   providerKey: string;
   messages: AskGenerateMessage[];
+  tools?: unknown[];
+  toolChoice?: unknown;
 }
 
 export type AskGenerateOutcome =
-  | { status: 'success'; content: string }
+  | { status: 'success'; content: string; toolCalls: AskToolCall[] }
   | { status: 'invalid_provider_key' }
   | { status: 'provider_rejected' }
   | { status: 'timeout' }
@@ -24,6 +39,7 @@ export type AskGenerateOutcome =
 
 export interface StreamAskGenerateOptions {
   onDelta: (text: string) => void;
+  onToolCall?: (call: AskToolCall) => void;
   signal?: AbortSignal;
 }
 
@@ -33,7 +49,7 @@ function isAskGenerateOutcome(value: unknown): value is AskGenerateOutcome {
   }
   const outcome = value as Record<string, unknown>;
   if (outcome.status === 'success') {
-    return typeof outcome.content === 'string' && outcome.content.length > 0;
+    return typeof outcome.content === 'string';
   }
   return ['invalid_provider_key', 'provider_rejected', 'timeout', 'retryable_error'].includes(
     String(outcome.status),
@@ -53,12 +69,19 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 
 function applySseEvent(
   event: AskSseEvent,
-  state: { content: string; error: AskSseErrorStatus | null },
+  state: { content: string; toolCalls: AskToolCall[]; error: AskSseErrorStatus | null },
   onDelta: (text: string) => void,
+  onToolCall?: (call: AskToolCall) => void,
 ): void {
   if (event.event === 'delta') {
     state.content += event.text;
     onDelta(event.text);
+    return;
+  }
+  if (event.event === 'tool_call') {
+    const call = { id: event.id, name: event.name, arguments: event.arguments };
+    state.toolCalls.push(call);
+    onToolCall?.(call);
     return;
   }
   if (event.event === 'error') {
@@ -69,6 +92,7 @@ function applySseEvent(
 async function consumeAskSse(
   response: Response,
   onDelta: (text: string) => void,
+  onToolCall?: (call: AskToolCall) => void,
   signal?: AbortSignal,
 ): Promise<AskGenerateOutcome> {
   const body = response.body;
@@ -79,7 +103,11 @@ async function consumeAskSse(
   const decoder = createAskSseDecoder();
   const textDecoder = new TextDecoder();
   const reader = body.getReader();
-  const state = { content: '', error: null as AskSseErrorStatus | null };
+  const state = {
+    content: '',
+    toolCalls: [] as AskToolCall[],
+    error: null as AskSseErrorStatus | null,
+  };
 
   try {
     while (true) {
@@ -89,11 +117,11 @@ async function consumeAskSse(
         break;
       }
       for (const event of decoder.push(textDecoder.decode(value, { stream: true }))) {
-        applySseEvent(event, state, onDelta);
+        applySseEvent(event, state, onDelta, onToolCall);
       }
     }
     for (const event of decoder.end()) {
-      applySseEvent(event, state, onDelta);
+      applySseEvent(event, state, onDelta, onToolCall);
     }
   } catch (error) {
     throwIfAborted(signal);
@@ -108,10 +136,10 @@ async function consumeAskSse(
   if (state.error) {
     return { status: state.error };
   }
-  if (state.content.length === 0) {
+  if (state.content.length === 0 && state.toolCalls.length === 0) {
     return { status: 'retryable_error' };
   }
-  return { status: 'success', content: state.content };
+  return { status: 'success', content: state.content, toolCalls: state.toolCalls };
 }
 
 /**
@@ -132,6 +160,8 @@ export async function streamAskGenerate(
       model: request.model,
       providerKey: request.providerKey,
       messages: request.messages,
+      ...(request.tools ? { tools: request.tools } : {}),
+      ...(request.toolChoice !== undefined ? { tool_choice: request.toolChoice } : {}),
     },
     signal: options.signal,
   });
@@ -149,14 +179,17 @@ export async function streamAskGenerate(
   }
 
   if (data instanceof Response) {
-    return consumeAskSse(data, options.onDelta, options.signal);
+    return consumeAskSse(data, options.onDelta, options.onToolCall, options.signal);
   }
 
   if (!isAskGenerateOutcome(data)) {
     return { status: 'retryable_error' };
   }
   if (data.status === 'success') {
-    options.onDelta(data.content);
+    if (data.content.length > 0) {
+      options.onDelta(data.content);
+    }
+    return { ...data, toolCalls: data.toolCalls ?? [] };
   }
   return data;
 }
@@ -178,7 +211,12 @@ export interface AskTestRequest extends AskModelsRequest {
 
 /** 探针结论：`reason` 沿用旧探针词汇，供界面映射可读的失败原因。 */
 export type AskTestOutcome =
-  | { status: 'passed' }
+  | {
+      status: 'passed';
+      tools: boolean;
+      longContext: boolean;
+      mode: 'agent' | 'fixed';
+    }
   | { status: 'failed'; reason: 'unauthorized' | 'empty_response' | 'network' }
   | { status: 'unavailable' };
 
@@ -207,7 +245,12 @@ export async function invokeAskTest(
   }
   if (outcome.status === 'success') {
     if (outcome.ok === true) {
-      return { status: 'passed' };
+      return {
+        status: 'passed',
+        tools: outcome.tools === true,
+        longContext: outcome.longContext === true,
+        mode: outcome.mode === 'agent' ? 'agent' : 'fixed',
+      };
     }
     if (outcome.reason === 'empty_response') {
       return { status: 'failed', reason: 'empty_response' };

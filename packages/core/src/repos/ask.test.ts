@@ -5,9 +5,12 @@ import {
   ASK_MAX_RECOMMENDATIONS,
   ASK_PROVIDERS,
   type AskCandidate,
+  buildAskFixedPrompt,
   buildAskPrompt,
   findAskProvider,
+  parseAskFixedResponse,
   parseAskResponse,
+  readAskGenerationMode,
   readGenerationCapability,
   readTestedModel,
   selectAskCandidates,
@@ -206,6 +209,33 @@ describe('selectAskCandidates', () => {
 });
 
 describe('buildAskPrompt', () => {
+  it('embeds the catalog in system and keeps history available', () => {
+    const prompt = buildAskPrompt({
+      question: 'Which Rust libraries support WebSocket?',
+      catalog:
+        'Collection catalog (full, 1 repositories):\nrepo-ws | rustws/tungstenite | Rust | websocket',
+      history: [{ question: 'websocket libs?', summary: 'Suggested rustws/tungstenite.' }],
+      language: 'zh-CN',
+    });
+    expect(prompt.system).toContain('MUST call expand');
+    expect(prompt.system).toContain('Write the summary in this language: zh-CN');
+    expect(prompt.system).toContain('repo-ws | rustws/tungstenite');
+    expect(prompt.user).toContain('Question: Which Rust libraries support WebSocket?');
+    expect(prompt.user).toContain('Q: websocket libs?');
+    expect(prompt.user).toContain('those repositories remain available');
+  });
+
+  it('notes when memory notes are disabled', () => {
+    const prompt = buildAskPrompt({
+      question: 'any',
+      catalog: 'Collection catalog (full, 0 repositories):',
+      includeNotes: false,
+    });
+    expect(prompt.system).toContain('disabled sending Memory notes');
+  });
+});
+
+describe('buildAskFixedPrompt', () => {
   const candidates: AskCandidate[] = [
     {
       item: item(
@@ -233,7 +263,7 @@ describe('buildAskPrompt', () => {
   ];
 
   it('embeds question, indexed metadata and personal memory text', () => {
-    const prompt = buildAskPrompt({
+    const prompt = buildAskFixedPrompt({
       question: 'Which Rust libraries support WebSocket?',
       candidates,
       memoriesByRepoId: new Map([['repo-ws', memory('repo-ws', { note: 'used for push' })]]),
@@ -250,7 +280,7 @@ describe('buildAskPrompt', () => {
   });
 
   it('includes prior turns as context only', () => {
-    const prompt = buildAskPrompt({
+    const prompt = buildAskFixedPrompt({
       question: 'which of those is lighter?',
       candidates,
       history: [{ question: 'websocket libs?', summary: 'Suggested [0].' }],
@@ -261,7 +291,7 @@ describe('buildAskPrompt', () => {
   });
 
   it('omits memory notes when includeNotes is false but keeps metadata', () => {
-    const prompt = buildAskPrompt({
+    const prompt = buildAskFixedPrompt({
       question: 'Which Rust libraries support WebSocket?',
       candidates,
       memoriesByRepoId: new Map([
@@ -292,8 +322,22 @@ describe('connection capability readers', () => {
       model: 'deepseek-chat',
       testedAt: '2026-09-20T00:00:00.000Z',
       reason: null,
+      tools: false,
+      longContext: false,
+      mode: 'fixed',
     });
     expect(readTestedModel(capability)).toBe('deepseek-chat');
+    expect(readAskGenerationMode(capability)).toBe('fixed');
+    expect(
+      readAskGenerationMode({
+        ok: true,
+        model: 'deepseek-chat',
+        testedAt: 'now',
+        reason: null,
+        tools: true,
+        longContext: true,
+      }),
+    ).toBe('agent');
   });
 
   it('returns no tested model for failed probes and rejects malformed records', () => {
@@ -306,75 +350,69 @@ describe('connection capability readers', () => {
 });
 
 describe('parseAskResponse', () => {
-  const candidates: AskCandidate[] = [
-    { item: item({}, 'repo-a'), repoId: 'repo-a', lexicalScore: 3, reasons: [] },
-    { item: item({}, 'repo-b'), repoId: 'repo-b', lexicalScore: 2, reasons: [] },
-  ];
-
   function answer(summary: string, recommendations: string): string {
     return `${summary}\n\n\`\`\`asterism-recommendations\n${recommendations}\n\`\`\``;
   }
 
-  it('parses markdown prose and maps indexes to repoIds', () => {
-    const result = parseAskResponse(answer('[0] fits best.', '[0, 1]'), candidates);
+  it('parses markdown prose and keeps only expanded repoIds', () => {
+    const result = parseAskResponse(answer('axum fits best.', '["axum", "ghost", "axum"]'), [
+      'axum',
+    ]);
     expect(result).toEqual({
       ok: true,
       answer: {
-        summary: '[0] fits best.',
-        recommendations: [
-          { index: 0, repoId: 'repo-a' },
-          { index: 1, repoId: 'repo-b' },
-        ],
+        summary: 'axum fits best.',
+        recommendations: [{ repoId: 'axum', index: null }],
       },
     });
   });
 
   it('treats a missing sentinel as an empty recommendation list', () => {
-    const result = parseAskResponse('Sure.', candidates);
+    const result = parseAskResponse('Sure.', ['axum']);
     expect(result).toEqual({
       ok: true,
       answer: { summary: 'Sure.', recommendations: [] },
     });
   });
 
-  it('drops out-of-range, non-integer and duplicate indexes', () => {
-    const result = parseAskResponse(answer('s', '[0, -1, 2, 1.5, 0, 99]'), candidates);
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.answer.recommendations).toEqual([{ index: 0, repoId: 'repo-a' }]);
-    }
-  });
-
-  it('truncates recommendations to the hard cap', () => {
-    const pool = Array.from({ length: 10 }, (_, index) => ({
-      item: item({}, `repo-${index}`),
-      repoId: `repo-${index}`,
-      lexicalScore: 1,
-      reasons: [],
-    })) as AskCandidate[];
-    const result = parseAskResponse(answer('s', '[0,1,2,3,4,5,6,7,8,9]'), pool);
+  it('drops indexes and unexpanded ids, then truncates to the hard cap', () => {
+    const ids = Array.from({ length: 10 }, (_, index) => `repo-${index}`);
+    const result = parseAskResponse(answer('s', JSON.stringify([...ids, 0])), ids);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.answer.recommendations).toHaveLength(ASK_MAX_RECOMMENDATIONS);
+      expect(result.answer.recommendations[0]).toEqual({ repoId: 'repo-0', index: null });
     }
   });
 
-  it('accepts an empty recommendation list as an honest no-match', () => {
-    const result = parseAskResponse(answer('No match found.', '[]'), candidates);
-    expect(result).toEqual({
-      ok: true,
-      answer: { summary: 'No match found.', recommendations: [] },
+  it('rejects empty summaries', () => {
+    expect(parseAskResponse('```asterism-recommendations\n["axum"]\n```', ['axum'])).toEqual({
+      ok: false,
+      error: 'empty_summary',
     });
   });
+});
 
-  it('rejects empty summaries', () => {
-    expect(parseAskResponse('```asterism-recommendations\n[0]\n```', candidates)).toEqual({
-      ok: false,
-      error: 'empty_summary',
-    });
-    expect(parseAskResponse('   \n', candidates)).toEqual({
-      ok: false,
-      error: 'empty_summary',
+describe('parseAskFixedResponse', () => {
+  const candidates: AskCandidate[] = [
+    { item: item({}, 'repo-a'), repoId: 'repo-a', lexicalScore: 3, reasons: [] },
+    { item: item({}, 'repo-b'), repoId: 'repo-b', lexicalScore: 2, reasons: [] },
+  ];
+
+  it('maps candidate indexes to repoIds', () => {
+    const result = parseAskFixedResponse(
+      'fits.\n\n```asterism-recommendations\n[0, 1, 0, 99]\n```',
+      candidates,
+    );
+    expect(result).toEqual({
+      ok: true,
+      answer: {
+        summary: 'fits.',
+        recommendations: [
+          { index: 0, repoId: 'repo-a' },
+          { index: 1, repoId: 'repo-b' },
+        ],
+      },
     });
   });
 });

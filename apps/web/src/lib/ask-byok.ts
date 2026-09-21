@@ -1,11 +1,12 @@
-import { type AskProviderId, findAskProvider, readTestedModel } from '@asterism/core';
-import { useSyncExternalStore } from 'react';
 import {
-  type AiConnection,
-  readAiConnections,
-  readAiSettings,
-  subscribeAiConnections,
-} from './ai-connections';
+  type AskGenerationMode,
+  type AskProviderId,
+  findAskProvider,
+  readAskGenerationMode,
+  readTestedModel,
+} from '@asterism/core';
+import { useSyncExternalStore } from 'react';
+import { type AiConnection, readAiConnections, subscribeAiConnections } from './ai-connections';
 
 /**
  * Ask Asterism 的出网同意存储（ADR 0042）。
@@ -31,6 +32,7 @@ export interface AskByokConfig {
   model: string;
   providerKey: string;
   consentedAt: string;
+  mode: AskGenerationMode;
 }
 
 const consentCache = new Map<string, AskConsent | null>();
@@ -58,6 +60,10 @@ function subscribe(listener: () => void) {
 }
 
 export function askConsentStorageKey(userId: string) {
+  return `asterism:ask-consent:v3:${userId}`;
+}
+
+function previousConsentStorageKey(userId: string) {
   return `asterism:ask-consent:v2:${userId}`;
 }
 
@@ -74,76 +80,14 @@ function purgeLegacyByokSnapshot(userId: string) {
   }
 }
 
-function parseLegacyConsent(raw: string | null): {
-  provider: AskProviderId;
-  consentedAt: string;
-} | null {
-  if (!raw) {
-    return null;
-  }
-  try {
-    const value = JSON.parse(raw) as Record<string, unknown>;
-    const provider = value.consentedProvider ?? value.provider;
-    if (typeof provider !== 'string' || !findAskProvider(provider)) {
-      return null;
-    }
-    const consentedAt =
-      typeof value.consentedAt === 'string' && value.consentedAt.length > 0
-        ? value.consentedAt
-        : new Date().toISOString();
-    return { provider: provider as AskProviderId, consentedAt };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * 把仍有效的 v1 出网同意绑定到当前连接库，而不是只删快照。
- * 明文 key 一律丢弃，运行时仍从连接库现取。
- */
-function migrateLegacyConsent(userId: string): AskConsent | null {
-  let raw: string | null = null;
-  try {
-    raw = window.localStorage.getItem(legacyByokStorageKey(userId));
-  } catch {
-    return null;
-  }
-  const legacy = parseLegacyConsent(raw);
+/** v1 / v2 同意范围更窄，不得静默升级到全库目录出网（ADR 0045）。 */
+function purgeNarrowerConsent(userId: string) {
   purgeLegacyByokSnapshot(userId);
-  if (!legacy) {
-    return null;
-  }
-
-  const connections = readAiConnections(userId);
-  const activeId = readAiSettings(userId).generationConnectionId;
-  const bindable = activeId
-    ? connections.find(
-        (candidate) => candidate.id === activeId && candidate.adapter === legacy.provider,
-      )
-    : uniqueMatchingConnection(connections, legacy.provider);
-  if (!bindable) {
-    return null;
-  }
-
-  const consent: AskConsent = {
-    connectionId: bindable.id,
-    consentedProvider: legacy.provider,
-    consentedAt: legacy.consentedAt,
-  };
   try {
-    window.localStorage.setItem(askConsentStorageKey(userId), JSON.stringify(consent));
+    window.localStorage.removeItem(previousConsentStorageKey(userId));
   } catch {
-    // In-memory consent keeps Ask usable for this session.
+    // Storage restrictions leave the old key untouched; it is never read again.
   }
-  return consent;
-}
-
-function uniqueMatchingConnection(
-  connections: readonly AiConnection[],
-  provider: AskProviderId,
-): AiConnection | undefined {
-  const matches = connections.filter((candidate) => candidate.adapter === provider);
-  return matches.length === 1 ? matches[0] : undefined;
 }
 
 function parseStoredConsent(raw: string | null): AskConsent | null {
@@ -180,11 +124,7 @@ export function readAskConsent(userId: string): AskConsent | null {
   let consent: AskConsent | null = null;
   try {
     consent = parseStoredConsent(window.localStorage.getItem(askConsentStorageKey(userId)));
-    if (consent) {
-      purgeLegacyByokSnapshot(userId);
-    } else {
-      consent = migrateLegacyConsent(userId);
-    }
+    purgeNarrowerConsent(userId);
   } catch {
     // Storage restrictions keep Ask unconfigured for this session.
   }
@@ -247,6 +187,7 @@ function resolveFromConnection(
     model,
     providerKey: connection.apiKey,
     consentedAt: consent.consentedAt,
+    mode: readAskGenerationMode(connection.generationCapability),
   };
 }
 

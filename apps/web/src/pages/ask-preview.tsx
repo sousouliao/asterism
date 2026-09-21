@@ -73,12 +73,8 @@ const ANSWERED_TURN: AskTurn = {
   id: 1,
   question: 'Which rust websocket library did I save?',
   summary:
-    'Based on your collection, [0] rustws/tungstenite is the closest match — your note mentions using it for push with acceptable latency, and its description highlights a lightweight WebSocket implementation. [1] inokawa/virtua is only semantically close and does not answer the WebSocket question directly.',
-  candidates: PREVIEW_CANDIDATES,
-  recommendations: [
-    { index: 0, repoId: 'preview-ws' },
-    { index: 1, repoId: 'preview-virtua' },
-  ],
+    'Based on your collection, rustws/tungstenite is the closest match — your note mentions using it for push with acceptable latency, and its description highlights a lightweight WebSocket implementation.',
+  recommendations: PREVIEW_CANDIDATES,
 };
 
 const MULTI_TURN: AskTurn[] = [
@@ -88,8 +84,7 @@ const MULTI_TURN: AskTurn[] = [
     question: 'Which of those is lighter for an embedded client?',
     summary:
       '[1] inokawa/virtua is the lighter pick — it is a single dependency focused on virtualization, while [0] rustws/tungstenite targets the WebSocket protocol layer itself and pulls in more of a runtime footprint.',
-    candidates: PREVIEW_CANDIDATES,
-    recommendations: [{ index: 1, repoId: 'preview-virtua' }],
+    recommendations: [PREVIEW_CANDIDATES[1] as (typeof PREVIEW_CANDIDATES)[number]],
   },
 ];
 
@@ -100,7 +95,15 @@ const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
     phase: { kind: 'answered', turn: MULTI_TURN[1] as AskTurn },
     turns: MULTI_TURN,
   },
-  { label: 'recalling', phase: { kind: 'recalling', question: 'virtual scroll tools?' } },
+  {
+    label: 'filtering',
+    phase: {
+      kind: 'generating',
+      question: 'virtual scroll tools?',
+      text: '',
+      toolLabel: 'filtering',
+    },
+  },
   {
     label: 'generating',
     phase: { kind: 'generating', question: 'virtual scroll tools?', text: '' },
@@ -114,6 +117,15 @@ const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
     },
   },
   { label: 'not_found', phase: { kind: 'not_found', question: 'kubernetes operators?' } },
+  {
+    label: 'budget exhausted',
+    phase: {
+      kind: 'budget_exhausted',
+      question: 'compare rust web frameworks',
+      text: 'I expanded axum so far.',
+      recommendations: [PREVIEW_CANDIDATES[0] as (typeof PREVIEW_CANDIDATES)[number]],
+    },
+  },
   { label: 'error · retryable', phase: { kind: 'error', question: 'any', reason: 'retryable' } },
   {
     label: 'error · invalid key',
@@ -131,7 +143,13 @@ const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
 const DOCK_FIXTURES: { label: string; ask: AskViewState }[] = [
   ...PHASES.map(({ label, phase, turns }) => ({
     label,
-    ask: { phase, turns: turns ?? [], ask: () => {}, configured: true } satisfies AskViewState,
+    ask: {
+      phase,
+      turns: turns ?? [],
+      ask: () => {},
+      continueAsk: () => {},
+      configured: true,
+    } satisfies AskViewState,
   })),
   {
     label: 'needs setup',

@@ -30,6 +30,7 @@ export interface AskViewState {
   phase: AskPhase;
   turns: readonly AskTurn[];
   ask: (question: string) => void;
+  continueAsk?: () => void;
   stop?: () => void;
   reset?: () => void;
   configured: boolean;
@@ -75,7 +76,7 @@ export function AskDockContent({
   const scrollRef = useRef<HTMLDivElement>(null);
   const firstScroll = useRef(true);
   const followScroll = useRef(true);
-  const busy = ask.phase.kind === 'recalling' || ask.phase.kind === 'generating';
+  const busy = ask.phase.kind === 'generating';
   const hasThread = ask.configured ? ask.turns.length > 0 || ask.phase.kind !== 'idle' : true;
   const openSettings = () => navigate('/settings');
 
@@ -193,6 +194,7 @@ export function AskDockContent({
                   phase={ask.phase}
                   onOpenRepo={openRepo}
                   onRetry={ask.ask}
+                  onContinue={ask.continueAsk}
                   onOpenSettings={openSettings}
                 />
               ) : (
@@ -250,12 +252,14 @@ export function AskThread({
   phase,
   onOpenRepo,
   onRetry,
+  onContinue,
   onOpenSettings,
 }: {
   turns: readonly AskTurn[];
   phase: AskPhase;
   onOpenRepo: OpenRepoHandler;
   onRetry: (question: string) => void;
+  onContinue?: () => void;
   /** key 失效等需要离开面板去设置的路径；预览场景可传空操作。 */
   onOpenSettings?: () => void;
 }) {
@@ -264,7 +268,12 @@ export function AskThread({
       {turns.map((turn) => (
         <AskTurnView key={turn.id} turn={turn} onOpenRepo={onOpenRepo} />
       ))}
-      <AskLiveTurnView phase={phase} onRetry={onRetry} onOpenSettings={onOpenSettings} />
+      <AskLiveTurnView
+        phase={phase}
+        onRetry={onRetry}
+        onContinue={onContinue}
+        onOpenSettings={onOpenSettings}
+      />
     </>
   );
 }
@@ -289,7 +298,7 @@ function AskSetupView({ onOpenSettings }: { onOpenSettings: () => void }) {
 
 /** 一轮已完成的问答：用户问题在右、回答与推荐在左。 */
 function AskTurnView({ turn, onOpenRepo }: { turn: AskTurn; onOpenRepo: OpenRepoHandler }) {
-  const records = turn.candidates.map((candidate) => candidate.item);
+  const records = turn.recommendations.map((candidate) => candidate.item);
   return (
     <div className="flex flex-col gap-3">
       <AskQuestionBubble question={turn.question} />
@@ -297,19 +306,13 @@ function AskTurnView({ turn, onOpenRepo }: { turn: AskTurn; onOpenRepo: OpenRepo
         <StreamingMarkdown content={turn.summary} />
         {turn.recommendations.length > 0 ? (
           <ul className="flex w-full flex-col gap-2">
-            {turn.recommendations.map((recommendation) => {
-              const candidate = turn.candidates[recommendation.index];
-              if (!candidate) {
-                return null;
-              }
-              return (
-                <AskRecommendationCard
-                  key={candidate.repoId}
-                  candidate={candidate}
-                  onSelect={(record, modality) => onOpenRepo(record, records, modality)}
-                />
-              );
-            })}
+            {turn.recommendations.map((candidate) => (
+              <AskRecommendationCard
+                key={candidate.repoId}
+                candidate={candidate}
+                onSelect={(record, modality) => onOpenRepo(record, records, modality)}
+              />
+            ))}
           </ul>
         ) : null}
       </AskAnswerBlock>
@@ -321,10 +324,12 @@ function AskTurnView({ turn, onOpenRepo }: { turn: AskTurn; onOpenRepo: OpenRepo
 function AskLiveTurnView({
   phase,
   onRetry,
+  onContinue,
   onOpenSettings,
 }: {
   phase: AskPhase;
   onRetry: (question: string) => void;
+  onContinue?: () => void;
   onOpenSettings?: () => void;
 }) {
   if (phase.kind === 'idle' || phase.kind === 'answered') {
@@ -334,7 +339,12 @@ function AskLiveTurnView({
     <div className="flex flex-col gap-3">
       <AskQuestionBubble question={phase.question} />
       <AskAnswerBlock>
-        <AskPendingView phase={phase} onRetry={onRetry} onOpenSettings={onOpenSettings} />
+        <AskPendingView
+          phase={phase}
+          onRetry={onRetry}
+          onContinue={onContinue}
+          onOpenSettings={onOpenSettings}
+        />
       </AskAnswerBlock>
     </div>
   );
@@ -365,24 +375,15 @@ function AskAnswerBlock({ children }: { children: ReactNode }) {
 function AskPendingView({
   phase,
   onRetry,
+  onContinue,
   onOpenSettings,
 }: {
   phase: AskPhase;
   onRetry: (question: string) => void;
+  onContinue?: () => void;
   onOpenSettings?: () => void;
 }) {
   const { t } = useTranslation();
-  if (phase.kind === 'recalling') {
-    return (
-      <p className="flex items-center gap-2 text-caption text-muted-foreground" role="status">
-        <LoaderCircleIcon
-          className="size-3.5 animate-spin text-link motion-reduce:animate-none"
-          aria-hidden="true"
-        />
-        {t('ask.recalling')}
-      </p>
-    );
-  }
   if (phase.kind === 'generating') {
     if (phase.text.length > 0) {
       return <StreamingMarkdown content={phase.text} animated />;
@@ -393,8 +394,27 @@ function AskPendingView({
           className="size-3.5 animate-spin text-link motion-reduce:animate-none"
           aria-hidden="true"
         />
-        {t('ask.generating')}
+        {phase.toolLabel === 'filtering'
+          ? t('ask.filtering')
+          : phase.toolLabel === 'searching'
+            ? t('ask.searching')
+            : phase.toolLabel === 'expanding'
+              ? t('ask.expanding')
+              : t('ask.generating')}
       </p>
+    );
+  }
+  if (phase.kind === 'budget_exhausted') {
+    return (
+      <div className="flex flex-col items-start gap-2" role="status">
+        {phase.text.length > 0 ? <StreamingMarkdown content={phase.text} /> : null}
+        <p className="text-caption text-muted-foreground">{t('ask.budgetExhausted')}</p>
+        {onContinue ? (
+          <Button size="xs" variant="outline" onClick={onContinue}>
+            {t('ask.continueExploring')}
+          </Button>
+        ) : null}
+      </div>
     );
   }
   if (phase.kind === 'not_found') {

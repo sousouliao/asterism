@@ -2,29 +2,38 @@ import type { Memory } from '../models/memory';
 import type { AskCandidate } from './ask-candidates';
 import type { StarredRepoLike } from './filter';
 
-/** Ask Asterism 的 Grounding prompt 组装：模型只能引用带索引的本地候选。 */
-
-/** 一轮已完成的问答（追问上下文；每轮召回仍以当前问题重新计算）。 */
+/** 一轮已完成的问答（追问上下文；目录常驻，旧仓库不必重列）。 */
 export interface AskExchange {
   question: string;
   summary: string;
 }
 
-export interface BuildAskPromptInput<T extends StarredRepoLike> {
+export interface BuildAskPromptInput {
+  question: string;
+  catalog: string;
+  history?: readonly AskExchange[];
+  language?: string;
+  includeNotes?: boolean;
+}
+
+export interface BuildAskFixedPromptInput<T extends StarredRepoLike> {
   question: string;
   candidates: readonly AskCandidate<T>[];
   memoriesByRepoId?: ReadonlyMap<string, Memory>;
-  /** 此前的问答轮次，仅作为对话语境，不携带旧候选。 */
   history?: readonly AskExchange[];
-  /** 回答语言（BCP 47 标签，跟随界面语言；缺省由模型跟随问题语言）。 */
   language?: string;
-  /** 是否把 Memory 笔记（whySaved / note）写进 prompt；缺省包含（ADR 0042 同意范围）。 */
   includeNotes?: boolean;
 }
 
 export interface AskPrompt {
   system: string;
   user: string;
+}
+
+function languageRule(language?: string): string {
+  return language
+    ? `- Write the summary in this language: ${language}.`
+    : '- Write the summary in the language of the question.';
 }
 
 function formatCandidateBlock<T extends StarredRepoLike>(
@@ -55,18 +64,78 @@ function formatCandidateBlock<T extends StarredRepoLike>(
   return lines.join('\n');
 }
 
+function outputRules(): string[] {
+  return [
+    'Respond in Markdown (not JSON). After the answer, emit exactly one fenced block whose language tag is asterism-recommendations and whose body is a JSON array of repoId strings.',
+    'Allowed Markdown: paragraphs, lists, bold, italics, inline code, and fenced code blocks. Do not use images, raw HTML, or tables.',
+    'End with this block and nothing after it:',
+    '```asterism-recommendations',
+    '["repo-id-1", "repo-id-2"]',
+    '```',
+    '- The prose answers the question, citing repositories by repoId or fullName where they support a claim.',
+    '- The recommendations array lists repoId values that genuinely answer the question, best first, at most 5. Use [] when none match.',
+  ];
+}
+
 /**
- * 组装 Grounding prompt：候选以带索引的结构化文本给出，模型被限定只能引用这些索引，
- * 并以 Markdown 正文 + 末尾推荐哨兵块返回。引用校验在 parseAskResponse 完成。
+ * 目录常驻 Agent 的 Grounding prompt（ADR 0045）。
+ * system 含规则 + 稳定目录，便于前缀缓存；user 只放历史与当前问题。
  */
-export function buildAskPrompt<T extends StarredRepoLike>({
+export function buildAskPrompt({
+  question,
+  catalog,
+  history,
+  language,
+  includeNotes = true,
+}: BuildAskPromptInput): AskPrompt {
+  const system = [
+    'You are Ask Asterism, the question-answering assistant of a personal open-source memory app.',
+    "You answer from the user's GitHub starred collection. A catalog of that collection is embedded below. Private Memory notes (why saved / note) are NOT in the catalog — call expand to read them.",
+    '',
+    'Tools:',
+    '- filter: exact structured filter (language, topics, name, star dates). Returns the full matching set in pages plus the total count.',
+    '- search: lexical search with no minimum score. Use for fuzzy wording.',
+    '- expand: read full metadata and Memory notes for specific repoId values.',
+    '',
+    'Rules:',
+    '- You MUST call expand on a repository before recommending it. Catalog lines are not enough.',
+    '- Never invent, rename, or assume repositories that are not in the catalog or a tool result.',
+    "- Quote the user's own memory text only after expand returned it; never fabricate notes.",
+    '- If the collection has no match, say so plainly. Do not suggest repositories outside the collection.',
+    '- Keep repository names exactly as written. Refer to a repository by repoId or fullName.',
+    languageRule(language),
+    includeNotes
+      ? '- Memory notes may be sent when you expand a repository.'
+      : '- The user disabled sending Memory notes. expand will omit whySaved / note.',
+    '',
+    ...outputRules(),
+    '',
+    catalog,
+  ].join('\n');
+
+  const sections: string[] = [];
+  if (history && history.length > 0) {
+    sections.push(
+      'Previous turns of this conversation. The catalog above still applies; those repositories remain available:',
+      ...history.map((exchange) => `Q: ${exchange.question}\nA: ${exchange.summary}`),
+    );
+  }
+  sections.push(`Question: ${question}`);
+
+  return { system, user: sections.join('\n\n') };
+}
+
+/**
+ * 能力不足时的固定召回流程（ADR 0042 降级）：编号候选 + 单次生成。
+ */
+export function buildAskFixedPrompt<T extends StarredRepoLike>({
   question,
   candidates,
   memoriesByRepoId,
   history,
   language,
   includeNotes = true,
-}: BuildAskPromptInput<T>): AskPrompt {
+}: BuildAskFixedPromptInput<T>): AskPrompt {
   const system = [
     'You are Ask Asterism, the question-answering assistant of a personal open-source memory app.',
     "You answer questions strictly from the numbered repository candidates supplied in the user message. Each candidate is a repository the user saved on GitHub, with its metadata and, when present, the user's private memory notes.",
@@ -76,9 +145,7 @@ export function buildAskPrompt<T extends StarredRepoLike>({
     '- Quote or paraphrase the user\'s own memory text ("Why saved" / "Note") only when the candidate actually contains it; never fabricate memory content.',
     "- If no candidate answers the question, say so plainly: the user's collection has no match for it. Do not suggest alternatives outside the collection.",
     '- Keep repository names exactly as written. Refer to a candidate by its bracketed index, e.g. [0] or [2].',
-    language
-      ? `- Write the summary in this language: ${language}.`
-      : '- Write the summary in the language of the question.',
+    languageRule(language),
     '',
     'Respond in Markdown (not JSON). After the answer, emit exactly one fenced block whose language tag is asterism-recommendations and whose body is a JSON array of candidate indexes.',
     'Allowed Markdown: paragraphs, lists, bold, italics, inline code, and fenced code blocks. Do not use images, raw HTML, or tables.',
