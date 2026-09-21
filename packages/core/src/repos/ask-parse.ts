@@ -1,13 +1,10 @@
-import type { AskCandidate } from './ask-candidates';
 import { applyAskReadGate } from './ask-loop';
 import { splitAskStream } from './ask-stream';
 
-/** Ask Asterism 的响应解析与引用校验：越界或未展开的引用在此被丢弃。 */
+/** Ask Asterism 的响应解析与引用校验：未展开过的引用在此被丢弃。 */
 
 export interface AskRecommendation {
   repoId: string;
-  /** 仅固定召回流程填写；Agent 路径为 null。 */
-  index: number | null;
 }
 
 export interface AskAnswer {
@@ -45,8 +42,9 @@ function asRepoId(value: unknown): string | null {
 }
 
 /**
- * 解析 Agent 回答：正文必须非空；推荐必须是已 expand 的 repoId。
+ * 解析回答：正文必须非空；推荐必须是已 expand 的 repoId。
  * 缺少哨兵围栏不视为失败——正文照常呈现，推荐为空（ADR 0044 / 0045）。
+ * 模型不会调工具时同样走这条路径，只是没有推荐卡片，正文仍然可读。
  */
 export function parseAskResponse(
   raw: string,
@@ -69,44 +67,6 @@ export function parseAskResponse(
 
   return {
     ok: true,
-    answer: {
-      summary,
-      recommendations: ids.map((repoId) => ({ repoId, index: null })),
-    },
+    answer: { summary, recommendations: ids.map((repoId) => ({ repoId })) },
   };
-}
-
-/**
- * 固定召回流程：推荐体是候选索引，映射回 repoId（ADR 0042 降级）。
- */
-export function parseAskFixedResponse(
-  raw: string,
-  candidates: readonly AskCandidate[],
-): AskParseResult {
-  const { body, recommendations: fenceBody } = splitAskStream(raw);
-  const summary = body.trim();
-  if (summary.length === 0) {
-    return { ok: false, error: 'empty_summary' };
-  }
-
-  const values = fenceBody === null ? [] : parseRecommendationValues(fenceBody);
-  const seen = new Set<number>();
-  const recommendations: AskRecommendation[] = [];
-  for (const value of values) {
-    const index = typeof value === 'number' ? value : Number(value);
-    if (!Number.isInteger(index)) {
-      continue;
-    }
-    const candidate = candidates[index];
-    if (!candidate || seen.has(index)) {
-      continue;
-    }
-    seen.add(index);
-    recommendations.push({ index, repoId: candidate.repoId });
-    if (recommendations.length >= ASK_MAX_RECOMMENDATIONS) {
-      break;
-    }
-  }
-
-  return { ok: true, answer: { summary, recommendations } };
 }

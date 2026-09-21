@@ -170,9 +170,6 @@ export function useTestAiConnection() {
               reason: null,
               model: input.model,
               testedAt: new Date().toISOString(),
-              tools: outcome.tools,
-              longContext: outcome.longContext,
-              mode: outcome.mode,
             }
           : {
               ok: false,

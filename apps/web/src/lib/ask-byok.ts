@@ -1,10 +1,4 @@
-import {
-  type AskGenerationMode,
-  type AskProviderId,
-  findAskProvider,
-  readAskGenerationMode,
-  readTestedModel,
-} from '@asterism/core';
+import { type AskProviderId, findAskProvider, readTestedModel } from '@asterism/core';
 import { useSyncExternalStore } from 'react';
 import { type AiConnection, readAiConnections, subscribeAiConnections } from './ai-connections';
 
@@ -32,7 +26,6 @@ export interface AskByokConfig {
   model: string;
   providerKey: string;
   consentedAt: string;
-  mode: AskGenerationMode;
 }
 
 const consentCache = new Map<string, AskConsent | null>();
@@ -80,14 +73,18 @@ function purgeLegacyByokSnapshot(userId: string) {
   }
 }
 
-/** v1 / v2 同意范围更窄，不得静默升级到全库目录出网（ADR 0045）。 */
-function purgeNarrowerConsent(userId: string) {
-  purgeLegacyByokSnapshot(userId);
-  try {
-    window.localStorage.removeItem(previousConsentStorageKey(userId));
-  } catch {
-    // Storage restrictions leave the old key untouched; it is never read again.
+/**
+ * 旧同意向前迁移（ADR 0046）：出网范围的变化通过披露文案说明，不再作废既有同意。
+ * 自部署场景里，唯一的用户就是部署者；强制重新点一次同意只是噪音，不产生新的保护。
+ */
+function migratePreviousConsent(userId: string): AskConsent | null {
+  const previousKey = previousConsentStorageKey(userId);
+  const migrated = parseStoredConsent(window.localStorage.getItem(previousKey));
+  if (migrated) {
+    window.localStorage.setItem(askConsentStorageKey(userId), JSON.stringify(migrated));
   }
+  window.localStorage.removeItem(previousKey);
+  return migrated;
 }
 
 function parseStoredConsent(raw: string | null): AskConsent | null {
@@ -124,7 +121,10 @@ export function readAskConsent(userId: string): AskConsent | null {
   let consent: AskConsent | null = null;
   try {
     consent = parseStoredConsent(window.localStorage.getItem(askConsentStorageKey(userId)));
-    purgeNarrowerConsent(userId);
+    if (!consent) {
+      consent = migratePreviousConsent(userId);
+    }
+    purgeLegacyByokSnapshot(userId);
   } catch {
     // Storage restrictions keep Ask unconfigured for this session.
   }
@@ -187,7 +187,6 @@ function resolveFromConnection(
     model,
     providerKey: connection.apiKey,
     consentedAt: consent.consentedAt,
-    mode: readAskGenerationMode(connection.generationCapability),
   };
 }
 

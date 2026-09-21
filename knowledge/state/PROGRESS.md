@@ -5,14 +5,16 @@
 ## 当前状态
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
-- **当前状态**：GitHub #41 Ask Asterism 已从固定 top-K RAG 重构为目录常驻浅层 Agent（ADR 0045）：全库目录作稳定前缀，本地 `filter` / `search` / `expand`，read gate 校验 `repoId`，consent v3 重新披露全库元数据出网，弱模型降级固定流程。本地实现已完成。待办：重新部署 `ask-generate`（放行 `tool` 角色、放大消息上限、透传 `tools`、SSE `tool_call`、能力探针），再用真实账号 smoke 后关闭 issue。
+- **当前状态**：GitHub #41 Ask Asterism 已从固定 top-K RAG 重构为目录常驻浅层 Agent（ADR 0045）：全库目录作稳定前缀，本地 `filter` / `search` / `expand`，read gate 校验 `repoId`。ADR 0046 撤销了 0045 的能力分级与同意重签——Agent 是唯一路径，固定召回流程已删除，`test` 回到纯连通性检测，旧同意向前迁移。待办：重新部署 `ask-generate` 与 Web，再用真实账号 smoke 后关闭 issue。
 - **当前工程 frontier**：三个纵向切片中的 #39、#40 已完成；#41（Ask Asterism 私有问答）本地实现已交付（ADR 0042 / 0044 / 0045：目录常驻 Agent + 客户端 BYOK + 无状态 SSE 代理 + read gate、无抽取式兜底），剩余远端部署与真实环境验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
 
 ## 已完成里程碑
 
-- **2026-09-21 · Ask 改为目录常驻 Agent（ADR 0045）**：摘除 Ask 对 embedding 与固定 top-K 的依赖；三档目录 + 本地穷举工具 + read gate + 可续接预算 + 能力分级 + consent v3。修订 product / architecture / data-model / ui-ux。见 ADR 0045 与 `logs/2026-09-21-ask-catalog-resident-agent.md`。
+- **2026-09-21 · 撤销 Ask 的能力分级与同意重签（ADR 0046）**：静默降级让既有连接在部署瞬间退回更差的固定召回路径，同意重签在单用户自部署下只制造中断。删除固定召回全部代码，`test` 回到单次连通性检测，旧同意向前迁移。见 ADR 0046 与 `logs/2026-09-21-ask-drop-capability-gate.md`。
+
+- **2026-09-21 · Ask 改为目录常驻 Agent（ADR 0045）**：摘除 Ask 对 embedding 与固定 top-K 的依赖；三档目录 + 本地穷举工具 + read gate + 可续接预算。修订 product / architecture / data-model / ui-ux。见 ADR 0045 与 `logs/2026-09-21-ask-catalog-resident-agent.md`。
 
 - **2026-09-21 · Ask 回答流式化（ADR 0044）**：生成契约从严格 JSON 改为 Markdown 正文 + `asterism-recommendations` 哨兵块；`ask-generate` 把上游 SSE 转为 Asterism 协议；超时拆成响应头 / 空闲；前端 `StreamingMarkdown` 隔离 `@lobehub/streamdown`。四道门禁全绿。见 ADR 0044 与 `logs/2026-09-21-ask-streaming-markdown.md`。
 
@@ -58,7 +60,7 @@
 
 ## 下一恢复点
 
-1. #41 收尾：目录常驻 Agent（ADR 0045）本地已交付。剩余：重新部署 `ask-generate`（`tool` 角色、消息上限、`tools` 透传、SSE `tool_call`、能力探针），维护者用真实账号 smoke——Settings 建立连接并做能力探针 → 激活（重新过 consent v3）→ ⌘K 提问（确认目录可见、工具轮次、正文流式、停止生成、追问、预算耗尽后继续深入、弱模型降级）→ 引用直达 Quick Look → 空库返回「未找到」且不与预算耗尽混淆——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
+1. #41 收尾：目录常驻 Agent（ADR 0045 / 0046）本地已交付。剩余：重新部署 `ask-generate`（`tool` 角色、消息上限、`tools` 透传、SSE `tool_call`）与 Web，维护者用真实账号 smoke——既有连接与既有同意应当无需任何手工操作即可继续提问 → ⌘K 提问（确认目录可见、工具轮次、正文流式、停止生成、追问、预算耗尽后继续深入）→ 引用直达 Quick Look → 空库返回「未找到」且不与预算耗尽混淆——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
 
 ## 环境提示
 

@@ -138,15 +138,7 @@ function configureAskConnection(overrides: Partial<AiConnection> = {}) {
     status: 'valid',
     credentialHint: 'sk-…test',
     apiKey: 'sk-test',
-    generationCapability: {
-      ok: true,
-      model: 'gpt-4o-mini',
-      testedAt: 'now',
-      reason: null,
-      tools: true,
-      longContext: true,
-      mode: 'agent',
-    },
+    generationCapability: { ok: true, model: 'gpt-4o-mini', testedAt: 'now', reason: null },
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -227,24 +219,21 @@ describe('useAskQuestion', () => {
     expect(mocks.streamAskGenerate).toHaveBeenCalledTimes(2);
   });
 
-  it('falls back to a single fixed generation when the model cannot drive tools', async () => {
-    configureAskConnection({
-      generationCapability: {
-        ok: true,
-        model: 'gpt-4o-mini',
-        testedAt: 'now',
-        reason: null,
-        tools: false,
-        longContext: false,
-        mode: 'fixed',
-      },
+  // ADR 0046：不按模型能力分流。不调工具的模型照样拿到完整目录并给出正文，
+  // 只是没有通过 read gate 的推荐卡片——这远好过退回固定召回后答「没找到」。
+  it('answers from the catalog when the model never calls a tool', async () => {
+    mocks.streamAskGenerate.mockImplementationOnce(async (_client, _request, options) => {
+      options.onDelta('Nothing in your collection does that.');
+      return { status: 'success', content: 'Nothing in your collection does that.', toolCalls: [] };
     });
     await renderHarness();
     await flushWork();
     await ask('websocket library');
     await flushWork();
+
     expect(latest?.phase.kind).toBe('answered');
-    expect(mocks.streamAskGenerate).toHaveBeenCalledTimes(1);
-    expect(mocks.streamAskGenerate.mock.calls[0]?.[1]).not.toHaveProperty('tools');
+    expect(latest?.turns[0]?.summary).toBe('Nothing in your collection does that.');
+    expect(latest?.turns[0]?.recommendations).toEqual([]);
+    expect(mocks.streamAskGenerate.mock.calls[0]?.[1]).toHaveProperty('tools');
   });
 });

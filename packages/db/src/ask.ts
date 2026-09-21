@@ -211,12 +211,7 @@ export interface AskTestRequest extends AskModelsRequest {
 
 /** 探针结论：`reason` 沿用旧探针词汇，供界面映射可读的失败原因。 */
 export type AskTestOutcome =
-  | {
-      status: 'passed';
-      tools: boolean;
-      longContext: boolean;
-      mode: 'agent' | 'fixed';
-    }
+  | { status: 'passed' }
   | { status: 'failed'; reason: 'unauthorized' | 'empty_response' | 'network' }
   | { status: 'unavailable' };
 
@@ -245,12 +240,7 @@ export async function invokeAskTest(
   }
   if (outcome.status === 'success') {
     if (outcome.ok === true) {
-      return {
-        status: 'passed',
-        tools: outcome.tools === true,
-        longContext: outcome.longContext === true,
-        mode: outcome.mode === 'agent' ? 'agent' : 'fixed',
-      };
+      return { status: 'passed' };
     }
     if (outcome.reason === 'empty_response') {
       return { status: 'failed', reason: 'empty_response' };

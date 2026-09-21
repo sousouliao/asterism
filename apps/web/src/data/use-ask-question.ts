@@ -4,15 +4,12 @@ import {
   type AskExchange,
   type AskLoopState,
   buildAskCatalog,
-  buildAskFixedPrompt,
   buildAskPrompt,
   canContinueAskLoop,
   createAskLoopState,
   executeAskTool,
   noteAskToolRound,
-  parseAskFixedResponse,
   parseAskResponse,
-  selectAskCandidates,
   splitAskStream,
 } from '@asterism/core';
 import { type AskGenerateMessage, type StarredRepoRecord, streamAskGenerate } from '@asterism/db';
@@ -90,8 +87,9 @@ function toolLabelFor(name: string): string {
 }
 
 /**
- * Ask Asterism 编排（GitHub #41，ADR 0045）：目录常驻 Agent 循环；
- * 能力不足的模型降级到固定 top-K 召回。空库不调用 LLM。
+ * Ask Asterism 编排（GitHub #41，ADR 0045 / 0046）：目录常驻 Agent 循环，唯一路径。
+ * 不按模型能力分流——不会调工具的模型照样拿到完整目录，只是没有推荐卡片。
+ * 空库不调用 LLM。
  */
 export function useAskQuestion() {
   const { session } = useSession();
@@ -206,10 +204,6 @@ export function useAskQuestion() {
         return;
       }
 
-      if (byok.mode === 'fixed') {
-        await runFixed(token, records);
-        return;
-      }
       await runAgent(token, records);
     };
 
@@ -261,87 +255,6 @@ export function useAskQuestion() {
         rafRef.current = null;
       }
       return outcome;
-    };
-
-    const runFixed = async (currentToken: number, records: StarredRepoRecord[]) => {
-      const candidates = selectAskCandidates({
-        question: submission.question,
-        items: records,
-        memoriesByRepoId,
-      });
-      if (candidates.length === 0) {
-        setPhase({ kind: 'not_found', question: submission.question });
-        return;
-      }
-      setPhase({ kind: 'generating', question: submission.question, text: '' });
-      const prompt = buildAskFixedPrompt({
-        question: submission.question,
-        candidates,
-        memoriesByRepoId,
-        history: submission.history,
-        language: document.documentElement.lang || undefined,
-        includeNotes,
-      });
-      try {
-        const outcome = await streamOnce(
-          [
-            { role: 'system', content: prompt.system },
-            { role: 'user', content: prompt.user },
-          ],
-          submission.question,
-          false,
-        );
-        if (settledId.current !== currentToken) {
-          return;
-        }
-        if (outcome.status !== 'success') {
-          setPhase({
-            kind: 'error',
-            question: submission.question,
-            reason:
-              outcome.status === 'timeout'
-                ? 'timeout'
-                : outcome.status === 'invalid_provider_key'
-                  ? 'invalid_key'
-                  : outcome.status === 'provider_rejected'
-                    ? 'provider_rejected'
-                    : 'retryable',
-          });
-          return;
-        }
-        const parsed = parseAskFixedResponse(outcome.content, candidates);
-        if (!parsed.ok) {
-          if (stopRef.current) {
-            setPhase({ kind: 'idle' });
-            return;
-          }
-          setPhase({ kind: 'error', question: submission.question, reason: 'unparsable' });
-          return;
-        }
-        const turn: AskTurn = {
-          id: submission.id,
-          question: submission.question,
-          summary: parsed.answer.summary,
-          recommendations: parsed.answer.recommendations.flatMap((recommendation) => {
-            const candidate = candidates.find((entry) => entry.repoId === recommendation.repoId);
-            return candidate ? [candidate] : [];
-          }),
-        };
-        setTurns((current) => [...current, turn]);
-        setPhase({ kind: 'answered', turn });
-      } catch (error) {
-        if (settledId.current !== currentToken) {
-          return;
-        }
-        if (isAbortError(error) && stopRef.current) {
-          setPhase({ kind: 'idle' });
-          return;
-        }
-        if (isAbortError(error)) {
-          return;
-        }
-        setPhase({ kind: 'error', question: submission.question, reason: 'retryable' });
-      }
     };
 
     const runAgent = async (currentToken: number, records: StarredRepoRecord[]) => {

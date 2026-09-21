@@ -91,19 +91,11 @@ describe('ask consent storage', () => {
     expect(readAskConsent('user-a')).toBeNull();
   });
 
-  it('does not upgrade v1 or v2 consent to the catalog-wide v3 scope', () => {
+  // ADR 0046：出网范围变化由披露文案说明，不再把已有同意作废重来。
+  it('carries a v2 consent forward instead of asking again', () => {
     const record = connection();
     writeAiConnections('user-a', [record]);
     writeAiSettings('user-a', { generationConnectionId: record.id, includeNotesInAi: true });
-    localStorage.setItem(
-      'asterism:ask-byok:v1:user-a',
-      JSON.stringify({
-        provider: 'deepseek',
-        model: 'deepseek-chat',
-        providerKey: 'sk-leaked',
-        consentedAt: '2026-02-01T00:00:00Z',
-      }),
-    );
     localStorage.setItem(
       'asterism:ask-consent:v2:user-a',
       JSON.stringify({
@@ -113,10 +105,17 @@ describe('ask consent storage', () => {
       }),
     );
 
-    expect(readAskConsent('user-a')).toBeNull();
-    expect(resolveAskByok('user-a')).toBeNull();
-    expect(localStorage.getItem('asterism:ask-byok:v1:user-a')).toBeNull();
+    expect(readAskConsent('user-a')).toEqual({
+      connectionId: 'conn-1',
+      consentedProvider: 'deepseek',
+      consentedAt: '2026-02-01T00:00:00Z',
+    });
+    expect(resolveAskByok('user-a')).toMatchObject({ provider: 'deepseek' });
     expect(localStorage.getItem('asterism:ask-consent:v2:user-a')).toBeNull();
+    expect(JSON.parse(localStorage.getItem(askConsentStorageKey('user-a')) ?? '{}')).toMatchObject({
+      connectionId: 'conn-1',
+      consentedAt: '2026-02-01T00:00:00Z',
+    });
   });
 
   it('resolves the key from the connection library at use time', () => {

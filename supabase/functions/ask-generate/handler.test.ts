@@ -483,9 +483,6 @@ describe('ask-generate test action', () => {
       status: 'success',
       ok: true,
       reason: null,
-      tools: false,
-      longContext: false,
-      mode: 'fixed',
     });
 
     const call = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -535,61 +532,18 @@ describe('ask-generate test action', () => {
     await expect(outcome(response)).resolves.toEqual({ status: 'invalid_provider_key' });
   });
 
-  it('grades a model as agent when tool calls locate the catalog needle', async () => {
-    const ping = new Response(
-      JSON.stringify({
-        choices: [
-          {
-            message: {
-              tool_calls: [
-                {
-                  id: 'c1',
-                  type: 'function',
-                  function: { name: 'ping', arguments: '{"ok":true}' },
-                },
-              ],
-            },
-          },
-        ],
-      }),
-      { status: 200 },
-    );
-    const expand = new Response(
-      JSON.stringify({
-        choices: [
-          {
-            message: {
-              tool_calls: [
-                {
-                  id: 'c2',
-                  type: 'function',
-                  function: {
-                    name: 'expand',
-                    arguments: '{"ids":["needle-unique-asterism"]}',
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      }),
-      { status: 200 },
-    );
+  // ADR 0046：探针只回答「这条连接能不能用」。工具调用与长上下文不再分级，
+  // 因为 Ask 已经没有第二条路径可降级，分级只会把可用的模型挡在门外。
+  it('probes connectivity with a single upstream request and grades nothing', async () => {
     const deps = dependencies({
-      fetchProvider: vi
-        .fn()
-        .mockResolvedValueOnce(providerSuccess('{"ok":true}'))
-        .mockResolvedValueOnce(ping)
-        .mockResolvedValueOnce(expand),
+      fetchProvider: vi.fn().mockResolvedValue(providerSuccess('{"ok":true}')),
     });
     const response = await createAskGenerateHandler(deps)(request(testBody()));
     await expect(outcome(response)).resolves.toEqual({
       status: 'success',
       ok: true,
       reason: null,
-      tools: true,
-      longContext: true,
-      mode: 'agent',
     });
+    expect((deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
   });
 });

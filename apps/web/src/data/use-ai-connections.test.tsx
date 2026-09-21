@@ -115,12 +115,7 @@ describe('use-ai-connections mutations', () => {
     writeAiConnections(USER, [
       storedConnection({ status: 'untested', generationCapability: null }),
     ]);
-    db.invokeAskTest.mockResolvedValue({
-      status: 'passed',
-      tools: true,
-      longContext: true,
-      mode: 'agent',
-    });
+    db.invokeAskTest.mockResolvedValue({ status: 'passed' });
     const hook = await renderHookProbe(useTestAiConnection);
 
     let updated: AiConnection | undefined;
@@ -136,10 +131,8 @@ describe('use-ai-connections mutations', () => {
     expect(updated?.status).toBe('valid');
     expect(updated?.generationCapability).toMatchObject({
       ok: true,
+      reason: null,
       model: 'deepseek-reasoner',
-      tools: true,
-      longContext: true,
-      mode: 'agent',
     });
   });
 

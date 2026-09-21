@@ -192,12 +192,7 @@ describe('invokeAskTest', () => {
   it('sends the test action and reports a passed probe', async () => {
     const { client, invoke } = clientReturning({ status: 'success', ok: true, reason: null });
 
-    await expect(invokeAskTest(client, testRequest)).resolves.toEqual({
-      status: 'passed',
-      tools: false,
-      longContext: false,
-      mode: 'fixed',
-    });
+    await expect(invokeAskTest(client, testRequest)).resolves.toEqual({ status: 'passed' });
     expect(invoke).toHaveBeenCalledWith('ask-generate', {
       body: {
         action: 'test',

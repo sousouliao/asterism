@@ -76,7 +76,7 @@ supabase functions deploy ask-generate
 - `read-repo-readme`：先验证仓库属于当前用户的 Star 库，再从 GitHub 读取 README；README 不持久化到数据库。
 - `bulk-organize`：验证用户与仓库、标签、集合归属，按有界批次幂等写入并持久化逐关系结果；不访问 GitHub，也不执行 star/unstar。
 
-第四项 `ask-generate` 是 Ask Asterism 的无状态 BYOK 代理（ADR 0042 / 0043 / 0044 / 0045）：验证 Supabase 用户后，把客户端组装的 prompt（含目录前缀、`tools` 与 `tool` 消息）以 `stream: true` 转发到用户自带 key 的 OpenAI 兼容上游（Provider 白名单：DeepSeek / OpenAI / Groq / OpenRouter），并把上游 SSE 转换为 Asterism 协议（`event: delta | tool_call | error | done`）；Settings 的连接管理另走 `models`（模型检测）与 `test`（连通性 + 能力分级）两个 JSON 动作。它不新增任何服务端 secret 或表——用户的 API key 只存其浏览器本地，仅随请求透传，不落日志。不部署此函数时，除 Ask Asterism 问答与连接检测外的全部功能不受影响（检测失败时界面回退手填模型 ID）。目录常驻 Agent 与 SSE `tool_call` 必须重新部署本函数后才生效。
+第四项 `ask-generate` 是 Ask Asterism 的无状态 BYOK 代理（ADR 0042 / 0043 / 0044 / 0045）：验证 Supabase 用户后，把客户端组装的 prompt（含目录前缀、`tools` 与 `tool` 消息）以 `stream: true` 转发到用户自带 key 的 OpenAI 兼容上游（Provider 白名单：DeepSeek / OpenAI / Groq / OpenRouter），并把上游 SSE 转换为 Asterism 协议（`event: delta | tool_call | error | done`）；Settings 的连接管理另走 `models`（模型检测）与 `test`（单次连通性检测，ADR 0046 起不再做能力分级）两个 JSON 动作。它不新增任何服务端 secret 或表——用户的 API key 只存其浏览器本地，仅随请求透传，不落日志。不部署此函数时，除 Ask Asterism 问答与连接检测外的全部功能不受影响（检测失败时界面回退手填模型 ID）。目录常驻 Agent 与 SSE `tool_call` 必须重新部署本函数后才生效。
 
 ## 5. 配置并验证本地 Web
 

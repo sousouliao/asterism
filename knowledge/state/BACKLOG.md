@@ -4,7 +4,7 @@
 
 ## 当前 frontier
 
-- [ ] **个人私有知识问答（GitHub #41）· 目录常驻 Agent 本地实现已交付，待重新部署 `ask-generate` 与真实环境验收**：`feat(ask): catalog-resident agent for Ask Asterism`。生成策略为客户端 BYOK + 目录常驻浅层 Agent + 无状态 `ask-generate` SSE 代理 + read gate、无抽取式兜底（ADR 0042 / 0044 / 0045）；core / Edge Function / db / Settings / Ask 面板 / consent v3 / 双语 i18n / dev 预览与四道门禁全部完成（`logs/2026-09-21-ask-catalog-resident-agent.md`）。剩余：远端重新部署 `ask-generate`、真实账号 smoke（目录可见、工具轮次、继续深入、弱模型降级、consent v3）、production 验收后关闭 issue。
+- [ ] **个人私有知识问答（GitHub #41）· 目录常驻 Agent 本地实现已交付，待重新部署 `ask-generate` 与真实环境验收**：`feat(ask): catalog-resident agent for Ask Asterism`。生成策略为客户端 BYOK + 目录常驻浅层 Agent + 无状态 `ask-generate` SSE 代理 + read gate、无抽取式兜底（ADR 0042 / 0044 / 0045 / 0046）；core / Edge Function / db / Settings / Ask 面板 / 双语 i18n / dev 预览与四道门禁全部完成（`logs/2026-09-21-ask-catalog-resident-agent.md`、`logs/2026-09-21-ask-drop-capability-gate.md`）。剩余：远端重新部署 `ask-generate` 与 Web、真实账号 smoke（既有连接与同意免手工、目录可见、工具轮次、继续深入）、production 验收后关闭 issue。
 
 ## 已完成近期 frontier
 
