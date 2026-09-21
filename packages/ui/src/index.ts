@@ -99,6 +99,7 @@ export {
 export { Skeleton } from './components/ui/skeleton';
 export { Toaster } from './components/ui/sonner';
 export { StreamingMarkdown } from './components/ui/streaming-markdown';
+export { Switch } from './components/ui/switch';
 export {
   Table,
   TableBody,

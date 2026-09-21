@@ -1,4 +1,4 @@
-import { readGenerationCapability, readTestedModel } from '@asterism/core';
+import { readGenerationCapability } from '@asterism/core';
 import {
   Badge,
   Button,
@@ -12,15 +12,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Label,
-  SegmentedControl,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Separator,
   Skeleton,
+  Switch,
   toast,
 } from '@asterism/ui';
 import {
@@ -53,8 +46,6 @@ import { ConfirmDialog } from './confirm-dialog';
 import { EmptyState } from './empty-state';
 import { PendingActionContent } from './pending-action-content';
 import { SectionHeader } from './section-header';
-
-const NONE_VALUE = '__none__';
 
 type StatusBadgeStyle = { variant: 'secondary' | 'outline'; className?: string };
 
@@ -135,19 +126,10 @@ export function AiConnectionsManager({
 
   const failSettings = () => toast.error(t('settings.ai.settingsError'));
 
-  const selectableConnections = connections.filter(
-    (connection) => connection.status === 'valid' || connection.id === activeConnectionId,
-  );
-
   const activeConnection = connections.find((connection) => connection.id === activeConnectionId);
   const activeProviderName = activeConnection
     ? t(`settings.ai.adapters.${activeConnection.adapter}`)
     : '';
-
-  const activeModel =
-    settings?.selectedModel ??
-    readTestedModel(activeConnection?.generationCapability ?? null) ??
-    activeConnection?.models?.[0];
 
   const testedConnection =
     testConnection.data?.id === testing?.id ? testConnection.data : undefined;
@@ -381,77 +363,6 @@ export function AiConnectionsManager({
       {connections.length > 0 ? (
         <div className="flex flex-col gap-4 rounded-lg border p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Label htmlFor="ai-active-connection" className="text-foreground text-sm">
-              {t('settings.ai.activeConnectionLabel')}
-            </Label>
-            <Select
-              disabled={updateSettings.isPending}
-              value={activeConnectionId ?? NONE_VALUE}
-              onValueChange={(value) => activateConnection(value === NONE_VALUE ? null : value)}
-            >
-              <SelectTrigger id="ai-active-connection" className="w-full sm:w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE_VALUE}>{t('settings.ai.activeConnectionNone')}</SelectItem>
-                {selectableConnections.map((connection) => {
-                  const displayName =
-                    connection.name && connection.name !== connection.adapter
-                      ? connection.name
-                      : t(`settings.ai.adapters.${connection.adapter}`);
-                  return (
-                    <SelectItem key={connection.id} value={connection.id}>
-                      {displayName}
-                      {connection.credentialHint ? ` (${connection.credentialHint})` : ''}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-          <Separator />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <span className="font-medium text-foreground text-sm">
-                {t('settings.ai.modelLabel')}
-              </span>
-              <span className="text-caption text-muted-foreground">
-                {t('settings.ai.modelSelectHint')}
-              </span>
-            </div>
-            {activeConnection && (activeConnection.models?.length ?? 0) > 0 ? (
-              <Select
-                disabled={updateSettings.isPending}
-                value={activeModel ?? activeConnection.models?.[0]}
-                onValueChange={(selectedModel) =>
-                  updateSettings.mutate({ selectedModel }, { onError: failSettings })
-                }
-              >
-                <SelectTrigger className="w-full sm:w-56 font-mono text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeConnection.models?.map((model) => (
-                    <SelectItem key={model} value={model} className="font-mono text-xs">
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <span
-                className={
-                  activeModel
-                    ? 'font-mono text-foreground text-sm'
-                    : 'text-muted-foreground text-sm'
-                }
-              >
-                {activeModel ?? t('settings.ai.modelUntested')}
-              </span>
-            )}
-          </div>
-          <Separator />
-          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-col gap-1">
               <span className="font-medium text-foreground text-sm">
                 {t('settings.ai.includeNotesLabel')}
@@ -462,27 +373,13 @@ export function AiConnectionsManager({
                   : t('settings.ai.includeNotesUnavailable')}
               </span>
             </div>
-            <SegmentedControl<'on' | 'off'>
-              value={settings?.includeNotesInAi ? 'on' : 'off'}
-              onValueChange={(value) =>
-                updateSettings.mutate(
-                  { includeNotesInAi: value === 'on' },
-                  { onError: failSettings },
-                )
+            <Switch
+              checked={settings?.includeNotesInAi ?? true}
+              onCheckedChange={(checked) =>
+                updateSettings.mutate({ includeNotesInAi: checked }, { onError: failSettings })
               }
-              ariaLabel={t('settings.ai.includeNotesLabel')}
-              options={[
-                {
-                  value: 'off',
-                  label: t('settings.ai.toggleOff'),
-                  disabled: updateSettings.isPending,
-                },
-                {
-                  value: 'on',
-                  label: t('settings.ai.toggleOn'),
-                  disabled: updateSettings.isPending || !activeConnection,
-                },
-              ]}
+              disabled={updateSettings.isPending || !activeConnection}
+              aria-label={t('settings.ai.includeNotesLabel')}
             />
           </div>
         </div>

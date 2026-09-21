@@ -114,24 +114,6 @@ async function openConnectionMenu() {
   return [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')];
 }
 
-async function pickActiveConnection(name: string) {
-  const trigger = container.querySelector<HTMLButtonElement>('#ai-active-connection');
-  await act(async () => {
-    trigger?.click();
-  });
-  // Radix 弹层挂在 body；陈旧弹层可能残留，取最后一个匹配的新鲜选项。
-  const option = [...document.body.querySelectorAll('[role="option"]')]
-    .filter((item) => item.textContent?.includes(name))
-    .pop();
-  await act(async () => {
-    // Radix Select 2.x 依据 pointerup 选择，click 兜底。
-    option?.dispatchEvent(
-      new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 1 }),
-    );
-    option?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-  });
-}
-
 describe('AiConnectionsManager', () => {
   it('teaches with an empty state and hides preferences when there are no connections', async () => {
     hooks.useAiConnections.mockReturnValue({ data: [], isLoading: false });
@@ -141,7 +123,7 @@ describe('AiConnectionsManager', () => {
 
     expect(container.textContent).toContain('No connections yet');
     expect(container.textContent).toContain('Connect an AI provider to enable Ask Asterism');
-    expect(container.textContent).not.toContain('Active connection');
+    expect(container.textContent).not.toContain('Include notes');
   });
 
   it('lists connections with their status and surfaces the active preferences', async () => {
@@ -152,10 +134,10 @@ describe('AiConnectionsManager', () => {
 
     expect(container.textContent).toContain('Personal DeepSeek');
     expect(container.textContent).toContain('Valid');
-    expect(container.textContent).toContain('Active connection');
-    expect(container.textContent).toContain('deepseek-chat');
     expect(container.textContent).toContain('Last test:');
     expect(container.textContent).toContain('DeepSeek');
+    expect(container.textContent).not.toContain('In use');
+    expect(container.textContent).not.toContain('Active connection');
     expect(container.textContent).not.toContain('Generation connections');
   });
 
@@ -195,6 +177,26 @@ describe('AiConnectionsManager', () => {
   });
 
   it('gates activating a new provider behind the egress consent dialog', async () => {
+    let createSuccess: ((created: AiConnection) => void) | undefined;
+    const create = {
+      ...idleMutation(),
+      mutate: vi.fn(
+        (_payload: unknown, options?: { onSuccess?: (created: AiConnection) => void }) => {
+          createSuccess = options?.onSuccess;
+        },
+      ),
+    };
+    hooks.useCreateAiConnection.mockReturnValue(create);
+    hooks.useTestAndDiscoverProbe.mockReturnValue({
+      ...idleMutation(),
+      mutate: (_payload: unknown, options?: { onSuccess?: (outcome: unknown) => void }) => {
+        options?.onSuccess?.({
+          ok: true,
+          models: ['deepseek-chat'],
+          testedAt: new Date().toISOString(),
+        });
+      },
+    });
     const updateSettings = idleMutation();
     hooks.useUpdateAiSettings.mockReturnValue(updateSettings);
     hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
@@ -202,7 +204,44 @@ describe('AiConnectionsManager', () => {
     askByok.readAskConsent.mockReturnValue(null);
     await render();
 
-    await pickActiveConnection('Personal DeepSeek');
+    const addBtn = [...container.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
+      b.textContent?.includes('Add connection'),
+    );
+    await act(async () => {
+      addBtn?.click();
+    });
+
+    const dialog = document.body.querySelector('[role="dialog"]');
+    const keyInput = dialog?.querySelector<HTMLInputElement>('input[type="password"]');
+    await act(async () => {
+      if (keyInput) {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          'value',
+        );
+        descriptor?.set?.call(keyInput, 'sk-test-key-12345');
+        keyInput.dispatchEvent(new Event('input', { bubbles: true }));
+        keyInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    const testBtn = [...(dialog?.querySelectorAll('button') ?? [])].find((b) =>
+      b.textContent?.includes('Test connection'),
+    );
+    await act(async () => {
+      testBtn?.click();
+    });
+
+    const submitBtn = [...(dialog?.querySelectorAll('button') ?? [])].find(
+      (b) => b.getAttribute('type') === 'submit' && b.textContent?.includes('Add connection'),
+    );
+    await act(async () => {
+      submitBtn?.click();
+    });
+
+    await act(async () => {
+      createSuccess?.(connection);
+    });
 
     // 尚未同意：先披露（弹层挂在 body），不落偏好。
     expect(document.body.textContent).toContain('Allow Ask to send context to DeepSeek');
@@ -221,6 +260,26 @@ describe('AiConnectionsManager', () => {
   });
 
   it('activates without re-disclosure when the provider was already consented', async () => {
+    let createSuccess: ((created: AiConnection) => void) | undefined;
+    const create = {
+      ...idleMutation(),
+      mutate: vi.fn(
+        (_payload: unknown, options?: { onSuccess?: (created: AiConnection) => void }) => {
+          createSuccess = options?.onSuccess;
+        },
+      ),
+    };
+    hooks.useCreateAiConnection.mockReturnValue(create);
+    hooks.useTestAndDiscoverProbe.mockReturnValue({
+      ...idleMutation(),
+      mutate: (_payload: unknown, options?: { onSuccess?: (outcome: unknown) => void }) => {
+        options?.onSuccess?.({
+          ok: true,
+          models: ['deepseek-chat'],
+          testedAt: new Date().toISOString(),
+        });
+      },
+    });
     const updateSettings = idleMutation();
     hooks.useUpdateAiSettings.mockReturnValue(updateSettings);
     hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
@@ -228,7 +287,44 @@ describe('AiConnectionsManager', () => {
     askByok.readAskConsent.mockReturnValue({ consentedProvider: 'deepseek' });
     await render();
 
-    await pickActiveConnection('Personal DeepSeek');
+    const addBtn = [...container.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
+      b.textContent?.includes('Add connection'),
+    );
+    await act(async () => {
+      addBtn?.click();
+    });
+
+    const dialog = document.body.querySelector('[role="dialog"]');
+    const keyInput = dialog?.querySelector<HTMLInputElement>('input[type="password"]');
+    await act(async () => {
+      if (keyInput) {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          'value',
+        );
+        descriptor?.set?.call(keyInput, 'sk-test-key-12345');
+        keyInput.dispatchEvent(new Event('input', { bubbles: true }));
+        keyInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    const testBtn = [...(dialog?.querySelectorAll('button') ?? [])].find((b) =>
+      b.textContent?.includes('Test connection'),
+    );
+    await act(async () => {
+      testBtn?.click();
+    });
+
+    const submitBtn = [...(dialog?.querySelectorAll('button') ?? [])].find(
+      (b) => b.getAttribute('type') === 'submit' && b.textContent?.includes('Add connection'),
+    );
+    await act(async () => {
+      submitBtn?.click();
+    });
+
+    await act(async () => {
+      createSuccess?.(connection);
+    });
 
     expect(updateSettings.mutate).toHaveBeenCalledWith(
       { generationConnectionId: 'conn-1' },
@@ -244,12 +340,8 @@ describe('AiConnectionsManager', () => {
     await render();
 
     expect(container.textContent).toContain('Choose a valid active connection');
-    const onOption = [
-      ...container.querySelectorAll<HTMLButtonElement>(
-        'button[data-slot="segmented-control-item"]',
-      ),
-    ].find((button) => button.textContent === 'On');
-    expect(onOption?.disabled).toBe(true);
+    const switchEl = container.querySelector<HTMLButtonElement>('button[data-slot="switch"]');
+    expect(switchEl?.disabled).toBe(true);
   });
 
   it('opens the test dialog with model discovery from the restored flow', async () => {
