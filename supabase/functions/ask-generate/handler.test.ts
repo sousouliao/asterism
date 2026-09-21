@@ -500,16 +500,19 @@ describe('ask-generate test action', () => {
     });
   });
 
-  it('omits json mode for providers without support and validates the model id', async () => {
+  it('validates provider and model id', async () => {
     const deps = dependencies({
       fetchProvider: vi.fn().mockResolvedValue(providerSuccess('{"ok":true}')),
     });
-    await createAskGenerateHandler(deps)(request(testBody({ provider: 'openrouter' })));
-    const init = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
-    expect(JSON.parse(String(init.body))).not.toHaveProperty('response_format');
+    const badProvider = await createAskGenerateHandler(deps)(
+      request(testBody({ provider: 'unsupported-provider' })),
+    );
+    expect(badProvider.status).toBe(400);
 
-    const bad = await createAskGenerateHandler(deps)(request(testBody({ model: 'bad model!' })));
-    expect(bad.status).toBe(400);
+    const badModel = await createAskGenerateHandler(deps)(
+      request(testBody({ model: 'bad model!' })),
+    );
+    expect(badModel.status).toBe(400);
   });
 
   it('maps empty probe content to an invalid outcome with a format reason', async () => {

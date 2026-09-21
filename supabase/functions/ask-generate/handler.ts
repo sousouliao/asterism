@@ -405,11 +405,32 @@ function validateTestBody(raw: unknown): ValidatedTestBody | null {
   return { ...credentials, model };
 }
 
+function isLikelyChatModel(provider: string, id: string): boolean {
+  if (provider === 'deepseek') {
+    return true;
+  }
+  const lower = id.toLowerCase();
+  if (
+    lower.includes('embedding') ||
+    lower.includes('whisper') ||
+    lower.includes('tts') ||
+    lower.includes('dall-e') ||
+    lower.includes('moderation') ||
+    lower.includes('babbage') ||
+    lower.includes('davinci') ||
+    lower.includes('realtime') ||
+    lower.includes('audio')
+  ) {
+    return false;
+  }
+  return true;
+}
+
 /**
- * 解析 OpenAI 兼容 `GET /models` 响应（`data[].id`）：trim、去重、按字典序排序并封顶。
+ * 解析 OpenAI 兼容 `GET /models` 响应（`data[].id`）：过滤非 Chat 模型、trim、去重、按字典序排序并封顶。
  * 上游 200 但无可解析条目时返回空列表，由客户端按「检测不可用」处理。
  */
-function parseModelList(payload: unknown): string[] {
+function parseModelList(payload: unknown, provider: string): string[] {
   const data = (payload as { data?: unknown } | null)?.data;
   if (!Array.isArray(data)) {
     return [];
@@ -418,7 +439,10 @@ function parseModelList(payload: unknown): string[] {
   for (const entry of data) {
     const id = (entry as { id?: unknown } | null)?.id;
     if (typeof id === 'string' && id.trim().length > 0) {
-      ids.add(id.trim());
+      const trimmed = id.trim();
+      if (isLikelyChatModel(provider, trimmed)) {
+        ids.add(trimmed);
+      }
     }
   }
   return [...ids].sort((a, b) => a.localeCompare(b)).slice(0, MAX_MODELS);
@@ -490,7 +514,10 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
         return json({ status: 'retryable_error' }, 502);
       }
       try {
-        return json({ status: 'success', models: parseModelList(await modelsResponse.json()) });
+        return json({
+          status: 'success',
+          models: parseModelList(await modelsResponse.json(), modelsBody.provider),
+        });
       } catch {
         return json({ status: 'retryable_error' }, 502);
       }

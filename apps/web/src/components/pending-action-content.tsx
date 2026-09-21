@@ -40,7 +40,7 @@ export function PendingActionContent({
         )}
       >
         <LoaderCircleIcon
-          className="size-4 animate-spin motion-reduce:animate-none"
+          className={cn('size-4 animate-spin motion-reduce:animate-none', iconClassName)}
           aria-hidden="true"
         />
         {pendingLabel}

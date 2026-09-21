@@ -1,4 +1,4 @@
-import { readTestedModel } from '@asterism/core';
+import { type AskProviderId, findAskProvider, readTestedModel } from '@asterism/core';
 import { invokeAskModels, invokeAskTest } from '@asterism/db';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '../auth/use-session';
@@ -60,6 +60,92 @@ export function useAiSettings() {
   });
 }
 
+export interface TestAndDiscoverOutcome {
+  ok: boolean;
+  status: 'passed' | 'failed' | 'unavailable';
+  reason: string | null;
+  model: string;
+  models: string[];
+  testedAt: string;
+}
+
+export async function executeTestAndDiscover(
+  client: typeof supabase,
+  input: {
+    provider: AskProviderId;
+    apiKey: string;
+    model?: string;
+  },
+): Promise<TestAndDiscoverOutcome> {
+  const defaultModel = findAskProvider(input.provider)?.defaultModel ?? 'gpt-4o-mini';
+
+  let discoveredModels: string[] = [];
+  try {
+    const modelsOutcome = await invokeAskModels(client, {
+      provider: input.provider,
+      providerKey: input.apiKey,
+    });
+    if (modelsOutcome.status === 'success' && modelsOutcome.models.length > 0) {
+      discoveredModels = modelsOutcome.models;
+    }
+  } catch {
+    // 允许继续尝试 probe
+  }
+
+  if (discoveredModels.length === 0) {
+    discoveredModels =
+      input.provider === 'deepseek'
+        ? ['deepseek-chat', 'deepseek-reasoner']
+        : ['gpt-4o-mini', 'gpt-4o', 'o3-mini'];
+  }
+
+  const testModel =
+    input.model ??
+    (discoveredModels.includes(defaultModel)
+      ? defaultModel
+      : (discoveredModels[0] ?? defaultModel));
+
+  const outcome = await invokeAskTest(client, {
+    provider: input.provider,
+    model: testModel,
+    providerKey: input.apiKey,
+  });
+
+  const now = new Date().toISOString();
+  if (outcome.status === 'passed') {
+    return {
+      ok: true,
+      status: 'passed',
+      reason: null,
+      model: testModel,
+      models: discoveredModels,
+      testedAt: now,
+    };
+  }
+
+  return {
+    ok: false,
+    status: outcome.status,
+    reason: outcome.status === 'failed' ? outcome.reason : 'network',
+    model: testModel,
+    models: discoveredModels,
+    testedAt: now,
+  };
+}
+
+/** 供添加连接对话框在未入库前探测 key、连通性并拉取可用模型 */
+export function useTestAndDiscoverProbe() {
+  return useMutation({
+    mutationFn: async (input: {
+      provider: AskProviderId;
+      apiKey: string;
+      model?: string;
+    }): Promise<TestAndDiscoverOutcome> => {
+      return await executeTestAndDiscover(supabase, input);
+    },
+  });
+}
+
 /** 新建生成连接（key 只写入浏览器本地库）。 */
 export function useCreateAiConnection() {
   const { session } = useSession();
@@ -69,22 +155,27 @@ export function useCreateAiConnection() {
   return useMutation({
     mutationFn: (input: {
       adapter: AiConnection['adapter'];
-      name: string;
+      name?: string;
       credential: { apiKey: string };
+      models?: string[];
+      generationCapability?: unknown;
+      status?: AiConnection['status'];
     }): Promise<AiConnection> => {
       if (!userId) {
         throw new Error(NO_USER);
       }
       const now = new Date().toISOString();
+      const defaultName = input.adapter === 'deepseek' ? 'DeepSeek' : 'OpenAI';
       const connection: AiConnection = {
         id: crypto.randomUUID(),
         adapter: input.adapter,
-        name: input.name,
+        name: input.name ?? defaultName,
         baseUrl: null,
-        status: 'untested',
+        status: input.status ?? 'untested',
         credentialHint: credentialHint(input.credential.apiKey),
         apiKey: input.credential.apiKey.trim(),
-        generationCapability: null,
+        generationCapability: input.generationCapability ?? null,
+        models: input.models,
         createdAt: now,
         updatedAt: now,
       };
@@ -107,6 +198,9 @@ export function useUpdateAiConnection() {
       name?: string;
       credential?: { apiKey: string };
       enabled?: boolean;
+      models?: string[];
+      generationCapability?: unknown;
+      status?: AiConnection['status'];
     }): Promise<AiConnection> => {
       if (!userId) {
         throw new Error(NO_USER);
@@ -122,10 +216,16 @@ export function useUpdateAiConnection() {
           ? {
               apiKey: input.credential.apiKey.trim(),
               credentialHint: credentialHint(input.credential.apiKey),
-              status: 'untested' as const,
-              generationCapability: null,
+              status: input.status ?? ('untested' as const),
+              generationCapability: input.generationCapability ?? null,
+              models: input.models,
             }
           : {}),
+        ...(input.models !== undefined ? { models: input.models } : {}),
+        ...(input.generationCapability !== undefined
+          ? { generationCapability: input.generationCapability }
+          : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
         ...(input.enabled !== undefined
           ? { status: input.enabled ? ('untested' as const) : ('disabled' as const) }
           : {}),
@@ -142,14 +242,14 @@ export function useUpdateAiConnection() {
   });
 }
 
-/** 用选定模型探活连接；结论写回本地连接记录（状态 + 能力），服务端零存储。 */
+/** 用选定模型探活连接并同步刷新模型列表；结论写回本地连接记录，服务端零存储。 */
 export function useTestAiConnection() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   const userId = session?.user.id;
 
   return useMutation({
-    mutationFn: async (input: { connectionId: string; model: string }): Promise<AiConnection> => {
+    mutationFn: async (input: { connectionId: string; model?: string }): Promise<AiConnection> => {
       if (!userId) {
         throw new Error(NO_USER);
       }
@@ -158,28 +258,21 @@ export function useTestAiConnection() {
       if (!current) {
         throw new Error(NO_USER);
       }
-      const outcome = await invokeAskTest(supabase, {
+      const outcome = await executeTestAndDiscover(supabase, {
         provider: current.adapter,
+        apiKey: current.apiKey,
         model: input.model,
-        providerKey: current.apiKey,
       });
-      const capability =
-        outcome.status === 'passed'
-          ? {
-              ok: true,
-              reason: null,
-              model: input.model,
-              testedAt: new Date().toISOString(),
-            }
-          : {
-              ok: false,
-              reason: outcome.status === 'unavailable' ? 'network' : outcome.reason,
-              model: input.model,
-              testedAt: new Date().toISOString(),
-            };
+      const capability = {
+        ok: outcome.ok,
+        reason: outcome.reason,
+        model: outcome.model,
+        testedAt: outcome.testedAt,
+      };
       const updated = touch(current, {
-        status: capability.ok ? 'valid' : 'invalid',
+        status: outcome.ok ? 'valid' : 'invalid',
         generationCapability: capability,
+        models: outcome.models,
       });
       writeAiConnections(
         userId,
@@ -260,6 +353,7 @@ export function useUpdateAiSettings() {
   return useMutation({
     mutationFn: (input: {
       generationConnectionId?: string | null;
+      selectedModel?: string | null;
       includeNotesInAi?: boolean;
     }): Promise<AiSettings> => {
       if (!userId) {
@@ -271,6 +365,7 @@ export function useUpdateAiSettings() {
       if (input.generationConnectionId !== undefined) {
         if (input.generationConnectionId === null) {
           clearAskConsent(userId);
+          next.selectedModel = null;
         } else {
           const connection = readAiConnections(userId).find(
             (candidate) => candidate.id === input.generationConnectionId,

@@ -48,11 +48,16 @@ describe('ai-connections local store', () => {
   });
 
   it('keeps include-notes on by default and persisting overrides', () => {
-    expect(readAiSettings(USER)).toEqual({ generationConnectionId: null, includeNotesInAi: true });
+    expect(readAiSettings(USER)).toEqual({
+      generationConnectionId: null,
+      selectedModel: null,
+      includeNotesInAi: true,
+    });
 
     writeAiSettings(USER, { generationConnectionId: 'conn-1', includeNotesInAi: false });
     expect(readAiSettings(USER)).toEqual({
       generationConnectionId: 'conn-1',
+      selectedModel: null,
       includeNotesInAi: false,
     });
     expect(localStorage.getItem(aiSettingsStorageKey(USER))).toContain('conn-1');

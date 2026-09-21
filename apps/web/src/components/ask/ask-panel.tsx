@@ -1,6 +1,18 @@
 import type { StarredRepoRecord } from '@asterism/db';
-import { Button, Input, StreamingMarkdown } from '@asterism/ui';
 import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Input,
+  StreamingMarkdown,
+} from '@asterism/ui';
+import {
+  CheckIcon,
+  ChevronDownIcon,
   LoaderCircleIcon,
   MessageCircleQuestionIcon,
   SearchXIcon,
@@ -22,6 +34,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useRepoInspector } from '../../contexts/repo-inspector-context';
 import { type AskPhase, type AskTurn, useAskQuestion } from '../../data/use-ask-question';
+import type { AvailableAiModel } from '../../lib/ai-connections';
 import type { RepoOpenModality } from '../../stores/repo-inspector';
 import { AskRecommendationCard } from './ask-recommendation-card';
 
@@ -34,6 +47,9 @@ export interface AskViewState {
   stop?: () => void;
   reset?: () => void;
   configured: boolean;
+  currentModel?: string | null;
+  availableModels?: readonly AvailableAiModel[];
+  selectModel?: (model: string) => void;
 }
 
 type OpenRepoHandler = (
@@ -79,6 +95,10 @@ export function AskDockContent({
   const busy = ask.phase.kind === 'generating';
   const hasThread = ask.configured ? ask.turns.length > 0 || ask.phase.kind !== 'idle' : true;
   const openSettings = () => navigate('/settings');
+
+  const deepseekModels = ask.availableModels?.filter((m) => m.provider === 'deepseek') ?? [];
+  const openaiModels = ask.availableModels?.filter((m) => m.provider === 'openai') ?? [];
+  const hasModels = (ask.availableModels?.length ?? 0) > 0;
 
   useEffect(() => {
     if (focusRequest) {
@@ -206,7 +226,7 @@ export function AskDockContent({
 
         <form
           onSubmit={submit}
-          className="pointer-events-auto flex h-12 w-full items-center gap-3 rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface-strong)] px-4 shadow-[var(--glass-shadow),inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[16px] transition-all duration-150 [transition-timing-function:var(--ease-out-quart)] focus-within:border-foreground/50 focus-within:ring-2 focus-within:ring-ring/40"
+          className="pointer-events-auto flex h-12 w-full items-center gap-2.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface-strong)] px-3.5 shadow-[var(--glass-shadow),inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[16px] transition-all duration-150 [transition-timing-function:var(--ease-out-quart)] focus-within:border-foreground/50 focus-within:ring-2 focus-within:ring-ring/40"
         >
           <MessageCircleQuestionIcon
             className="size-4 shrink-0 text-muted-foreground"
@@ -219,8 +239,81 @@ export function AskDockContent({
             placeholder={t('ask.placeholder')}
             onChange={(inputEvent) => setQuestion(inputEvent.target.value)}
             onKeyDown={handleKeyDown}
-            className="h-full border-0 bg-transparent px-0 text-body shadow-none backdrop-blur-none focus-visible:ring-0 dark:bg-transparent"
+            className="h-full min-w-0 flex-1 border-0 bg-transparent px-0 text-body shadow-none backdrop-blur-none focus-visible:ring-0 dark:bg-transparent"
           />
+
+          {/* 模型切换器（图三：合并可用配置已发现的模型） */}
+          {hasModels ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex h-7 max-w-[130px] shrink-0 items-center gap-1 truncate rounded-full bg-muted/70 px-2.5 font-mono text-micro text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:max-w-[200px] sm:text-caption"
+                  aria-label={t('ask.switchModel')}
+                >
+                  <span className="truncate">{ask.currentModel ?? t('ask.switchModel')}</span>
+                  <ChevronDownIcon className="size-3 shrink-0 opacity-60" aria-hidden="true" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" className="w-56 font-mono text-xs">
+                {deepseekModels.length > 0 ? (
+                  <>
+                    <DropdownMenuLabel className="font-sans text-micro text-muted-foreground">
+                      DeepSeek
+                    </DropdownMenuLabel>
+                    {deepseekModels.map((item) => (
+                      <DropdownMenuItem
+                        key={`deepseek-${item.model}`}
+                        onSelect={() => ask.selectModel?.(item.model)}
+                        className="flex items-center justify-between font-mono text-xs"
+                      >
+                        <span className="truncate">{item.model}</span>
+                        {ask.currentModel === item.model ? (
+                          <CheckIcon className="size-3.5 text-foreground" />
+                        ) : null}
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                ) : null}
+                {deepseekModels.length > 0 && openaiModels.length > 0 ? (
+                  <DropdownMenuSeparator />
+                ) : null}
+                {openaiModels.length > 0 ? (
+                  <>
+                    <DropdownMenuLabel className="font-sans text-micro text-muted-foreground">
+                      OpenAI
+                    </DropdownMenuLabel>
+                    {openaiModels.map((item) => (
+                      <DropdownMenuItem
+                        key={`openai-${item.model}`}
+                        onSelect={() => ask.selectModel?.(item.model)}
+                        className="flex items-center justify-between font-mono text-xs"
+                      >
+                        <span className="truncate">{item.model}</span>
+                        {ask.currentModel === item.model ? (
+                          <CheckIcon className="size-3.5 text-foreground" />
+                        ) : null}
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                ) : null}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={openSettings} className="font-sans text-xs">
+                  <SettingsIcon className="size-3.5" />
+                  <span>{t('ask.manageConnections')}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <button
+              type="button"
+              onClick={openSettings}
+              className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-muted/60 px-2 text-micro text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:text-caption"
+            >
+              <span>{t('ask.setupModel')}</span>
+            </button>
+          )}
+
           {ask.phase.kind === 'generating' && ask.stop ? (
             <button
               type="button"

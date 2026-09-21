@@ -15,9 +15,10 @@ import {
 import { type AskGenerateMessage, type StarredRepoRecord, streamAskGenerate } from '@asterism/db';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/use-session';
-import { useAiSettingsValue } from '../lib/ai-connections';
+import { getAvailableAiModels, useAiSettingsValue } from '../lib/ai-connections';
 import { useAskByok } from '../lib/ask-byok';
 import { supabase } from '../lib/supabase';
+import { useAiConnections, useUpdateAiSettings } from './use-ai-connections';
 import { useMemoriesList } from './use-memories-list';
 import { useStarredRepos } from './use-starred-repos';
 
@@ -96,6 +97,26 @@ export function useAskQuestion() {
   const userId = session?.user.id;
   const byok = useAskByok(userId);
   const includeNotes = useAiSettingsValue(userId).includeNotesInAi;
+  const connectionsQuery = useAiConnections();
+  const updateSettings = useUpdateAiSettings();
+
+  const connections = connectionsQuery.data ?? [];
+  const availableModels = useMemo(() => getAvailableAiModels(connections), [connections]);
+  const currentModel = byok?.model ?? null;
+
+  const selectModel = useCallback(
+    (targetModel: string) => {
+      const match = availableModels.find((candidate) => candidate.model === targetModel);
+      if (!match) {
+        return;
+      }
+      updateSettings.mutate({
+        generationConnectionId: match.connectionId,
+        selectedModel: match.model,
+      });
+    },
+    [availableModels, updateSettings],
+  );
 
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [phase, setPhase] = useState<AskPhase>({ kind: 'idle' });
@@ -417,5 +438,16 @@ export function useAskQuestion() {
     void run();
   }, [submission, reposQuery.data, memoriesByRepoId, byok, includeNotes]);
 
-  return { phase, turns, ask, continueAsk, stop, reset, configured: Boolean(byok) };
+  return {
+    phase,
+    turns,
+    ask,
+    continueAsk,
+    stop,
+    reset,
+    configured: Boolean(byok),
+    currentModel,
+    availableModels,
+    selectModel,
+  };
 }

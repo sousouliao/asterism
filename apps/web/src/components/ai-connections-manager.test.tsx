@@ -16,6 +16,7 @@ const hooks = vi.hoisted(() => ({
   useDeleteAiConnection: vi.fn(),
   useDiscoverAiConnectionModels: vi.fn(),
   useUpdateAiSettings: vi.fn(),
+  useTestAndDiscoverProbe: vi.fn(),
 }));
 
 const askByok = vi.hoisted(() => ({ readAskConsent: vi.fn() }));
@@ -78,6 +79,7 @@ beforeEach(() => {
   hooks.useDeleteAiConnection.mockReturnValue(idleMutation());
   hooks.useDiscoverAiConnectionModels.mockReturnValue(idleMutation());
   hooks.useUpdateAiSettings.mockReturnValue(idleMutation());
+  hooks.useTestAndDiscoverProbe.mockReturnValue(idleMutation());
   askByok.readAskConsent.mockReturnValue(null);
 });
 

@@ -153,12 +153,7 @@ describe('parseAskResponse', () => {
 
 describe('ask provider registry', () => {
   it('exposes the ADR 0042 allowlist with fixed base URLs', () => {
-    expect(ASK_PROVIDERS.map((provider) => provider.id)).toEqual([
-      'deepseek',
-      'openai',
-      'groq',
-      'openrouter',
-    ]);
+    expect(ASK_PROVIDERS.map((provider) => provider.id)).toEqual(['openai', 'deepseek']);
     for (const provider of ASK_PROVIDERS) {
       expect(provider.baseUrl.startsWith('https://')).toBe(true);
       expect(provider.defaultModel.length).toBeGreaterThan(0);

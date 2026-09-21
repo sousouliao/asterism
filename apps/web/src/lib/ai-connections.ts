@@ -23,12 +23,16 @@ export interface AiConnection {
   apiKey: string;
   /** 最近一次探针结论，形状见 core `readGenerationCapability`。 */
   generationCapability: unknown;
+  /** 探活或测试时发现的可用模型列表。 */
+  models?: string[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AiSettings {
   generationConnectionId: string | null;
+  /** 当前选中的提问模型（跨 Ask dock 与 Settings 同步）。 */
+  selectedModel?: string | null;
   includeNotesInAi: boolean;
 }
 
@@ -81,6 +85,9 @@ function parseConnection(value: Record<string, unknown>): AiConnection | null {
     credentialHint: typeof value.credentialHint === 'string' ? value.credentialHint : null,
     apiKey: value.apiKey,
     generationCapability: 'generationCapability' in value ? value.generationCapability : null,
+    models: Array.isArray(value.models)
+      ? value.models.filter((m): m is string => typeof m === 'string' && m.trim().length > 0)
+      : undefined,
     createdAt: typeof value.createdAt === 'string' ? value.createdAt : new Date().toISOString(),
     updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : new Date().toISOString(),
   };
@@ -144,6 +151,10 @@ export function readAiSettings(userId: string): AiSettings {
       settings = {
         generationConnectionId:
           typeof parsed.generationConnectionId === 'string' ? parsed.generationConnectionId : null,
+        selectedModel:
+          typeof parsed.selectedModel === 'string' && parsed.selectedModel.trim().length > 0
+            ? parsed.selectedModel.trim()
+            : null,
         includeNotesInAi: parsed.includeNotesInAi !== false,
       };
     }
@@ -155,24 +166,68 @@ export function readAiSettings(userId: string): AiSettings {
 }
 
 export function writeAiSettings(userId: string, settings: AiSettings) {
+  const normalized: AiSettings = {
+    generationConnectionId: settings.generationConnectionId ?? null,
+    selectedModel: settings.selectedModel ?? null,
+    includeNotesInAi: settings.includeNotesInAi !== false,
+  };
   try {
-    window.localStorage.setItem(aiSettingsStorageKey(userId), JSON.stringify(settings));
+    window.localStorage.setItem(aiSettingsStorageKey(userId), JSON.stringify(normalized));
   } catch {
     // In-memory settings keep preferences usable for this session.
   }
-  settingsCache.set(userId, settings);
+  settingsCache.set(userId, normalized);
   emitChange();
 }
 
 const DEFAULT_AI_SETTINGS: AiSettings = defaultAiSettingsValue();
 
 function defaultAiSettingsValue(): AiSettings {
-  return Object.freeze({ generationConnectionId: null, includeNotesInAi: true });
+  return Object.freeze({
+    generationConnectionId: null,
+    selectedModel: null,
+    includeNotesInAi: true,
+  });
 }
 
 /** 与 ADR 0042 的同意范围一致：默认带入 Memory 笔记，用户可在此关闭。 */
 export function defaultAiSettings(): AiSettings {
   return DEFAULT_AI_SETTINGS;
+}
+
+export interface AvailableAiModel {
+  model: string;
+  provider: AskProviderId;
+  connectionId: string;
+}
+
+/**
+ * 合并所有已验证（valid）连接已发现的模型列表。
+ * 若某连接已验证但尚未记录 models，则取其 Provider 默认模型保底。
+ */
+export function getAvailableAiModels(connections: readonly AiConnection[]): AvailableAiModel[] {
+  const result: AvailableAiModel[] = [];
+  const seen = new Set<string>();
+  for (const connection of connections) {
+    if (connection.status !== 'valid') {
+      continue;
+    }
+    const defaultModel = findAskProvider(connection.adapter)?.defaultModel ?? 'gpt-4o-mini';
+    const models =
+      connection.models && connection.models.length > 0 ? connection.models : [defaultModel];
+    for (const model of models) {
+      const key = `${connection.adapter}:${model}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push({
+          model,
+          provider: connection.adapter,
+          connectionId: connection.id,
+        });
+      }
+    }
+  }
+  return result;
 }
 
 export function clearAiConnectionsState() {

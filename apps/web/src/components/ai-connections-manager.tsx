@@ -51,6 +51,7 @@ import { AiConnectionFormDialog } from './ai-connection-form-dialog';
 import { AiConnectionTestDialog } from './ai-connection-test-dialog';
 import { ConfirmDialog } from './confirm-dialog';
 import { EmptyState } from './empty-state';
+import { PendingActionContent } from './pending-action-content';
 import { SectionHeader } from './section-header';
 
 const NONE_VALUE = '__none__';
@@ -142,7 +143,11 @@ export function AiConnectionsManager({
   const activeProviderName = activeConnection
     ? t(`settings.ai.adapters.${activeConnection.adapter}`)
     : '';
-  const activeModel = readTestedModel(activeConnection?.generationCapability ?? null);
+
+  const activeModel =
+    settings?.selectedModel ??
+    readTestedModel(activeConnection?.generationCapability ?? null) ??
+    activeConnection?.models?.[0];
 
   const testedConnection =
     testConnection.data?.id === testing?.id ? testConnection.data : undefined;
@@ -239,21 +244,28 @@ export function AiConnectionsManager({
           {connections.map((connection) => {
             const capability = readGenerationCapability(connection.generationCapability);
             const testedAt = formatTestedAt(capability?.testedAt ?? null, i18n.language);
+            const isConnectionTesting =
+              testConnection.isPending && testConnection.variables?.connectionId === connection.id;
+            const providerLabel = t(`settings.ai.adapters.${connection.adapter}`);
+            const displayName =
+              connection.name && connection.name !== connection.adapter
+                ? connection.name
+                : providerLabel;
+
             return (
               <li key={connection.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex min-w-0 flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className="truncate font-medium text-foreground text-sm">
-                      {connection.name}
+                      {displayName}
                     </span>
                     <ConnectionStatusBadge status={connection.status} />
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-caption text-muted-foreground">
-                    <span>{t(`settings.ai.adapters.${connection.adapter}`)}</span>
-                    {connection.credentialHint ? (
-                      <span className="font-mono">{connection.credentialHint}</span>
-                    ) : null}
-                  </div>
+                  {connection.credentialHint ? (
+                    <div className="font-mono text-caption text-muted-foreground">
+                      {connection.credentialHint}
+                    </div>
+                  ) : null}
                   {capability ? (
                     <p className="text-caption text-muted-foreground">
                       {t('settings.ai.lastTest', {
@@ -263,69 +275,103 @@ export function AiConnectionsManager({
                           ? t('settings.ai.testPassedShort')
                           : t(testReasonKey(capability.reason)),
                       })}
+                      {connection.models && connection.models.length > 0
+                        ? ` · ${t('settings.ai.discoveredModelsCount', { count: connection.models.length })}`
+                        : ''}
                     </p>
                   ) : null}
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-11 shrink-0 text-muted-foreground sm:size-8"
-                      aria-label={t('common.actions')}
-                    >
-                      <MoreHorizontalIcon className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      disabled={updateConnection.isPending}
-                      onSelect={() =>
-                        updateConnection.mutate(
-                          {
-                            connectionId: connection.id,
-                            enabled: connection.status === 'disabled',
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* 图二：卡片自带测试连接按钮，测试时原地 loading 并一并发现模型 */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isConnectionTesting}
+                    onClick={() =>
+                      testConnection.mutate(
+                        { connectionId: connection.id },
+                        {
+                          onSuccess: (updated) => {
+                            const count = updated.models?.length ?? 0;
+                            toast.success(t('settings.ai.testSuccessModels', { count }));
                           },
-                          { onError: () => toast.error(t('settings.ai.lifecycleError')) },
-                        )
-                      }
-                    >
-                      <PowerIcon className="size-4" />
-                      {connection.status === 'disabled'
-                        ? t('settings.ai.enable')
-                        : t('settings.ai.disable')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        testConnection.reset();
-                        discoverModels.reset();
-                        setTesting(connection);
-                      }}
-                    >
-                      <PlugZapIcon className="size-4" />
-                      {t('settings.ai.test')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        updateConnection.reset();
-                        setEditing(connection);
-                      }}
-                    >
-                      <PencilIcon className="size-4" />
-                      {t('common.edit')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => {
-                        deleteConnection.reset();
-                        setDeleting(connection);
-                      }}
-                    >
-                      <Trash2Icon className="size-4" />
-                      {t('common.delete')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                          onError: () => {
+                            toast.error(t('settings.ai.testError'));
+                          },
+                        },
+                      )
+                    }
+                    aria-label={t('settings.ai.testConnection')}
+                  >
+                    <PendingActionContent
+                      pending={isConnectionTesting}
+                      idleLabel={t('settings.ai.testConnection')}
+                      pendingLabel={t('settings.ai.testingConnection')}
+                      idleIcon={PlugZapIcon}
+                    />
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-11 shrink-0 text-muted-foreground sm:size-8"
+                        aria-label={t('common.actions')}
+                      >
+                        <MoreHorizontalIcon className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        disabled={updateConnection.isPending}
+                        onSelect={() =>
+                          updateConnection.mutate(
+                            {
+                              connectionId: connection.id,
+                              enabled: connection.status === 'disabled',
+                            },
+                            { onError: () => toast.error(t('settings.ai.lifecycleError')) },
+                          )
+                        }
+                      >
+                        <PowerIcon className="size-4" />
+                        {connection.status === 'disabled'
+                          ? t('settings.ai.enable')
+                          : t('settings.ai.disable')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          testConnection.reset();
+                          discoverModels.reset();
+                          setTesting(connection);
+                        }}
+                      >
+                        <PlugZapIcon className="size-4" />
+                        {t('settings.ai.test')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          updateConnection.reset();
+                          setEditing(connection);
+                        }}
+                      >
+                        <PencilIcon className="size-4" />
+                        {t('common.edit')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => {
+                          deleteConnection.reset();
+                          setDeleting(connection);
+                        }}
+                      >
+                        <Trash2Icon className="size-4" />
+                        {t('common.delete')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </li>
             );
           })}
@@ -348,11 +394,18 @@ export function AiConnectionsManager({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE_VALUE}>{t('settings.ai.activeConnectionNone')}</SelectItem>
-                {selectableConnections.map((connection) => (
-                  <SelectItem key={connection.id} value={connection.id}>
-                    {connection.name}
-                  </SelectItem>
-                ))}
+                {selectableConnections.map((connection) => {
+                  const displayName =
+                    connection.name && connection.name !== connection.adapter
+                      ? connection.name
+                      : t(`settings.ai.adapters.${connection.adapter}`);
+                  return (
+                    <SelectItem key={connection.id} value={connection.id}>
+                      {displayName}
+                      {connection.credentialHint ? ` (${connection.credentialHint})` : ''}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -363,16 +416,39 @@ export function AiConnectionsManager({
                 {t('settings.ai.modelLabel')}
               </span>
               <span className="text-caption text-muted-foreground">
-                {t('settings.ai.modelHint')}
+                {t('settings.ai.modelSelectHint')}
               </span>
             </div>
-            <span
-              className={
-                activeModel ? 'font-mono text-foreground text-sm' : 'text-muted-foreground text-sm'
-              }
-            >
-              {activeModel ?? t('settings.ai.modelUntested')}
-            </span>
+            {activeConnection && (activeConnection.models?.length ?? 0) > 0 ? (
+              <Select
+                disabled={updateSettings.isPending}
+                value={activeModel ?? activeConnection.models?.[0]}
+                onValueChange={(selectedModel) =>
+                  updateSettings.mutate({ selectedModel }, { onError: failSettings })
+                }
+              >
+                <SelectTrigger className="w-full sm:w-56 font-mono text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeConnection.models?.map((model) => (
+                    <SelectItem key={model} value={model} className="font-mono text-xs">
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span
+                className={
+                  activeModel
+                    ? 'font-mono text-foreground text-sm'
+                    : 'text-muted-foreground text-sm'
+                }
+              >
+                {activeModel ?? t('settings.ai.modelUntested')}
+              </span>
+            )}
           </div>
           <Separator />
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -424,10 +500,18 @@ export function AiConnectionsManager({
           createConnection.mutate(
             {
               adapter: values.adapter,
-              name: values.name,
               credential: { apiKey: values.apiKey },
+              models: values.models,
+              generationCapability: values.generationCapability,
             },
-            { onSuccess: () => setCreateOpen(false) },
+            {
+              onSuccess: (newConn) => {
+                setCreateOpen(false);
+                if (!activeConnectionId) {
+                  activateConnection(newConn.id);
+                }
+              },
+            },
           );
         }}
       />
@@ -442,7 +526,6 @@ export function AiConnectionsManager({
         title={t('settings.ai.editTitle')}
         submitLabel={t('common.save')}
         initialAdapter={editing?.adapter}
-        initialName={editing?.name ?? ''}
         pending={updateConnection.isPending}
         errorMessage={updateConnection.isError ? t('settings.ai.saveError') : undefined}
         onSubmit={(values) => {
@@ -450,8 +533,14 @@ export function AiConnectionsManager({
           updateConnection.mutate(
             {
               connectionId: editing.id,
-              name: values.name,
-              ...(values.apiKey ? { credential: { apiKey: values.apiKey } } : {}),
+              ...(values.apiKey
+                ? {
+                    credential: { apiKey: values.apiKey },
+                    models: values.models,
+                    generationCapability: values.generationCapability,
+                    status: 'valid',
+                  }
+                : {}),
             },
             { onSuccess: () => setEditing(null) },
           );
@@ -464,7 +553,13 @@ export function AiConnectionsManager({
         onOpenChange={(open) => {
           if (!open) setTesting(null);
         }}
-        connectionName={testing?.name ?? ''}
+        connectionName={
+          testing
+            ? testing.name && testing.name !== testing.adapter
+              ? testing.name
+              : t(`settings.ai.adapters.${testing.adapter}`)
+            : ''
+        }
         pending={testConnection.isPending}
         resultStatus={testResultStatus}
         resultMessage={testResultMessage}
@@ -486,7 +581,13 @@ export function AiConnectionsManager({
         onOpenChange={(open) => {
           if (!open) setDeleting(null);
         }}
-        title={t('settings.ai.deleteTitle', { name: deleting?.name ?? '' })}
+        title={t('settings.ai.deleteTitle', {
+          name: deleting
+            ? deleting.name && deleting.name !== deleting.adapter
+              ? deleting.name
+              : t(`settings.ai.adapters.${deleting.adapter}`)
+            : '',
+        })}
         description={t('settings.ai.deleteDescription')}
         confirmLabel={t('common.delete')}
         pending={deleteConnection.isPending}

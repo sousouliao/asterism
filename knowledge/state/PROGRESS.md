@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-21 · Ask AI 连接与模型选择体验深度优化**：精简 Provider 为 OpenAI 与 DeepSeek；去掉自定义连接名称；添加连接弹窗内建测试门禁（测试通过才允许保存）；连接卡片增加直达测试按钮；测试时自动发现可用模型；底部 Ask 胶囊输入框支持实时切换模型（合并可用配置已发现模型）。见 `logs/2026-09-21-ask-connection-and-model-ux-optimization.md`。
+
 - **2026-09-21 · Ask 输入框占位文案调整**：底部 Ask dock 输入框占位文案统一为「Ask Asterism…」，中英文语言包同步对齐。见 `logs/2026-09-21-ask-input-placeholder.md`。
 
 - **2026-09-21 · CI 数据库测试自 Memory Foundation 起持续失败**：`memories` / `user_repo_embeddings` 只有 RLS、没有表级 GRANT。本地 / CI 的 `authenticated` 读 `memories` 被拒，`memory_foundation.test.sql` 计划 8 跑 4。补 `20260921120000_grant_client_memory_tables.sql`。远端仍需 `db push`。见 `logs/2026-09-21-ci-memories-table-grant.md`。

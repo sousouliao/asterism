@@ -1,6 +1,11 @@
 import { type AskProviderId, findAskProvider, readTestedModel } from '@asterism/core';
 import { useSyncExternalStore } from 'react';
-import { type AiConnection, readAiConnections, subscribeAiConnections } from './ai-connections';
+import {
+  type AiConnection,
+  readAiConnections,
+  readAiSettings,
+  subscribeAiConnections,
+} from './ai-connections';
 
 /**
  * Ask Asterism 的出网同意存储（ADR 0042）。
@@ -167,6 +172,7 @@ export function clearAskConsent(userId: string) {
 function resolveFromConnection(
   consent: AskConsent,
   connection: AiConnection | undefined,
+  preferredModel?: string | null,
 ): AskByokConfig | null {
   // 连接被删除、Provider 被换成未同意的一方、或连接未通过探针（含改 key 后回到
   // untested、以及被显式停用）时，一律视为不可用：Ask 宁可要求重新配置，
@@ -177,10 +183,17 @@ function resolveFromConnection(
   if (connection.status !== 'valid') {
     return null;
   }
-  const model = readTestedModel(connection.generationCapability);
-  if (!model || connection.apiKey.length === 0) {
+  const testedModel = readTestedModel(connection.generationCapability);
+  if (!testedModel || connection.apiKey.length === 0) {
     return null;
   }
+  const models = connection.models && connection.models.length > 0 ? connection.models : [];
+
+  let model: string = testedModel;
+  if (preferredModel && (models.length === 0 || models.includes(preferredModel))) {
+    model = preferredModel;
+  }
+
   return {
     connectionId: connection.id,
     provider: connection.adapter,
@@ -199,10 +212,12 @@ export function resolveAskByok(userId: string): AskByokConfig | null {
     return resolvedCache.get(userId) ?? null;
   }
   const consent = readAskConsent(userId);
+  const settings = readAiSettings(userId);
   const resolved = consent
     ? resolveFromConnection(
         consent,
         readAiConnections(userId).find((candidate) => candidate.id === consent.connectionId),
+        settings.selectedModel,
       )
     : null;
   resolvedCache.set(userId, resolved);

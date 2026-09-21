@@ -6,7 +6,7 @@
  * 副本，新增 Provider 时容易只改一侧，导致客户端认为合法而服务端 400（或反之）。
  */
 
-export type AskProviderId = 'deepseek' | 'openai' | 'groq' | 'openrouter';
+export type AskProviderId = 'openai' | 'deepseek';
 
 export interface AskProviderDefinition {
   id: AskProviderId;
@@ -21,13 +21,6 @@ export interface AskProviderDefinition {
 
 export const ASK_PROVIDERS: readonly AskProviderDefinition[] = [
   {
-    id: 'deepseek',
-    baseUrl: 'https://api.deepseek.com',
-    defaultModel: 'deepseek-chat',
-    supportsJsonMode: true,
-    labelKey: 'ask.provider.deepseek',
-  },
-  {
     id: 'openai',
     baseUrl: 'https://api.openai.com/v1',
     defaultModel: 'gpt-4o-mini',
@@ -35,18 +28,11 @@ export const ASK_PROVIDERS: readonly AskProviderDefinition[] = [
     labelKey: 'ask.provider.openai',
   },
   {
-    id: 'groq',
-    baseUrl: 'https://api.groq.com/openai/v1',
-    defaultModel: 'llama-3.3-70b-versatile',
+    id: 'deepseek',
+    baseUrl: 'https://api.deepseek.com',
+    defaultModel: 'deepseek-chat',
     supportsJsonMode: true,
-    labelKey: 'ask.provider.groq',
-  },
-  {
-    id: 'openrouter',
-    baseUrl: 'https://openrouter.ai/api/v1',
-    defaultModel: 'openrouter/auto',
-    supportsJsonMode: false,
-    labelKey: 'ask.provider.openrouter',
+    labelKey: 'ask.provider.deepseek',
   },
 ];
 
