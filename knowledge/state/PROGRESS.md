@@ -5,7 +5,7 @@
 ## 当前状态
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
-- **当前状态**：GitHub #41 Ask Asterism 已支持流式 Markdown 回答（ADR 0044）：`ask-generate` 生成动作改为 SSE 转换，正文由 `@lobehub/streamdown` 隔离渲染，推荐哨兵块在流末校验。本地四道门禁通过。待办：远端重新部署 `ask-generate`、真实账号 smoke（含流式与停止生成）后关闭 issue。
+- **当前状态**：GitHub #41 Ask Asterism 已支持流式 Markdown 回答（ADR 0044）：`ask-generate` 生成动作改为 SSE 转换，正文由 `@lobehub/streamdown` 隔离渲染，推荐哨兵块在流末校验。本地四道门禁通过。2026-09-21 已完成远端部署配对：`ask-generate`（ADR 0044 SSE 版）覆盖了仓库外的试验残留，前端 `0b02b7e` 已推送并由 Vercel 部署；无效 key 路径冒烟通过。待办：真实账号流式 smoke（正文流式出现、停止生成、追问与重试、引用直达、未找到）后关闭 issue。
 - **当前工程 frontier**：三个纵向切片中的 #39、#40 已完成；#41（Ask Asterism 私有问答）本地实现已交付（ADR 0042 / 0044：客户端 BYOK + 无状态 SSE 代理 + 引用校验、无抽取式兜底），剩余远端部署与真实环境验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
@@ -56,7 +56,7 @@
 
 ## 下一恢复点
 
-1. #41 收尾：ADR 0043 版 `ask-generate` 已于 2026-09-20 部署；ADR 0044 将生成动作改为 SSE，**必须重新部署** `ask-generate` 后前端流式才会生效。剩余：维护者部署函数 → Web 端真实账号 smoke——Settings 建立连接并检测模型 → 激活（过出网同意）→ ⌘K 提问（确认正文流式出现、停止生成、**追问与重试**各一次）→ 引用直达 Quick Look → 无匹配问题返回「未找到」——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
+1. #41 收尾：SSE 两端已于 2026-09-21 部署配对（函数已重部署为 ADR 0044 版，前端 `0b02b7e` 已推送上线），生产无效 key 路径冒烟通过。剩余：维护者用真实账号在 Web 端 smoke——Settings 建立连接并检测模型 → 激活（过出网同意）→ ⌘K 提问（确认正文流式出现、停止生成、**追问与重试**各一次）→ 引用直达 Quick Look → 无匹配问题返回「未找到」——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
 
 ## 环境提示
 
