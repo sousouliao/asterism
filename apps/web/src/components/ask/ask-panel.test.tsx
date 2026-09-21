@@ -232,9 +232,40 @@ describe('AskDock states', () => {
     await renderPanel();
     expect(text()).toContain(i18next.t('ask.recalling', { lng: 'en' }));
 
-    phaseOverride = { kind: 'generating', question: 'q' };
+    phaseOverride = { kind: 'generating', question: 'q', text: '' };
     await renderPanel();
     expect(text()).toContain(i18next.t('ask.generating', { lng: 'en' }));
+  });
+
+  it('shows streaming markdown and a stop control while generating', async () => {
+    const stop = vi.fn();
+    const generating: AskPhase = {
+      kind: 'generating',
+      question: 'q',
+      text: 'Your collection already has **tungstenite**.',
+    };
+    phaseOverride = generating;
+    await act(async () => {
+      root.render(
+        <AskDockContent
+          ask={{
+            phase: generating,
+            turns: [],
+            ask: askMock,
+            stop,
+            reset: resetMock,
+            configured: true,
+          }}
+        />,
+      );
+    });
+    expect(text()).toContain('tungstenite');
+    const stopButton = document.body.querySelector(
+      `button[aria-label="${i18next.t('ask.stopGenerating', { lng: 'en' })}"]`,
+    );
+    expect(stopButton).not.toBeNull();
+    await click(stopButton);
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 
   it('lets clicks pass through the dock wrapper around the interactive composer and cabin', async () => {

@@ -101,7 +101,18 @@ const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
     turns: MULTI_TURN,
   },
   { label: 'recalling', phase: { kind: 'recalling', question: 'virtual scroll tools?' } },
-  { label: 'generating', phase: { kind: 'generating', question: 'virtual scroll tools?' } },
+  {
+    label: 'generating',
+    phase: { kind: 'generating', question: 'virtual scroll tools?', text: '' },
+  },
+  {
+    label: 'generating · stream',
+    phase: {
+      kind: 'generating',
+      question: 'virtual scroll tools?',
+      text: 'Your collection already has **[0] rustws/tungstenite** for the protocol layer.',
+    },
+  },
   { label: 'not_found', phase: { kind: 'not_found', question: 'kubernetes operators?' } },
   { label: 'error · retryable', phase: { kind: 'error', question: 'any', reason: 'retryable' } },
   {
@@ -110,7 +121,7 @@ const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
   },
   {
     label: 'follow-up · history + in-flight',
-    phase: { kind: 'generating', question: 'which of those is lighter?' },
+    phase: { kind: 'generating', question: 'which of those is lighter?', text: '' },
     turns: [ANSWERED_TURN],
   },
   { label: 'idle', phase: { kind: 'idle' }, turns: [] },

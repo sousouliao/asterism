@@ -1,3 +1,4 @@
+import { type AskSseErrorStatus, type AskSseEvent, createAskSseDecoder } from '@asterism/core';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import type { SupabaseClient } from './client';
 
@@ -12,7 +13,6 @@ export interface AskGenerateRequest {
   /** 用户 BYOK 的 Provider key：仅随本次请求透传，由调用方从本地存储读取。 */
   providerKey: string;
   messages: AskGenerateMessage[];
-  responseFormat?: 'json_object';
 }
 
 export type AskGenerateOutcome =
@@ -21,6 +21,11 @@ export type AskGenerateOutcome =
   | { status: 'provider_rejected' }
   | { status: 'timeout' }
   | { status: 'retryable_error' };
+
+export interface StreamAskGenerateOptions {
+  onDelta: (text: string) => void;
+  signal?: AbortSignal;
+}
 
 function isAskGenerateOutcome(value: unknown): value is AskGenerateOutcome {
   if (!value || typeof value !== 'object' || !('status' in value)) {
@@ -35,36 +40,123 @@ function isAskGenerateOutcome(value: unknown): value is AskGenerateOutcome {
   );
 }
 
-/**
- * 调用 `ask-generate` Edge Function（ADR 0042 无状态 BYOK 代理）。
- * 会话过期、网络与网关故障统一折叠为可重试 / 超时两类，由界面给出重试路径。
- */
-export async function invokeAskGenerate(
-  client: SupabaseClient,
-  request: AskGenerateRequest,
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    const reason = signal.reason;
+    throw reason instanceof Error ? reason : new DOMException('Aborted', 'AbortError');
+  }
+}
+
+function applySseEvent(
+  event: AskSseEvent,
+  state: { content: string; error: AskSseErrorStatus | null },
+  onDelta: (text: string) => void,
+): void {
+  if (event.event === 'delta') {
+    state.content += event.text;
+    onDelta(event.text);
+    return;
+  }
+  if (event.event === 'error') {
+    state.error = event.status;
+  }
+}
+
+async function consumeAskSse(
+  response: Response,
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
 ): Promise<AskGenerateOutcome> {
-  const body: Record<string, unknown> = {
-    provider: request.provider,
-    model: request.model,
-    providerKey: request.providerKey,
-    messages: request.messages,
-  };
-  if (request.responseFormat) {
-    body.responseFormat = request.responseFormat;
+  const body = response.body;
+  if (!body) {
+    return { status: 'retryable_error' };
   }
 
-  const { data, error } = await client.functions.invoke<unknown>('ask-generate', { body });
+  const decoder = createAskSseDecoder();
+  const textDecoder = new TextDecoder();
+  const reader = body.getReader();
+  const state = { content: '', error: null as AskSseErrorStatus | null };
+
+  try {
+    while (true) {
+      throwIfAborted(signal);
+      const { value, done } = await reader.read();
+      if (done) {
+        break;
+      }
+      for (const event of decoder.push(textDecoder.decode(value, { stream: true }))) {
+        applySseEvent(event, state, onDelta);
+      }
+    }
+    for (const event of decoder.end()) {
+      applySseEvent(event, state, onDelta);
+    }
+  } catch (error) {
+    throwIfAborted(signal);
+    if (isAbortError(error)) {
+      throw error;
+    }
+    return { status: 'retryable_error' };
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (state.error) {
+    return { status: state.error };
+  }
+  if (state.content.length === 0) {
+    return { status: 'retryable_error' };
+  }
+  return { status: 'success', content: state.content };
+}
+
+/**
+ * 调用 `ask-generate` Edge Function 的生成动作（ADR 0042 / 0044）。
+ * 优先消费 SSE；网关退化成 JSON 时按单块 delta 降级。
+ * 会话过期、网络与网关故障统一折叠为可重试 / 超时两类。
+ */
+export async function streamAskGenerate(
+  client: SupabaseClient,
+  request: AskGenerateRequest,
+  options: StreamAskGenerateOptions,
+): Promise<AskGenerateOutcome> {
+  throwIfAborted(options.signal);
+
+  const { data, error } = await client.functions.invoke<unknown>('ask-generate', {
+    body: {
+      provider: request.provider,
+      model: request.model,
+      providerKey: request.providerKey,
+      messages: request.messages,
+    },
+    signal: options.signal,
+  });
+
+  throwIfAborted(options.signal);
+
   if (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
     if (error instanceof FunctionsHttpError && error.context?.status === 504) {
       return { status: 'timeout' };
     }
     return { status: 'retryable_error' };
   }
+
+  if (data instanceof Response) {
+    return consumeAskSse(data, options.onDelta, options.signal);
+  }
+
   if (!isAskGenerateOutcome(data)) {
     return { status: 'retryable_error' };
   }
-  if (data.status === 'provider_rejected') {
-    return { status: 'provider_rejected' };
+  if (data.status === 'success') {
+    options.onDelta(data.content);
   }
   return data;
 }

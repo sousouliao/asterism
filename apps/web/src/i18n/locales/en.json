@@ -430,6 +430,7 @@
     "openSettings": "Open settings",
     "recalling": "Searching your collection…",
     "generating": "Composing the answer…",
+    "stopGenerating": "Stop generating",
     "notFound": "No matching projects were found in your collection.",
     "errorRetryable": "The answer could not be generated. Check your connection and try again.",
     "errorTimeout": "The provider did not respond in time. Try again.",

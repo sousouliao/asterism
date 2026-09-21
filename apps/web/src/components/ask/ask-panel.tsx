@@ -1,10 +1,11 @@
 import type { StarredRepoRecord } from '@asterism/db';
-import { Button, Input } from '@asterism/ui';
+import { Button, Input, StreamingMarkdown } from '@asterism/ui';
 import {
   LoaderCircleIcon,
   MessageCircleQuestionIcon,
   SearchXIcon,
   SettingsIcon,
+  SquareIcon,
   TriangleAlertIcon,
   XIcon,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ export interface AskViewState {
   phase: AskPhase;
   turns: readonly AskTurn[];
   ask: (question: string) => void;
+  stop?: () => void;
   reset?: () => void;
   configured: boolean;
 }
@@ -72,6 +74,7 @@ export function AskDockContent({
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const firstScroll = useRef(true);
+  const followScroll = useRef(true);
   const busy = ask.phase.kind === 'recalling' || ask.phase.kind === 'generating';
   const hasThread = ask.configured ? ask.turns.length > 0 || ask.phase.kind !== 'idle' : true;
   const openSettings = () => navigate('/settings');
@@ -116,6 +119,7 @@ export function AskDockContent({
     if (!trimmed || busy) {
       return;
     }
+    followScroll.current = true;
     ask.ask(trimmed);
     setQuestion('');
   };
@@ -132,8 +136,8 @@ export function AskDockContent({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: turns/phase 变化即需平滑贴底
   useLayoutEffect(() => {
-    if (firstScroll.current) {
-      // 挂载贴底由 attachLog 负责；此处仅在后续更新时平滑滚动
+    if (firstScroll.current || !followScroll.current) {
+      // 挂载贴底由 attachLog 负责；用户上滚后停止跟随
       return;
     }
     scrollLogToBottom(
@@ -172,7 +176,15 @@ export function AskDockContent({
             <div
               ref={attachLog}
               role="log"
+              aria-busy={busy}
               aria-label={t('ask.title')}
+              onScroll={() => {
+                const el = scrollRef.current;
+                if (!el) {
+                  return;
+                }
+                followScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+              }}
               className="asterism-scroll-gutter flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4"
             >
               {ask.configured ? (
@@ -207,7 +219,16 @@ export function AskDockContent({
             onKeyDown={handleKeyDown}
             className="h-full border-0 bg-transparent px-0 text-body shadow-none backdrop-blur-none focus-visible:ring-0 dark:bg-transparent"
           />
-          {busy ? (
+          {ask.phase.kind === 'generating' && ask.stop ? (
+            <button
+              type="button"
+              onClick={ask.stop}
+              className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label={t('ask.stopGenerating')}
+            >
+              <SquareIcon className="size-3.5 fill-current" aria-hidden="true" />
+            </button>
+          ) : busy ? (
             <LoaderCircleIcon
               className="size-4 shrink-0 animate-spin text-link motion-reduce:animate-none"
               aria-hidden="true"
@@ -273,9 +294,7 @@ function AskTurnView({ turn, onOpenRepo }: { turn: AskTurn; onOpenRepo: OpenRepo
     <div className="flex flex-col gap-3">
       <AskQuestionBubble question={turn.question} />
       <AskAnswerBlock>
-        <p className="text-body leading-relaxed whitespace-pre-wrap text-foreground">
-          {turn.summary}
-        </p>
+        <StreamingMarkdown content={turn.summary} />
         {turn.recommendations.length > 0 ? (
           <ul className="flex w-full flex-col gap-2">
             {turn.recommendations.map((recommendation) => {
@@ -332,7 +351,7 @@ function AskQuestionBubble({ question }: { question: string }) {
   );
 }
 
-/** Asterism 回答：左对齐纯文本 + 证据卡片，不加气泡以保持阅读面积。 */
+/** Asterism 回答：左对齐 Markdown 正文 + 证据卡片，不加气泡以保持阅读面积。 */
 function AskAnswerBlock({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
@@ -365,6 +384,9 @@ function AskPendingView({
     );
   }
   if (phase.kind === 'generating') {
+    if (phase.text.length > 0) {
+      return <StreamingMarkdown content={phase.text} animated />;
+    }
     return (
       <p className="flex items-center gap-2 text-caption text-muted-foreground" role="status">
         <LoaderCircleIcon

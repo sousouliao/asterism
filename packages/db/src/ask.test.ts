@@ -1,6 +1,6 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { type AskGenerateRequest, invokeAskGenerate, invokeAskModels, invokeAskTest } from './ask';
+import { type AskGenerateRequest, invokeAskModels, invokeAskTest, streamAskGenerate } from './ask';
 import type { SupabaseClient } from './client';
 
 function clientReturning(data: unknown) {
@@ -26,17 +26,19 @@ function request(overrides: Partial<AskGenerateRequest> = {}): AskGenerateReques
   };
 }
 
-describe('invokeAskGenerate', () => {
-  it('forwards the byok request body and preserves a successful outcome', async () => {
+describe('streamAskGenerate', () => {
+  it('forwards the byok request body and preserves a successful json fallback', async () => {
     const { client, invoke } = clientReturning({
       status: 'success',
-      content: '{"summary":"ok"}',
+      content: 'Hello from Ask.',
     });
+    const onDelta = vi.fn();
 
-    await expect(invokeAskGenerate(client, request())).resolves.toEqual({
+    await expect(streamAskGenerate(client, request(), { onDelta })).resolves.toEqual({
       status: 'success',
-      content: '{"summary":"ok"}',
+      content: 'Hello from Ask.',
     });
+    expect(onDelta).toHaveBeenCalledWith('Hello from Ask.');
     expect(invoke).toHaveBeenCalledWith('ask-generate', {
       body: {
         provider: 'deepseek',
@@ -44,16 +46,31 @@ describe('invokeAskGenerate', () => {
         providerKey: 'sk-test-key-123456',
         messages: request().messages,
       },
+      signal: undefined,
     });
   });
 
-  it('includes the json response format only when requested', async () => {
-    const { client, invoke } = clientReturning({ status: 'success', content: '{}' });
+  it('consumes an SSE response and forwards each delta', async () => {
+    const sse =
+      'event: delta\ndata: {"text":"Hel"}\n\nevent: delta\ndata: {"text":"lo"}\n\nevent: done\ndata: {}\n\n';
+    const { client } = clientReturning(
+      new Response(sse, { headers: { 'Content-Type': 'text/event-stream' } }),
+    );
+    const onDelta = vi.fn();
+    await expect(streamAskGenerate(client, request(), { onDelta })).resolves.toEqual({
+      status: 'success',
+      content: 'Hello',
+    });
+    expect(onDelta.mock.calls.map((call) => call[0])).toEqual(['Hel', 'lo']);
+  });
 
-    await invokeAskGenerate(client, request({ responseFormat: 'json_object' }));
-
-    expect(invoke).toHaveBeenCalledWith('ask-generate', {
-      body: expect.objectContaining({ responseFormat: 'json_object' }),
+  it('surfaces an in-stream timeout error event', async () => {
+    const sse = 'event: error\ndata: {"status":"timeout"}\n\nevent: done\ndata: {}\n\n';
+    const { client } = clientReturning(
+      new Response(sse, { headers: { 'Content-Type': 'text/event-stream' } }),
+    );
+    await expect(streamAskGenerate(client, request(), { onDelta: vi.fn() })).resolves.toEqual({
+      status: 'timeout',
     });
   });
 
@@ -63,25 +80,42 @@ describe('invokeAskGenerate', () => {
     'retryable_error',
   ] as const)('preserves the %s typed outcome', async (status) => {
     const { client } = clientReturning({ status });
-    await expect(invokeAskGenerate(client, request())).resolves.toEqual({ status });
+    await expect(streamAskGenerate(client, request(), { onDelta: vi.fn() })).resolves.toEqual({
+      status,
+    });
   });
 
   it('maps gateway timeouts to the timeout outcome', async () => {
     const error = new FunctionsHttpError(new Response('timed out', { status: 504 }));
     const { client } = clientFailing(error);
-    await expect(invokeAskGenerate(client, request())).resolves.toEqual({ status: 'timeout' });
+    await expect(streamAskGenerate(client, request(), { onDelta: vi.fn() })).resolves.toEqual({
+      status: 'timeout',
+    });
   });
 
   it('collapses transport failures and malformed envelopes into retryable errors', async () => {
     const { client: networkClient } = clientFailing(new Error('network down'));
-    await expect(invokeAskGenerate(networkClient, request())).resolves.toEqual({
+    await expect(
+      streamAskGenerate(networkClient, request(), { onDelta: vi.fn() }),
+    ).resolves.toEqual({
       status: 'retryable_error',
     });
 
     const { client: malformedClient } = clientReturning({ nonsense: true });
-    await expect(invokeAskGenerate(malformedClient, request())).resolves.toEqual({
+    await expect(
+      streamAskGenerate(malformedClient, request(), { onDelta: vi.fn() }),
+    ).resolves.toEqual({
       status: 'retryable_error',
     });
+  });
+
+  it('throws when the caller has already aborted', async () => {
+    const { client } = clientReturning({ status: 'success', content: 'Hello' });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      streamAskGenerate(client, request(), { onDelta: vi.fn(), signal: controller.signal }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
   });
 });
 

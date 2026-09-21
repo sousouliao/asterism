@@ -13,7 +13,7 @@ export interface AskProviderDefinition {
   /** OpenAI 兼容 chat completions 的固定上游 base URL。 */
   baseUrl: string;
   defaultModel: string;
-  /** 是否随请求启用 `response_format: json_object`（OpenRouter 依上游模型而定，默认不启用）。 */
+  /** 连接探针是否启用 `response_format: json_object`（生成路径已改为流式 Markdown，不再使用）。 */
   supportsJsonMode: boolean;
   /** 界面 Provider 名称的 i18n key。 */
   labelKey: string;

@@ -4,7 +4,7 @@
 
 ## 当前 frontier
 
-- [ ] **个人私有知识问答（GitHub #41）· 本地实现已交付，`ask-generate` 已远端部署，待真实环境验收**：`feat(ask): private and grounded repository Q&A (Ask Asterism)`。生成策略为客户端 BYOK + 无状态 `ask-generate` 代理 + 引用校验、无抽取式兜底（ADR 0042）；core / Edge Function / db / Settings 配置与同意流 / Ask 面板 / 双语 i18n / dev 预览与四道门禁全部完成（`logs/2026-09-20-ask-asterism-delivery.md`），远端部署与传输层 smoke 已通过。剩余：真实账号 smoke、production 验收后关闭 issue。
+- [ ] **个人私有知识问答（GitHub #41）· 本地实现已交付（含流式 Markdown），待重新部署 `ask-generate` 与真实环境验收**：`feat(ask): private and grounded repository Q&A (Ask Asterism)`。生成策略为客户端 BYOK + 无状态 `ask-generate` SSE 代理 + 引用校验、无抽取式兜底（ADR 0042 / 0044）；core / Edge Function / db / Settings / Ask 面板流式渲染 / 双语 i18n / dev 预览与四道门禁全部完成（`logs/2026-09-21-ask-streaming-markdown.md`）。剩余：远端重新部署 `ask-generate`、真实账号 smoke（含流式与停止生成）、production 验收后关闭 issue。
 
 ## 已完成近期 frontier
 

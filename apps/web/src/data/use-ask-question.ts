@@ -2,11 +2,11 @@ import {
   type AskCandidate,
   type AskExchange,
   buildAskPrompt,
-  findAskProvider,
   parseAskResponse,
   selectAskCandidates,
+  splitAskStream,
 } from '@asterism/core';
-import { invokeAskGenerate, type StarredRepoRecord } from '@asterism/db';
+import { type StarredRepoRecord, streamAskGenerate } from '@asterism/db';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/use-session';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
@@ -32,7 +32,7 @@ export interface AskTurn {
 export type AskPhase =
   | { kind: 'idle' }
   | { kind: 'recalling'; question: string }
-  | { kind: 'generating'; question: string }
+  | { kind: 'generating'; question: string; text: string }
   | { kind: 'answered'; turn: AskTurn }
   | { kind: 'not_found'; question: string }
   | {
@@ -47,9 +47,13 @@ interface Submission {
   history: AskExchange[];
 }
 
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 /**
- * Ask Asterism 编排（GitHub #41，ADR 0042）：本地召回（词法 + 可选语义近邻）→
- * BYOK 生成 → 客户端引用校验。召回为空时不调用 LLM，直接进入 not_found；
+ * Ask Asterism 编排（GitHub #41，ADR 0042 / 0044）：本地召回（词法 + 可选语义近邻）→
+ * BYOK 流式生成 → 客户端引用校验。召回为空时不调用 LLM，直接进入 not_found；
  * embedding 未授权 / 未就绪时语义通道自动缺席，纯词法召回照常工作。
  */
 export function useAskQuestion() {
@@ -68,6 +72,10 @@ export function useAskQuestion() {
   const [turns, setTurns] = useState<AskTurn[]>([]);
   const nextId = useRef(1);
   const settledId = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const stopRef = useRef(false);
+  const deltaRef = useRef('');
+  const rafRef = useRef<number | null>(null);
 
   const reposQuery = useStarredRepos();
   const memoriesQuery = useMemoriesList();
@@ -84,12 +92,23 @@ export function useAskQuestion() {
     enabled: semanticEnabled && phase.kind === 'recalling',
   });
 
+  const cancelInFlight = useCallback((asStop: boolean) => {
+    stopRef.current = asStop;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
+
   const ask = useCallback(
     (rawQuestion: string) => {
       const question = rawQuestion.trim();
       if (!question || !byok) {
         return;
       }
+      cancelInFlight(false);
       const history: AskExchange[] = turns.map((turn) => ({
         question: turn.question,
         summary: turn.summary,
@@ -101,14 +120,22 @@ export function useAskQuestion() {
       setSubmission({ id, question, history });
       setPhase({ kind: 'recalling', question });
     },
-    [byok, turns],
+    [byok, cancelInFlight, turns],
   );
 
+  const stop = useCallback(() => {
+    if (phase.kind !== 'generating') {
+      return;
+    }
+    cancelInFlight(true);
+  }, [cancelInFlight, phase.kind]);
+
   const reset = useCallback(() => {
+    cancelInFlight(false);
     setSubmission(null);
     setPhase({ kind: 'idle' });
     setTurns([]);
-  }, []);
+  }, [cancelInFlight]);
 
   useEffect(() => {
     if (!submission || settledId.current === submission.id) {
@@ -130,6 +157,8 @@ export function useAskQuestion() {
 
     const token = submission.id;
     settledId.current = token;
+    stopRef.current = false;
+    deltaRef.current = '';
 
     const run = async () => {
       const candidates = selectAskCandidates({
@@ -144,8 +173,7 @@ export function useAskQuestion() {
         return;
       }
 
-      setPhase({ kind: 'generating', question: submission.question });
-      const provider = findAskProvider(byok.provider);
+      setPhase({ kind: 'generating', question: submission.question, text: '' });
       const prompt = buildAskPrompt({
         question: submission.question,
         candidates,
@@ -154,46 +182,105 @@ export function useAskQuestion() {
         language: document.documentElement.lang || undefined,
         includeNotes,
       });
-      const outcome = await invokeAskGenerate(supabase, {
-        provider: byok.provider,
-        model: byok.model,
-        providerKey: byok.providerKey,
-        messages: [
-          { role: 'system', content: prompt.system },
-          { role: 'user', content: prompt.user },
-        ],
-        ...(provider?.supportsJsonMode ? { responseFormat: 'json_object' as const } : {}),
-      });
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-      if (outcome.status !== 'success') {
+      const flushText = () => {
+        rafRef.current = null;
+        if (settledId.current !== token) {
+          return;
+        }
         setPhase({
-          kind: 'error',
+          kind: 'generating',
           question: submission.question,
-          reason:
-            outcome.status === 'timeout'
-              ? 'timeout'
-              : outcome.status === 'invalid_provider_key'
-                ? 'invalid_key'
-                : outcome.status === 'provider_rejected'
-                  ? 'provider_rejected'
-                  : 'retryable',
+          text: splitAskStream(deltaRef.current).body,
         });
-        return;
-      }
-      const parsed = parseAskResponse(outcome.content, candidates);
-      if (!parsed.ok) {
-        setPhase({ kind: 'error', question: submission.question, reason: 'unparsable' });
-        return;
-      }
-      const turn: AskTurn = {
-        id: submission.id,
-        question: submission.question,
-        summary: parsed.answer.summary,
-        candidates,
-        recommendations: parsed.answer.recommendations,
       };
-      setTurns((current) => [...current, turn]);
-      setPhase({ kind: 'answered', turn });
+
+      const settle = (raw: string, allowEmpty: boolean) => {
+        const parsed = parseAskResponse(raw, candidates);
+        if (!parsed.ok) {
+          if (allowEmpty) {
+            setPhase({ kind: 'idle' });
+            return;
+          }
+          setPhase({ kind: 'error', question: submission.question, reason: 'unparsable' });
+          return;
+        }
+        const turn: AskTurn = {
+          id: submission.id,
+          question: submission.question,
+          summary: parsed.answer.summary,
+          candidates,
+          recommendations: parsed.answer.recommendations,
+        };
+        setTurns((current) => [...current, turn]);
+        setPhase({ kind: 'answered', turn });
+      };
+
+      try {
+        const outcome = await streamAskGenerate(
+          supabase,
+          {
+            provider: byok.provider,
+            model: byok.model,
+            providerKey: byok.providerKey,
+            messages: [
+              { role: 'system', content: prompt.system },
+              { role: 'user', content: prompt.user },
+            ],
+          },
+          {
+            signal: controller.signal,
+            onDelta: (text) => {
+              if (settledId.current !== token) {
+                return;
+              }
+              deltaRef.current += text;
+              if (rafRef.current === null) {
+                rafRef.current = requestAnimationFrame(flushText);
+              }
+            },
+          },
+        );
+
+        if (settledId.current !== token) {
+          return;
+        }
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+
+        if (outcome.status !== 'success') {
+          setPhase({
+            kind: 'error',
+            question: submission.question,
+            reason:
+              outcome.status === 'timeout'
+                ? 'timeout'
+                : outcome.status === 'invalid_provider_key'
+                  ? 'invalid_key'
+                  : outcome.status === 'provider_rejected'
+                    ? 'provider_rejected'
+                    : 'retryable',
+          });
+          return;
+        }
+        settle(outcome.content, false);
+      } catch (error) {
+        if (settledId.current !== token) {
+          return;
+        }
+        if (isAbortError(error) && stopRef.current) {
+          settle(deltaRef.current, true);
+          return;
+        }
+        if (isAbortError(error)) {
+          return;
+        }
+        setPhase({ kind: 'error', question: submission.question, reason: 'retryable' });
+      }
     };
 
     void run();
@@ -208,5 +295,5 @@ export function useAskQuestion() {
     includeNotes,
   ]);
 
-  return { phase, turns, ask, reset, configured: Boolean(byok) };
+  return { phase, turns, ask, stop, reset, configured: Boolean(byok) };
 }

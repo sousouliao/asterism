@@ -311,11 +311,12 @@ describe('parseAskResponse', () => {
     { item: item({}, 'repo-b'), repoId: 'repo-b', lexicalScore: 2, reasons: [] },
   ];
 
-  it('parses a plain JSON answer and maps indexes to repoIds', () => {
-    const result = parseAskResponse(
-      '{"summary":"[0] fits best.","recommendations":[0,1]}',
-      candidates,
-    );
+  function answer(summary: string, recommendations: string): string {
+    return `${summary}\n\n\`\`\`asterism-recommendations\n${recommendations}\n\`\`\``;
+  }
+
+  it('parses markdown prose and maps indexes to repoIds', () => {
+    const result = parseAskResponse(answer('[0] fits best.', '[0, 1]'), candidates);
     expect(result).toEqual({
       ok: true,
       answer: {
@@ -328,22 +329,16 @@ describe('parseAskResponse', () => {
     });
   });
 
-  it('tolerates markdown fences and surrounding prose', () => {
-    const result = parseAskResponse(
-      '```json\n{"summary":"Sure.","recommendations":[1]}\n```\nHope this helps.',
-      candidates,
-    );
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.answer.recommendations).toEqual([{ index: 1, repoId: 'repo-b' }]);
-    }
+  it('treats a missing sentinel as an empty recommendation list', () => {
+    const result = parseAskResponse('Sure.', candidates);
+    expect(result).toEqual({
+      ok: true,
+      answer: { summary: 'Sure.', recommendations: [] },
+    });
   });
 
   it('drops out-of-range, non-integer and duplicate indexes', () => {
-    const result = parseAskResponse(
-      '{"summary":"s","recommendations":[0,-1,2,1.5,0,99]}',
-      candidates,
-    );
+    const result = parseAskResponse(answer('s', '[0, -1, 2, 1.5, 0, 99]'), candidates);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.answer.recommendations).toEqual([{ index: 0, repoId: 'repo-a' }]);
@@ -357,10 +352,7 @@ describe('parseAskResponse', () => {
       lexicalScore: 1,
       reasons: [],
     })) as AskCandidate[];
-    const result = parseAskResponse(
-      '{"summary":"s","recommendations":[0,1,2,3,4,5,6,7,8,9]}',
-      pool,
-    );
+    const result = parseAskResponse(answer('s', '[0,1,2,3,4,5,6,7,8,9]'), pool);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.answer.recommendations).toHaveLength(ASK_MAX_RECOMMENDATIONS);
@@ -368,28 +360,21 @@ describe('parseAskResponse', () => {
   });
 
   it('accepts an empty recommendation list as an honest no-match', () => {
-    const result = parseAskResponse(
-      '{"summary":"No match found.","recommendations":[]}',
-      candidates,
-    );
+    const result = parseAskResponse(answer('No match found.', '[]'), candidates);
     expect(result).toEqual({
       ok: true,
       answer: { summary: 'No match found.', recommendations: [] },
     });
   });
 
-  it('rejects missing or empty summaries and non-JSON output', () => {
-    expect(parseAskResponse('{"recommendations":[0]}', candidates)).toEqual({
+  it('rejects empty summaries', () => {
+    expect(parseAskResponse('```asterism-recommendations\n[0]\n```', candidates)).toEqual({
       ok: false,
       error: 'empty_summary',
     });
-    expect(parseAskResponse('{"summary":"  "}', candidates)).toEqual({
+    expect(parseAskResponse('   \n', candidates)).toEqual({
       ok: false,
       error: 'empty_summary',
-    });
-    expect(parseAskResponse('totally not json', candidates)).toEqual({
-      ok: false,
-      error: 'unparsable',
     });
   });
 });

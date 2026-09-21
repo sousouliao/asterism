@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-19
+- Amended by: ADR 0044（流式 Markdown 回答；修订本决策第 7 条）
 - Implements: GitHub #41 `feat(ask): private and grounded repository Q&A (Ask Asterism)`（实现前决策）
 - Amends: ADR 0037 的 near-term non-goals 中「不恢复服务端 BYOK Generation」表述（本决策为客户端形态，服务端禁令继续成立）
 - Preserves: ADR 0037 私有定位、ADR 0032 不复活服务端 Provider 架构、ADR 0039 consent v2 与「解释只陈述可验证事实」、ADR 0041 本地可解释纪律

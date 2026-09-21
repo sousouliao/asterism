@@ -78,7 +78,6 @@ describe('ask-generate HTTP boundary', () => {
       validBody({ messages: [{ role: 'tool', content: 'hi' }] }),
       validBody({ messages: [{ role: 'user', content: '' }] }),
       validBody({ temperature: 5 }),
-      validBody({ responseFormat: 'yaml' }),
     ];
     for (const body of cases) {
       const response = await createAskGenerateHandler(deps)(request(body));
@@ -87,16 +86,12 @@ describe('ask-generate HTTP boundary', () => {
     expect(deps.fetchProvider).not.toHaveBeenCalled();
   });
 
-  it('forwards the provider key only to the upstream request and maps success content', async () => {
+  it('forwards the provider key only to the upstream request and streams success content', async () => {
     const deps = dependencies();
-    const response = await createAskGenerateHandler(deps)(
-      request(validBody({ responseFormat: 'json_object' })),
-    );
+    const response = await createAskGenerateHandler(deps)(request(validBody()));
     expect(response.status).toBe(200);
-    await expect(outcome(response)).resolves.toEqual({
-      status: 'success',
-      content: '{"summary":"ok","recommendations":[0]}',
-    });
+    expect(response.headers.get('Content-Type')).toContain('text/event-stream');
+    expect(await response.text()).toContain('event: delta');
 
     const call = (deps.fetchProvider as ReturnType<typeof vi.fn>).mock.calls[0];
     const init = call?.[1] as RequestInit;
@@ -106,7 +101,7 @@ describe('ask-generate HTTP boundary', () => {
       model: 'deepseek-chat',
       messages: validBody().messages,
       max_tokens: 2048,
-      response_format: { type: 'json_object' },
+      stream: true,
     });
     // 白名单只约束首跳，禁止跟随重定向把 Authorization 带出白名单主机。
     expect(init.redirect).toBe('manual');
@@ -241,6 +236,48 @@ describe('ask-generate HTTP boundary', () => {
     const response = await createAskGenerateHandler(deps)(request(validBody()));
     expect(response.status).toBe(502);
     await expect(outcome(response)).resolves.toEqual({ status: 'retryable_error' });
+  });
+
+  it('converts an upstream OpenAI SSE stream into the Asterism event protocol', async () => {
+    const upstream = [
+      `data: ${JSON.stringify({ choices: [{ delta: { content: 'Hel' } }] })}\n\n`,
+      `data: ${JSON.stringify({ choices: [{ delta: { content: 'lo' } }] })}\n\n`,
+      'data: [DONE]\n\n',
+    ].join('');
+    const deps = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(
+        new Response(upstream, {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        }),
+      ),
+    });
+    const response = await createAskGenerateHandler(deps)(request(validBody()));
+    expect(response.headers.get('Content-Type')).toContain('text/event-stream');
+    const body = await response.text();
+    expect(body).toContain('event: delta');
+    expect(body).toContain('"text":"Hel"');
+    expect(body).toContain('"text":"lo"');
+    expect(body).toContain('event: done');
+  });
+
+  it('emits a timeout error event when the stream goes idle', async () => {
+    const hanging = new Response(
+      new ReadableStream<Uint8Array>({
+        start() {
+          // 故意不 enqueue、不 close：触发空闲超时。
+        },
+      }),
+      { status: 200, headers: { 'Content-Type': 'text/event-stream' } },
+    );
+    const deps = dependencies({
+      fetchProvider: vi.fn().mockResolvedValue(hanging),
+      idleTimeoutMs: 20,
+    });
+    const response = await createAskGenerateHandler(deps)(request(validBody()));
+    const body = await response.text();
+    expect(body).toContain('event: error');
+    expect(body).toContain('"status":"timeout"');
   });
 });
 

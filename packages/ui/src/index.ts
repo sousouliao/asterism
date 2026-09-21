@@ -98,6 +98,7 @@ export {
 } from './components/ui/sheet';
 export { Skeleton } from './components/ui/skeleton';
 export { Toaster } from './components/ui/sonner';
+export { StreamingMarkdown } from './components/ui/streaming-markdown';
 export {
   Table,
   TableBody,

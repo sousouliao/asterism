@@ -36,6 +36,11 @@ import {
   findAskProvider,
   isAllowedAskProvider,
 } from '../../../packages/core/src/repos/ask-providers.ts';
+import {
+  type AskSseEvent,
+  createOpenAiDeltaDecoder,
+  encodeAskSseEvent,
+} from '../../../packages/core/src/repos/ask-sse.ts';
 
 /** 模型检测返回条数上限（ADR 0043）：OpenRouter 会返回数百条，封顶约束响应体大小。 */
 const MAX_MODELS = 200;
@@ -50,6 +55,8 @@ const MAX_MESSAGES = 40;
 const MAX_MESSAGE_CHARS = 32_000;
 const MAX_TOTAL_CHARS = 200_000;
 const DEFAULT_TIMEOUT_MS = 60_000;
+/** 流式生成：连续无 delta 才判失败，避免把正常的长回答掐断（ADR 0044）。 */
+const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 /**
  * 生成回答的 completion 上限。BYOK 花的是用户自己的额度，代理必须给出上限，
@@ -66,8 +73,10 @@ interface ProviderMessage {
 export interface AskGenerateDependencies {
   authenticate: (jwt: string) => Promise<string | null>;
   fetchProvider: typeof fetch;
-  /** 上游请求超时（毫秒）；测试注入小值。 */
+  /** 上游请求超时（毫秒）；测试注入小值。生成动作用于响应头，models/test 用于整段请求。 */
   timeoutMs?: number;
+  /** 生成流空闲超时（毫秒）；测试注入小值。 */
+  idleTimeoutMs?: number;
   /** 允许的浏览器来源；留空表示不限制（自部署默认）。 */
   allowedOrigins?: readonly string[];
 }
@@ -78,7 +87,6 @@ interface ValidatedBody {
   providerKey: string;
   messages: ProviderMessage[];
   temperature?: number;
-  responseFormat?: 'json_object';
 }
 
 interface ValidatedModelsBody {
@@ -168,22 +176,110 @@ function validateBody(raw: unknown): ValidatedBody | null {
     temperature = body.temperature;
   }
 
-  let responseFormat: 'json_object' | undefined;
-  if (body.responseFormat !== undefined) {
-    if (body.responseFormat !== 'json_object') {
-      return null;
-    }
-    responseFormat = 'json_object';
-  }
-
   return {
     provider,
     model: body.model,
     providerKey: body.providerKey,
     messages,
     temperature,
-    responseFormat,
   };
+}
+
+function createSseResponder(cors: Record<string, string>) {
+  return (body: BodyInit): Response =>
+    new Response(body, {
+      status: 200,
+      headers: {
+        ...cors,
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      },
+    });
+}
+
+function createHeaderTimeout(ms: number): { signal: AbortSignal; dispose: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new DOMException('timed out', 'TimeoutError'));
+  }, ms);
+  return {
+    signal: controller.signal,
+    dispose: () => clearTimeout(timer),
+  };
+}
+
+function transformOpenAiStream(idleTimeoutMs: number): TransformStream<Uint8Array, Uint8Array> {
+  const decoder = createOpenAiDeltaDecoder();
+  const textDecoder = new TextDecoder();
+  const textEncoder = new TextEncoder();
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
+  let finished = false;
+  let emitted = false;
+
+  const enqueue = (
+    controller: TransformStreamDefaultController<Uint8Array>,
+    event: AskSseEvent,
+  ) => {
+    controller.enqueue(textEncoder.encode(encodeAskSseEvent(event)));
+  };
+
+  const clearIdle = () => {
+    if (idleTimer !== null) {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+  };
+
+  const armIdle = (controller: TransformStreamDefaultController<Uint8Array>) => {
+    clearIdle();
+    idleTimer = setTimeout(() => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      enqueue(controller, { event: 'error', status: 'timeout' });
+      enqueue(controller, { event: 'done' });
+      try {
+        controller.terminate();
+      } catch {
+        // 流已关闭
+      }
+    }, idleTimeoutMs);
+  };
+
+  return new TransformStream<Uint8Array, Uint8Array>({
+    start(controller) {
+      armIdle(controller);
+    },
+    transform(chunk, controller) {
+      if (finished) {
+        return;
+      }
+      const deltas = decoder.push(textDecoder.decode(chunk, { stream: true }));
+      for (const text of deltas) {
+        emitted = true;
+        enqueue(controller, { event: 'delta', text });
+      }
+      if (deltas.length > 0) {
+        armIdle(controller);
+      }
+    },
+    flush(controller) {
+      clearIdle();
+      if (finished) {
+        return;
+      }
+      finished = true;
+      for (const text of decoder.end()) {
+        emitted = true;
+        enqueue(controller, { event: 'delta', text });
+      }
+      if (!emitted) {
+        enqueue(controller, { event: 'error', status: 'retryable_error' });
+      }
+      enqueue(controller, { event: 'done' });
+    },
+  });
 }
 
 /** 模型检测动作只携带 Provider 与 key（ADR 0043）；白名单与 key 规则与生成一致。 */
@@ -237,6 +333,7 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
   return async (request: Request): Promise<Response> => {
     const corsHeaders = resolveCorsHeaders(request, dependencies.allowedOrigins);
     const json = createJsonResponder(corsHeaders);
+    const sse = createSseResponder(corsHeaders);
 
     if (request.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders });
@@ -373,14 +470,13 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
       model: body.model,
       messages: body.messages,
       max_tokens: MAX_COMPLETION_TOKENS,
+      stream: true,
     };
     if (body.temperature !== undefined) {
       upstreamBody.temperature = body.temperature;
     }
-    if (body.responseFormat) {
-      upstreamBody.response_format = { type: body.responseFormat };
-    }
 
+    const headerTimeout = createHeaderTimeout(dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     let response: Response;
     try {
       response = await dependencies.fetchProvider(
@@ -395,7 +491,7 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
           // 白名单只约束首跳；跟随重定向会让被劫持或被滥用的上游把请求
           // （连同 Authorization 头）带到白名单外的主机。
           redirect: 'manual',
-          signal: AbortSignal.timeout(dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+          signal: headerTimeout.signal,
         },
       );
     } catch (error) {
@@ -403,6 +499,8 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
         return json({ error: 'Upstream request timed out' }, 504);
       }
       return json({ status: 'retryable_error' }, 502);
+    } finally {
+      headerTimeout.dispose();
     }
 
     if (response.status === 401 || response.status === 403) {
@@ -412,17 +510,33 @@ export function createAskGenerateHandler(dependencies: AskGenerateDependencies) 
       return json({ status: 'provider_rejected', upstreamStatus: response.status });
     }
 
-    try {
-      const payload = (await response.json()) as {
-        choices?: { message?: { content?: unknown } }[];
-      };
-      const content = payload.choices?.[0]?.message?.content;
-      if (typeof content !== 'string' || content.length === 0) {
+    const contentType = response.headers.get('Content-Type') ?? '';
+    if (!contentType.toLowerCase().includes('text/event-stream')) {
+      try {
+        const payload = (await response.json()) as {
+          choices?: { message?: { content?: unknown } }[];
+        };
+        const content = payload.choices?.[0]?.message?.content;
+        if (typeof content !== 'string' || content.length === 0) {
+          return json({ status: 'retryable_error' }, 502);
+        }
+        return sse(
+          encodeAskSseEvent({ event: 'delta', text: content }) +
+            encodeAskSseEvent({ event: 'done' }),
+        );
+      } catch {
         return json({ status: 'retryable_error' }, 502);
       }
-      return json({ status: 'success', content });
-    } catch {
+    }
+
+    if (!response.body) {
       return json({ status: 'retryable_error' }, 502);
     }
+
+    return sse(
+      response.body.pipeThrough(
+        transformOpenAiStream(dependencies.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS),
+      ),
+    );
   };
 }

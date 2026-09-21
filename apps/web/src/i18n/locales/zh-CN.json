@@ -430,6 +430,7 @@
     "openSettings": "打开设置",
     "recalling": "正在检索你的收藏…",
     "generating": "正在生成回答…",
+    "stopGenerating": "停止生成",
     "notFound": "你的收藏库中未找到匹配的项目。",
     "errorRetryable": "回答生成失败，请检查网络后重试。",
     "errorTimeout": "Provider 响应超时，请重试。",

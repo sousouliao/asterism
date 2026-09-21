@@ -5,12 +5,14 @@
 ## 当前状态
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
-- **当前状态**：GitHub #41 Ask Asterism 本地实现交付：BYOK 生成（客户端存 key + 无状态 `ask-generate` 代理）、个人库词法/语义召回、引用校验、Settings 配置与同意流、常驻底部输入区（⌘K / Ctrl K 仅聚焦）、双语 i18n 与 dev 预览路由全部落地；四道门禁与最新 dock 视觉检查通过。待办：远端部署 `ask-generate`、真实账号 smoke 与 production 验收后关闭 issue。
-- **当前工程 frontier**：三个纵向切片中的 #39、#40 已完成；#41（Ask Asterism 私有问答）本地实现已交付（ADR 0042：客户端 BYOK + 无状态代理 + 引用校验、无抽取式兜底），剩余远端部署与真实环境验收。
+- **当前状态**：GitHub #41 Ask Asterism 已支持流式 Markdown 回答（ADR 0044）：`ask-generate` 生成动作改为 SSE 转换，正文由 `@lobehub/streamdown` 隔离渲染，推荐哨兵块在流末校验。本地四道门禁通过。待办：远端重新部署 `ask-generate`、真实账号 smoke（含流式与停止生成）后关闭 issue。
+- **当前工程 frontier**：三个纵向切片中的 #39、#40 已完成；#41（Ask Asterism 私有问答）本地实现已交付（ADR 0042 / 0044：客户端 BYOK + 无状态 SSE 代理 + 引用校验、无抽取式兜底），剩余远端部署与真实环境验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
 
 ## 已完成里程碑
+
+- **2026-09-21 · Ask 回答流式化（ADR 0044）**：生成契约从严格 JSON 改为 Markdown 正文 + `asterism-recommendations` 哨兵块；`ask-generate` 把上游 SSE 转为 Asterism 协议；超时拆成响应头 / 空闲；前端 `StreamingMarkdown` 隔离 `@lobehub/streamdown`。四道门禁全绿。见 ADR 0044 与 `logs/2026-09-21-ask-streaming-markdown.md`。
 
 - **2026-09-20 · Ask 底部输入区胶囊化**：移除未提问时的上方大白框与 emptyHint，输入框去除多层包裹改为独立的 `rounded-full` 胶囊（pill composer）；问答在上方以 `rounded-2xl` 独立卡片展开，支持右上角关闭或 Esc 收起。四道门禁全绿。见 `logs/2026-09-20-ask-dock-pill-composer.md`。
 
@@ -54,7 +56,7 @@
 
 ## 下一恢复点
 
-1. #41 收尾：ADR 0043 版 `ask-generate`（含 `models` / `test` 动作）已于 2026-09-20 重新部署至 `hqtrmulypxwdqvzlkhke`，传输层 smoke 通过（OPTIONS 预检 200；无 JWT / 伪造 JWT 均被平台 `verify_jwt` 拒绝）。Ask 第二问死锁已修复（本地代码待合入部署）。剩余：维护者在 Web 端真实账号 smoke——Settings 建立连接并检测模型 → 激活（过出网同意）→ ⌘K 提问（含**追问与重试**各一次，验证死锁修复）→ 引用直达 Quick Look → 无匹配问题返回「未找到」——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
+1. #41 收尾：ADR 0043 版 `ask-generate` 已于 2026-09-20 部署；ADR 0044 将生成动作改为 SSE，**必须重新部署** `ask-generate` 后前端流式才会生效。剩余：维护者部署函数 → Web 端真实账号 smoke——Settings 建立连接并检测模型 → 激活（过出网同意）→ ⌘K 提问（确认正文流式出现、停止生成、**追问与重试**各一次）→ 引用直达 Quick Look → 无匹配问题返回「未找到」——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
 
 ## 环境提示
 

@@ -57,7 +57,7 @@ function formatCandidateBlock<T extends StarredRepoLike>(
 
 /**
  * 组装 Grounding prompt：候选以带索引的结构化文本给出，模型被限定只能引用这些索引，
- * 并以严格 JSON 返回（summary + 推荐索引）。引用校验在 parseAskResponse 完成。
+ * 并以 Markdown 正文 + 末尾推荐哨兵块返回。引用校验在 parseAskResponse 完成。
  */
 export function buildAskPrompt<T extends StarredRepoLike>({
   question,
@@ -80,10 +80,14 @@ export function buildAskPrompt<T extends StarredRepoLike>({
       ? `- Write the summary in this language: ${language}.`
       : '- Write the summary in the language of the question.',
     '',
-    'Respond with strict JSON only, no markdown fences, in this exact shape:',
-    '{"summary": string, "recommendations": number[]}',
-    '- summary: 2-6 sentences answering the question, citing candidates by their bracketed index where they support a claim.',
-    '- recommendations: the indexes of candidates that genuinely answer the question, best first, at most 5. Use [] when none match.',
+    'Respond in Markdown (not JSON). After the answer, emit exactly one fenced block whose language tag is asterism-recommendations and whose body is a JSON array of candidate indexes.',
+    'Allowed Markdown: paragraphs, lists, bold, italics, inline code, and fenced code blocks. Do not use images, raw HTML, or tables.',
+    'End with this block and nothing after it:',
+    '```asterism-recommendations',
+    '[0, 2]',
+    '```',
+    '- The prose (2-6 sentences) answers the question, citing candidates by their bracketed index where they support a claim.',
+    '- The recommendations array lists indexes that genuinely answer the question, best first, at most 5. Use [] when none match.',
   ].join('\n');
 
   const sections: string[] = [`Question: ${question}`];

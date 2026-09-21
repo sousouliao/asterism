@@ -15,7 +15,7 @@ import { useAskQuestion } from './use-ask-question';
 import { QUERY_DEBOUNCE_MS } from './use-semantic-search';
 
 const mocks = vi.hoisted(() => ({
-  invokeAskGenerate: vi.fn(),
+  streamAskGenerate: vi.fn(),
   listStarredRepos: vi.fn(),
   listMemories: vi.fn(),
   searchRepoEmbeddings: vi.fn(),
@@ -34,7 +34,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@asterism/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@asterism/db')>()),
-  invokeAskGenerate: mocks.invokeAskGenerate,
+  streamAskGenerate: mocks.streamAskGenerate,
   listStarredRepos: mocks.listStarredRepos,
   listMemories: mocks.listMemories,
   searchRepoEmbeddings: mocks.searchRepoEmbeddings,
@@ -92,7 +92,7 @@ const RECORDS: StarredRepoRecord[] = [
   }),
 ];
 
-const ANSWER = '{"summary":"Tungstenite is the match.","recommendations":[0]}';
+const ANSWER = '[0] Tungstenite is the match.\n\n```asterism-recommendations\n[0]\n```';
 
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
@@ -144,7 +144,10 @@ async function ask(question: string) {
 }
 
 beforeEach(() => {
-  mocks.invokeAskGenerate.mockReset().mockResolvedValue({ status: 'success', content: ANSWER });
+  mocks.streamAskGenerate.mockReset().mockImplementation(async (_client, _request, options) => {
+    options.onDelta(ANSWER);
+    return { status: 'success', content: ANSWER };
+  });
   mocks.listStarredRepos.mockReset().mockResolvedValue(RECORDS);
   mocks.listMemories.mockReset().mockResolvedValue([]);
   mocks.searchRepoEmbeddings.mockReset();
@@ -202,13 +205,16 @@ describe('useAskQuestion', () => {
     await flushWork();
     expect(latest?.phase.kind).toBe('answered');
     expect(latest?.turns).toHaveLength(2);
-    expect(mocks.invokeAskGenerate).toHaveBeenCalledTimes(2);
+    expect(mocks.streamAskGenerate).toHaveBeenCalledTimes(2);
   });
 
   it('proceeds when the user retries after a provider rejection', async () => {
-    mocks.invokeAskGenerate
+    mocks.streamAskGenerate
       .mockResolvedValueOnce({ status: 'provider_rejected' })
-      .mockResolvedValueOnce({ status: 'success', content: ANSWER });
+      .mockImplementationOnce(async (_client, _request, options) => {
+        options.onDelta(ANSWER);
+        return { status: 'success', content: ANSWER };
+      });
     await renderHarness();
     await flushWork();
 
@@ -219,7 +225,7 @@ describe('useAskQuestion', () => {
     await ask('websocket library');
     await flushWork();
     expect(latest?.phase.kind).toBe('answered');
-    expect(mocks.invokeAskGenerate).toHaveBeenCalledTimes(2);
+    expect(mocks.streamAskGenerate).toHaveBeenCalledTimes(2);
   });
 
   it('waits for the semantic channel instead of bypassing it', async () => {
@@ -238,7 +244,7 @@ describe('useAskQuestion', () => {
     await flushDebounce();
     // 语义检索仍在途：不得进入 generating，也不得提前发起生成。
     expect(latest?.phase.kind).toBe('recalling');
-    expect(mocks.invokeAskGenerate).not.toHaveBeenCalled();
+    expect(mocks.streamAskGenerate).not.toHaveBeenCalled();
 
     await act(async () => {
       resolveNeighbors([{ repoId: 'repo-memo', distance: 0.31 }]);
@@ -250,6 +256,6 @@ describe('useAskQuestion', () => {
     const turn = latest?.turns[0];
     expect(turn?.candidates.map((candidate) => candidate.repoId)).toEqual(['repo-memo']);
     expect(turn?.candidates[0]?.lexicalScore).toBeNull();
-    expect(mocks.invokeAskGenerate).toHaveBeenCalledTimes(1);
+    expect(mocks.streamAskGenerate).toHaveBeenCalledTimes(1);
   });
 });

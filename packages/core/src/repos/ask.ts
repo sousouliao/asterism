@@ -5,6 +5,7 @@
  * 召回为空时不发起生成，由调用方直接呈现固定的「未找到」文案。
  *
  * 三个阶段各自成文件，本文件只保留连接能力读取并汇总导出。
+ * 回答契约为 Markdown 正文 + 末尾推荐哨兵（ADR 0044）；引用校验仍在客户端。
  */
 
 export {
@@ -35,6 +36,19 @@ export {
   findAskProvider,
   isAllowedAskProvider,
 } from './ask-providers';
+export {
+  ASK_SSE_ERROR_STATUSES,
+  type AskSseErrorStatus,
+  type AskSseEvent,
+  createAskSseDecoder,
+  createOpenAiDeltaDecoder,
+  encodeAskSseEvent,
+} from './ask-sse';
+export {
+  ASK_RECOMMENDATIONS_FENCE,
+  type AskStreamSplit,
+  splitAskStream,
+} from './ask-stream';
 
 // ---------------------------------------------------------------------------
 // 连接能力读取（ADR 0043；自旧 Generation Registry 的 capability 读取原样迁移）

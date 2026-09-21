@@ -6,8 +6,9 @@ export type {
   AskModelsRequest,
   AskTestOutcome,
   AskTestRequest,
+  StreamAskGenerateOptions,
 } from './ask';
-export { invokeAskGenerate, invokeAskModels, invokeAskTest } from './ask';
+export { invokeAskModels, invokeAskTest, streamAskGenerate } from './ask';
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
 export type {

@@ -267,10 +267,13 @@ ADR 0037 把个人 Memory 提升为 Quick Look 的主要个人上下文。主体
 使用底部居中 dock 变体——`max-w-2xl`（672px）、贴底（`bottom-4` / `sm:bottom-6`）。未提问时仅渲染独立的 `rounded-full` 输入胶囊（pill composer，48px 高度，无多余外框嵌套与空态提示大白框），绝不遮挡主内容区；提问后对话卡片（`rounded-2xl`）在输入框正上方生长展示（`max-h-[min(28rem, calc(100dvh - 8rem))]`，超出后内部滚动并保持贴底），支持右上角关闭或 Esc 快捷收起回到纯输入框状态。
 外层全宽包装必须是 `pointer-events-none`，只有卡片与输入框 `pointer-events-auto`，避免挡住两侧页面点击。
 Ask dock 是浮在页面上的 overlay，不得用布局占位把主内容顶上去。
-消息布局：用户消息为石墨蓝调 `accent` 气泡靠右（尾角收窄），Asterism 回答为无气泡纯文本 + 证据卡片靠左；新消息
+消息布局：用户消息为石墨蓝调 `accent` 气泡靠右（尾角收窄），Asterism 回答为无气泡 Markdown 正文 + 证据卡片靠左；新消息
 `slide-in-from-bottom-2 + fade-in`（200ms / `--ease-out-quart`，reduced-motion 关闭）。消息区使用 `role="log"`，
+流式生成期间该区域 `aria-busy="true"`，进行中的正文 `aria-live="off"`，完成后一次性交还 live 区域，避免读屏逐 token 播报。
 挂载贴底须走 ref callback（React 19.2 StrictMode + Portal 下挂载期 effect 早于 ref 附加执行，effect 仅负责
-后续更新的平滑滚动）。
+后续更新的平滑滚动）；流式期间自动贴底，用户上滚后停止跟随。生成中 composer 以「停止生成」取代 spinner。
+
+**Ask 回答 Markdown**：只使用既有 token，不得引入外部样式表或新造颜色 / 字号。段落 `text-body leading-relaxed text-foreground`；链接 `text-link`，仅放行 http/https 并强制新标签页；行内代码 `font-mono text-caption` + `bg-muted`；围栏代码 `bg-muted` + 水平滚动。禁止渲染图片、原始 HTML 与表格。逐字淡入在 `prefers-reduced-motion: reduce` 下关闭。渲染引擎隔离在 `@asterism/ui` 的 `StreamingMarkdown`，调用方只传正文。
 
 ### Browse Filter Pattern · 浏览筛选模式
 
