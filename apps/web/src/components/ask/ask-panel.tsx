@@ -1,6 +1,7 @@
 import type { StarredRepoRecord } from '@asterism/db';
 import {
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -17,9 +18,9 @@ import {
   MessageCircleQuestionIcon,
   SearchXIcon,
   SettingsIcon,
+  SparklesIcon,
   SquareIcon,
   TriangleAlertIcon,
-  XIcon,
 } from 'lucide-react';
 import {
   type FormEvent,
@@ -88,23 +89,78 @@ export function AskDockContent({
   const navigate = useNavigate();
   const inspector = useRepoInspector();
   const [question, setQuestion] = useState('');
+  const [collapsed, setCollapsed] = useState(false);
+  const dockRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const firstScroll = useRef(true);
   const followScroll = useRef(true);
+  const prevTurnsLength = useRef(ask.turns.length);
   const busy = ask.phase.kind === 'generating';
   const hasThread = ask.configured ? ask.turns.length > 0 || ask.phase.kind !== 'idle' : true;
+  const isExpanded = hasThread && !collapsed;
   const openSettings = () => navigate('/settings');
 
   const deepseekModels = ask.availableModels?.filter((m) => m.provider === 'deepseek') ?? [];
   const openaiModels = ask.availableModels?.filter((m) => m.provider === 'openai') ?? [];
   const hasModels = (ask.availableModels?.length ?? 0) > 0;
 
+  // 新提问或处于生成状态时自动展开
+  useEffect(() => {
+    if (busy || ask.turns.length > prevTurnsLength.current) {
+      setCollapsed(false);
+    }
+    prevTurnsLength.current = ask.turns.length;
+  }, [busy, ask.turns.length]);
+
   useEffect(() => {
     if (focusRequest) {
+      setCollapsed(false);
       inputRef.current?.focus();
     }
   }, [focusRequest]);
+
+  // 点击外部空白处（Click Outside）自动折叠
+  useEffect(() => {
+    if (!isExpanded) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (dockRef.current?.contains(target)) {
+        return;
+      }
+      const element = target as HTMLElement;
+      if (
+        element.closest?.('[data-radix-popper-content-wrapper], [role="menu"], [role="dialog"]')
+      ) {
+        return;
+      }
+      setCollapsed(true);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, [isExpanded]);
+
+  // 全局 Esc 快捷键折叠
+  useEffect(() => {
+    if (!isExpanded) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (document.activeElement === inputRef.current && question) {
+          return;
+        }
+        setCollapsed(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isExpanded, question]);
 
   /** 贴底优先走 ref callback：Radix Portal + StrictMode 下挂载期 effect 早于 ref 附加执行。 */
   const scrollLogToBottom = (behavior: ScrollBehavior) => {
@@ -140,6 +196,7 @@ export function AskDockContent({
     if (!trimmed || busy) {
       return;
     }
+    setCollapsed(false);
     followScroll.current = true;
     ask.ask(trimmed);
     setQuestion('');
@@ -149,7 +206,9 @@ export function AskDockContent({
     if (event.key === 'Escape') {
       if (question) {
         setQuestion('');
-      } else if (hasThread && ask.reset) {
+      } else if (isExpanded) {
+        setCollapsed(true);
+      } else if (hasThread && collapsed && ask.reset) {
         ask.reset();
       }
     }
@@ -168,29 +227,34 @@ export function AskDockContent({
 
   return (
     <div
+      ref={dockRef}
       data-ask-dock
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center justify-end px-4 pb-4 sm:pb-6"
+      className="pointer-events-none fixed bottom-0 right-0 left-0 lg:left-60 z-40 flex flex-col items-center justify-end px-4 pb-4 sm:pb-6"
     >
-      <div className="flex w-full max-w-2xl flex-col items-center gap-2.5">
-        {hasThread ? (
+      {/* 右侧工作区专属流体 Liquid Glass 氛围层：展开时自底部向上平滑羽化，保护左侧边栏独立性 */}
+      {isExpanded ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed bottom-0 right-0 left-0 lg:left-60 -z-10 h-[min(52rem,92vh)] overflow-hidden animate-in fade-in duration-300 motion-reduce:animate-none"
+        >
+          {/* 基础高阶模糊层 + 线性渐隐蒙版：自下而上从 100% 渐变到 0% 丝滑融于页面 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] via-[var(--background)]/80 to-transparent backdrop-blur-2xl backdrop-saturate-[190%] [mask-image:linear-gradient(to_top,black_40%,transparent_100%)]" />
+          {/* 液态微流光：底部中央轻微的冷光晕染，赋予真正的液体玻璃光泽感 */}
+          <div className="absolute inset-x-0 bottom-0 h-3/4 bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(37,99,235,0.06),transparent_70%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(96,165,250,0.08),transparent_70%)]" />
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          'flex w-full flex-col items-center gap-2.5 transition-[max-width] duration-200 [transition-timing-function:var(--ease-out-quart)]',
+          isExpanded ? 'max-w-2xl xl:max-w-3xl' : 'max-w-xl xl:max-w-2xl',
+        )}
+      >
+        {isExpanded ? (
           <section
             aria-label={t('ask.title')}
-            className="pointer-events-auto flex max-h-[min(28rem,calc(100dvh_-_8rem))] w-full flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-surface-strong)] shadow-[var(--glass-shadow)] backdrop-blur-[16px] animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none"
+            className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh_-_8.5rem))] w-full flex-col animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none"
           >
-            <div className="flex items-center justify-between border-b border-[var(--glass-border)]/60 px-4 py-2.5">
-              <span className="font-medium text-caption text-foreground">{t('ask.title')}</span>
-              {ask.reset ? (
-                <button
-                  type="button"
-                  onClick={ask.reset}
-                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label={t('common.close')}
-                >
-                  <XIcon className="size-3.5" aria-hidden="true" />
-                </button>
-              ) : null}
-            </div>
-
             <p className="sr-only">{t('ask.description')}</p>
 
             {/* role="log"：新消息只播报增量 */}
@@ -206,7 +270,7 @@ export function AskDockContent({
                 }
                 followScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
               }}
-              className="asterism-scroll-gutter flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4"
+              className="asterism-scroll-gutter flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1 py-1"
             >
               {ask.configured ? (
                 <AskThread
@@ -226,10 +290,15 @@ export function AskDockContent({
 
         <form
           onSubmit={submit}
-          className="pointer-events-auto flex h-12 w-full items-center gap-2.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface-strong)] px-3.5 shadow-[var(--glass-shadow),inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[16px] transition-all duration-150 [transition-timing-function:var(--ease-out-quart)] focus-within:border-foreground/50 focus-within:ring-2 focus-within:ring-ring/40"
+          className="group/composer relative pointer-events-auto flex h-12 w-full items-center gap-2.5 rounded-full border border-black/[0.09] bg-gradient-to-b from-white/98 via-white/94 to-white/98 px-3.5 shadow-[inset_0_1px_1.5px_rgba(255,255,255,1),0_8px_24px_-4px_rgba(15,23,42,0.12),0_2px_6px_-1px_rgba(15,23,42,0.06)] backdrop-blur-2xl transition-all duration-200 [transition-timing-function:var(--ease-out-quart)] hover:border-black/[0.14] hover:shadow-[inset_0_1px_1.5px_rgba(255,255,255,1),0_12px_28px_-4px_rgba(15,23,42,0.16),0_3px_8px_-1px_rgba(15,23,42,0.08)] focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-ring/30 focus-within:shadow-[inset_0_1px_1.5px_rgba(255,255,255,1),0_14px_32px_-4px_rgba(15,23,42,0.2),0_4px_10px_-1px_rgba(15,23,42,0.1)] dark:border-white/[0.16] dark:bg-gradient-to-r dark:from-[#1A2230]/95 dark:via-[#131A24]/90 dark:to-[#1A2230]/95 dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.18),0_12px_36px_-4px_rgba(0,0,0,0.7),0_2px_8px_-1px_rgba(0,0,0,0.5)] dark:hover:border-white/[0.22]"
         >
+          {/* 收起状态：横跨输入框的类似横置花括号 { 的渐变流光光拱 */}
+          {hasThread && collapsed ? (
+            <AskLuminousBracket onClick={() => setCollapsed(false)} label={t('ask.expandThread')} />
+          ) : null}
+
           <MessageCircleQuestionIcon
-            className="size-4 shrink-0 text-muted-foreground"
+            className="size-4 shrink-0 text-foreground/70"
             aria-hidden="true"
           />
           <Input
@@ -238,6 +307,11 @@ export function AskDockContent({
             aria-label={t('ask.questionLabel')}
             placeholder={t('ask.placeholder')}
             onChange={(inputEvent) => setQuestion(inputEvent.target.value)}
+            onFocus={() => {
+              if (hasThread && collapsed) {
+                setCollapsed(false);
+              }
+            }}
             onKeyDown={handleKeyDown}
             className="h-full min-w-0 flex-1 border-0 bg-transparent px-0 text-body shadow-none backdrop-blur-none focus-visible:ring-0 dark:bg-transparent"
           />
@@ -248,7 +322,7 @@ export function AskDockContent({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex h-7 max-w-[130px] shrink-0 items-center gap-1 truncate rounded-full bg-muted/70 px-2.5 font-mono text-micro text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:max-w-[200px] sm:text-caption"
+                  className="flex h-7 max-w-[130px] shrink-0 items-center gap-1 truncate rounded-full border border-black/[0.06] bg-black/[0.03] px-2.5 font-mono text-micro text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur-xs transition-colors hover:bg-black/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/10 sm:max-w-[200px] sm:text-caption"
                   aria-label={t('ask.switchModel')}
                 >
                   <span className="truncate">{ask.currentModel ?? t('ask.switchModel')}</span>
@@ -308,7 +382,7 @@ export function AskDockContent({
             <button
               type="button"
               onClick={openSettings}
-              className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-muted/60 px-2 text-micro text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:text-caption"
+              className="flex h-7 shrink-0 items-center gap-1 rounded-full border border-black/[0.06] bg-black/[0.03] px-2 text-micro text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur-xs transition-colors hover:bg-black/[0.06] hover:text-foreground dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/10 sm:text-caption"
             >
               <span>{t('ask.setupModel')}</span>
             </button>
@@ -336,6 +410,77 @@ export function AskDockContent({
         </form>
       </div>
     </div>
+  );
+}
+
+/**
+ * 收起状态下横跨输入框上方的类似横卧花括号 "{" 的渐变流光拱。
+ * 两翼平滑贴合输入框上沿左右淡出，中央汇聚为优美的向上尖角，赋予通透流光与点击展开交互。
+ */
+function AskLuminousBracket({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group pointer-events-auto absolute -top-5 left-1/2 -translate-x-1/2 flex h-6 w-[88%] max-w-lg items-center justify-center transition-all duration-300 hover:-top-6 focus-visible:outline-none"
+      aria-label={label}
+      title={label}
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 400 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-full w-full overflow-visible transition-transform duration-300 group-hover:scale-y-110"
+      >
+        <defs>
+          <linearGradient id="ask-bracket-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0" />
+            <stop offset="25%" stopColor="#60a5fa" stopOpacity="0.3" />
+            <stop offset="50%" stopColor="#818cf8" stopOpacity="0.85" />
+            <stop offset="75%" stopColor="#60a5fa" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="ask-bracket-spine" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+            <stop offset="25%" stopColor="#ffffff" stopOpacity="0.35" />
+            <stop offset="50%" stopColor="#ffffff" stopOpacity="0.98" />
+            <stop offset="75%" stopColor="#ffffff" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
+          <filter id="ask-bracket-blur" x="-20%" y="-50%" width="140%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+          </filter>
+        </defs>
+
+        {/* 底层柔焦电光蓝光晕 */}
+        <path
+          d="M 0 22 C 60 22, 110 17, 150 10 C 175 5.5, 192 2, 200 2 C 208 2, 225 5.5, 250 10 C 290 17, 340 22, 400 22"
+          stroke="url(#ask-bracket-glow)"
+          strokeWidth="6"
+          strokeLinecap="round"
+          filter="url(#ask-bracket-blur)"
+          className="opacity-75 transition-opacity duration-300 group-hover:opacity-100"
+        />
+
+        {/* 表层晶莹高光流线（横置 { 曲线脊线） */}
+        <path
+          d="M 0 22 C 60 22, 110 17, 150 10 C 175 5.5, 192 2, 200 2 C 208 2, 225 5.5, 250 10 C 290 17, 340 22, 400 22"
+          stroke="url(#ask-bracket-spine)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          className="opacity-85 transition-opacity duration-300 group-hover:opacity-100"
+        />
+
+        {/* 中央尖峰聚光微星 */}
+        <circle
+          cx="200"
+          cy="2"
+          r="1.75"
+          className="fill-white shadow-[0_0_8px_#ffffff] transition-all duration-300 group-hover:r-2.5 group-hover:fill-white"
+        />
+      </svg>
+    </button>
   );
 }
 
@@ -374,7 +519,7 @@ export function AskThread({
 function AskSetupView({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
+    <div className="mx-auto flex max-w-md flex-col items-center gap-2.5 rounded-2xl border border-white/80 bg-gradient-to-b from-white/95 via-white/85 to-[#F1F5F9]/80 px-6 py-6 text-center text-foreground shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95)] backdrop-blur-xl dark:border-white/[0.12] dark:bg-gradient-to-b dark:from-[#1A2230]/80 dark:via-[#131A24]/75 dark:to-[#0F141C]/70 dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
       <span className="flex items-center gap-2 font-medium text-foreground text-sm">
         <SettingsIcon className="size-4 text-muted-foreground" aria-hidden="true" />
         {t('ask.needsSetupTitle')}
@@ -389,16 +534,16 @@ function AskSetupView({ onOpenSettings }: { onOpenSettings: () => void }) {
   );
 }
 
-/** 一轮已完成的问答：用户问题在右、回答与推荐在左。 */
+/** 一轮已完成的问答：用户问题在右、回答与推荐在左（双侧气泡）。 */
 function AskTurnView({ turn, onOpenRepo }: { turn: AskTurn; onOpenRepo: OpenRepoHandler }) {
   const records = turn.recommendations.map((candidate) => candidate.item);
   return (
     <div className="flex flex-col gap-3">
       <AskQuestionBubble question={turn.question} />
-      <AskAnswerBlock>
+      <AskAnswerBubble>
         <StreamingMarkdown content={turn.summary} />
         {turn.recommendations.length > 0 ? (
-          <ul className="flex w-full flex-col gap-2">
+          <ul className="flex w-full flex-col gap-2 pt-1">
             {turn.recommendations.map((candidate) => (
               <AskRecommendationCard
                 key={candidate.repoId}
@@ -408,12 +553,12 @@ function AskTurnView({ turn, onOpenRepo }: { turn: AskTurn; onOpenRepo: OpenRepo
             ))}
           </ul>
         ) : null}
-      </AskAnswerBlock>
+      </AskAnswerBubble>
     </div>
   );
 }
 
-/** 进行中 / 收尾的一轮：问题先行入列，回答位置由状态行占位（不影响已完成轮次）。 */
+/** 进行中 / 收尾的一轮：问题先行入列，回答位置由状态气泡占位（不影响已完成轮次）。 */
 function AskLiveTurnView({
   phase,
   onRetry,
@@ -431,36 +576,44 @@ function AskLiveTurnView({
   return (
     <div className="flex flex-col gap-3">
       <AskQuestionBubble question={phase.question} />
-      <AskAnswerBlock>
+      <AskAnswerBubble>
         <AskPendingView
           phase={phase}
           onRetry={onRetry}
           onContinue={onContinue}
           onOpenSettings={onOpenSettings}
         />
-      </AskAnswerBlock>
+      </AskAnswerBubble>
     </div>
   );
 }
 
-/** 用户消息：右对齐的石墨蓝调气泡，尾角收窄指向 composer。 */
+/** 用户消息：右对齐的深海冷晶黑曜石气泡，微冷渐变 + 水晶内高光，沉稳克制无外部阴影。 */
 function AskQuestionBubble({ question }: { question: string }) {
   const { t } = useTranslation();
   return (
-    <p className="ml-auto max-w-[85%] animate-in rounded-lg rounded-br-sm bg-accent px-3.5 py-2 text-body leading-relaxed text-accent-foreground duration-200 [--tw-ease:var(--ease-out-quart)] fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
-      <span className="sr-only">{t('ask.speakerYou')}: </span>
-      {question}
-    </p>
+    <div className="ml-auto max-w-[80%] xl:max-w-[75%] animate-in fade-in slide-in-from-bottom-2 duration-200 [--tw-ease:var(--ease-out-quart)] motion-reduce:animate-none">
+      <p className="rounded-2xl rounded-br-xs border border-white/25 bg-gradient-to-br from-[#1E293B]/95 to-[#0F172A]/90 px-4 py-2.5 text-body leading-relaxed text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.35)] backdrop-blur-md dark:border-white/15 dark:from-[#24334A]/85 dark:to-[#182333]/80 dark:text-[#F2F4F7] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+        <span className="sr-only">{t('ask.speakerYou')}: </span>
+        {question}
+      </p>
+    </div>
   );
 }
 
-/** Asterism 回答：左对齐 Markdown 正文 + 证据卡片，不加气泡以保持阅读面积。 */
-function AskAnswerBlock({ children }: { children: ReactNode }) {
+/** Asterism 回答：左对齐凝脂冰霜白玉气泡，微冷渐变 + 入射内高光，正文锐利清晰，无外部黑阴影。 */
+function AskAnswerBubble({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
-    <div className="flex w-full flex-col items-start gap-3 animate-in duration-200 [--tw-ease:var(--ease-out-quart)] fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
-      <span className="sr-only">{t('ask.speakerAsterism')}: </span>
-      {children}
+    <div className="mr-auto flex w-full max-w-[95%] sm:max-w-[92%] flex-col items-start gap-2.5 rounded-2xl rounded-tl-xs border border-white/80 bg-gradient-to-b from-white/95 via-white/85 to-[#F1F5F9]/80 px-4 py-3 text-foreground shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95)] backdrop-blur-xl dark:border-white/[0.12] dark:bg-gradient-to-b dark:from-[#1A2230]/80 dark:via-[#131A24]/75 dark:to-[#0F141C]/70 dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-200 [--tw-ease:var(--ease-out-quart)] motion-reduce:animate-none">
+      <div className="flex items-center gap-1.5 text-micro font-medium text-muted-foreground select-none">
+        <SparklesIcon className="size-3 text-primary" aria-hidden="true" />
+        <span>{t('ask.title')}</span>
+      </div>
+      <div className="flex w-full min-w-0 flex-col items-start gap-3">
+        <span className="sr-only">{t('ask.speakerAsterism')}: </span>
+        {children}
+      </div>
     </div>
   );
 }

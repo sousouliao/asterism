@@ -31,13 +31,13 @@ export const AskRecommendationCard = memo(function AskRecommendationCard({
     <li
       data-selected={selected || undefined}
       className={cn(
-        'group relative rounded-md border bg-background/60 transition-[border-color,background-color] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-ring/50',
-        selected && 'border-ring/70 bg-accent/25 shadow-[inset_0_0_0_1px_var(--ring)]',
+        'group relative rounded-xl border border-white/60 bg-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xs transition-[border-color,background-color] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-primary/50 hover:bg-white/90 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none dark:hover:border-primary/50 dark:hover:bg-white/[0.08]',
+        selected && 'border-ring/70 bg-accent/40 shadow-[inset_0_0_0_1px_var(--ring)]',
       )}
     >
       <button
         type="button"
-        className="flex w-full flex-col gap-2 rounded-md p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="flex w-full flex-col gap-2 rounded-xl p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={(event) => onSelect(candidate.item, event.detail === 0 ? 'keyboard' : 'pointer')}
       >
         <span className="flex min-w-0 items-center gap-2 text-body">

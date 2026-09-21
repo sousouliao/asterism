@@ -169,7 +169,7 @@ describe('AskDock states', () => {
     expect(askMock).toHaveBeenCalledWith('websocket rust');
   });
 
-  it('renders an answered turn with validated recommendation cards and can be closed', async () => {
+  it('renders an answered turn with validated recommendation cards and can be collapsed and expanded', async () => {
     turnsOverride = [turn()];
     phaseOverride = { kind: 'answered', turn: turn() };
     await renderPanel();
@@ -178,24 +178,38 @@ describe('AskDock states', () => {
     expect(text()).toContain('[0] fits your note about push latency.');
     expect(text()).toContain('tungstenite');
 
-    const closeButton = document.body.querySelector('button[aria-label="Close"]');
-    expect(closeButton).not.toBeNull();
-    await click(closeButton);
-    expect(resetMock).toHaveBeenCalledTimes(1);
-
     await click(buttonByText('tungstenite'));
     expect(requestOpen).toHaveBeenCalledTimes(1);
     const context = requestOpen.mock.calls[0]?.[1];
     expect(context.sourceKey).toBe('ask');
     expect(context.records).toHaveLength(1);
+
+    await act(async () => {
+      document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    });
+
+    expect(text()).not.toContain('Which rust websocket library?');
+
+    const expandButton = document.body.querySelector(
+      `button[aria-label="${i18next.t('ask.expandThread', { lng: 'en' })}"]`,
+    );
+    expect(expandButton).not.toBeNull();
+    await click(expandButton);
+
+    expect(text()).toContain('Which rust websocket library?');
   });
 
-  it('closes thread on Escape when composer input is empty', async () => {
+  it('collapses thread on Escape when composer input is empty and resets on subsequent Escape', async () => {
     turnsOverride = [turn()];
     phaseOverride = { kind: 'answered', turn: turn() };
     await renderPanel();
 
     const input = document.body.querySelector('input');
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(text()).not.toContain('Which rust websocket library?');
+
     await act(async () => {
       input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
