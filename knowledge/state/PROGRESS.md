@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-21 · CI 数据库测试自 Memory Foundation 起持续失败**：`memories` / `user_repo_embeddings` 只有 RLS、没有表级 GRANT。本地 / CI 的 `authenticated` 读 `memories` 被拒，`memory_foundation.test.sql` 计划 8 跑 4。补 `20260921120000_grant_client_memory_tables.sql`。远端仍需 `db push`。见 `logs/2026-09-21-ci-memories-table-grant.md`。
+
 - **2026-09-21 · 撤销 Ask 的能力分级与同意重签（ADR 0046）**：静默降级让既有连接在部署瞬间退回更差的固定召回路径，同意重签在单用户自部署下只制造中断。删除固定召回全部代码，`test` 回到单次连通性检测，旧同意向前迁移。见 ADR 0046 与 `logs/2026-09-21-ask-drop-capability-gate.md`。
 
 - **2026-09-21 · Ask 改为目录常驻 Agent（ADR 0045）**：摘除 Ask 对 embedding 与固定 top-K 的依赖；三档目录 + 本地穷举工具 + read gate + 可续接预算。修订 product / architecture / data-model / ui-ux。见 ADR 0045 与 `logs/2026-09-21-ask-catalog-resident-agent.md`。

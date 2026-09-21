@@ -152,6 +152,7 @@ ADR 0038 采用无旧数据兼容的干净切换：`notes` 表与旧查询已经
 - **`user_stars` / `memories` / `collections` / `user_repo_embeddings`**
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
+  - 客户端直读写的表必须同时 `GRANT` 对应特权给 `authenticated`。仅有 RLS policy 不够：PostgreSQL 先查表权限，再套行级策略。`memories` / `user_repo_embeddings` 的表级授权见 `20260921120000_grant_client_memory_tables.sql`。
   - `tags` / `repo_tags` 已由 ADR 0035 cutover 删除。
 
 - **`collection_repos` / `collection_relation_heads`**

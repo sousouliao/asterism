@@ -60,7 +60,8 @@
 
 ## Database Migrations · 数据库迁移
 
-- `supabase/migrations/*.sql` 是 schema、索引、触发器与 RLS policy 的唯一来源，所有环境必须按顺序应用同一组 migrations。
+- `supabase/migrations/*.sql` 是 schema、索引、触发器、RLS policy 与表级 GRANT 的唯一来源，所有环境必须按顺序应用同一组 migrations。
+- 客户端经普通角色直读写的表，创建时必须显式 `GRANT` 给 `authenticated`（以及按契约需要的其他角色）。不要依赖托管项目的默认特权——本地 / CI 镜像不会自动授权，缺 GRANT 会让 pgTAP 在 `set role authenticated` 后报 `permission denied`。
 - 禁止只在 Supabase Dashboard 手工修改线上 schema 或 policy。紧急手工修复后必须立即补等价 migration，恢复仓库与环境一致。
 - `database.types.ts` 在 Phase 1 可继续手写维护；是否切换为 Supabase CLI 生成类型不阻断阶段验收。
 
