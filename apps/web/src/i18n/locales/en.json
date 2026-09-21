@@ -419,7 +419,7 @@
     "openMenu": "Open Ask Asterism",
     "title": "Ask Asterism",
     "description": "Ask questions about the projects you saved. Answers are grounded in your collection only.",
-    "placeholder": "Ask in your own words…",
+    "placeholder": "Ask Asterism…",
     "questionLabel": "Your question",
     "submit": "Ask",
     "emptyHint": "Ask in plain language — your Memory notes and repository metadata are searched together.",

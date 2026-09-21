@@ -419,7 +419,7 @@
     "openMenu": "打开 Ask Asterism",
     "title": "Ask Asterism",
     "description": "就你保存过的项目提问；回答只依据你的个人收藏。",
-    "placeholder": "用自然语言提问…",
+    "placeholder": "Ask Asterism…",
     "questionLabel": "你的问题",
     "submit": "提问",
     "emptyHint": "用日常语言提问即可，会同时检索你的 Memory 笔记与仓库元数据。",
