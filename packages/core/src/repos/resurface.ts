@@ -207,11 +207,13 @@ export function deriveResurfaceStreams<T extends StarredRepoLike>({
     const dormant = starredDays >= DORMANCY_MIN_DAYS;
 
     if (dormant && (anniversary || note || whySaved)) {
-      const reasons: ResurfaceReason[] = [{ kind: 'dormant', days: Math.floor(starredDays) }];
+      const reasons: ResurfaceReason[] = [];
       let score = dormancyScore(starredDays);
       if (anniversary) {
         reasons.push({ kind: 'anniversary', years: anniversary.years });
         score += 30;
+      } else {
+        reasons.push({ kind: 'dormant', days: Math.floor(starredDays) });
       }
       if (note) {
         reasons.push({ kind: 'noted' });

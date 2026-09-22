@@ -1,5 +1,6 @@
 import { deriveResurfaceStreams, type Memory, type ResurfaceCandidate } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
+import { cn } from '@asterism/ui';
 import { HistoryIcon, PenLineIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -94,6 +95,7 @@ export function ResurfaceSection({ records, memoriesByRepoId, userId }: Resurfac
         selectedRepoId={selectedRepoId}
         onSelect={handleSelect}
         onFeedback={handleFeedback}
+        gridClassName="md:grid-cols-2 xl:grid-cols-3"
       />
 
       <StreamGroup
@@ -104,6 +106,7 @@ export function ResurfaceSection({ records, memoriesByRepoId, userId }: Resurfac
         selectedRepoId={selectedRepoId}
         onSelect={handleSelect}
         onFeedback={handleFeedback}
+        gridClassName="md:grid-cols-2"
       />
     </section>
   );
@@ -117,6 +120,7 @@ function StreamGroup({
   selectedRepoId,
   onSelect,
   onFeedback,
+  gridClassName = 'md:grid-cols-2 xl:grid-cols-3',
 }: {
   label: string;
   Icon: typeof HistoryIcon;
@@ -125,6 +129,7 @@ function StreamGroup({
   selectedRepoId: string | undefined;
   onSelect: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   onFeedback?: (repoId: string, action: ResurfaceFeedbackAction) => void;
+  gridClassName?: string;
 }) {
   if (candidates.length === 0) {
     return null;
@@ -136,7 +141,7 @@ function StreamGroup({
         <Icon className="size-3.5" aria-hidden="true" />
         {label}
       </h3>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className={cn('grid gap-4', gridClassName)}>
         {candidates.map((candidate) => (
           <ResurfaceCard
             key={candidate.repoId}

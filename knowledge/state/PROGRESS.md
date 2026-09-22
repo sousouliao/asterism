@@ -57,6 +57,7 @@
 
 - **2026-09-20 · Ask 常驻底部输入区**：Ask 从唤起式 Dialog 改为 App Shell 内常驻的非模态底部输入区；⌘K / Ctrl K 只聚焦 composer，顶栏入口移除。四道门禁全绿，answered / idle 预览视觉检查通过。见 `logs/2026-09-20-ask-persistent-bottom-dock.md`。
 
+- **2026-09-22 · 洞察页 UI/UX 深度重构与全页面浮层底部安全区**：对「洞察（Insights）」页面的数据卡片、信息架构、图表体系以及全局 Ask Dock 浮层避让进行系统化深度优化。消灭记忆唤醒 anniversary 与 dormant 的理由时间冲突，修正休眠文案与徽章排布，待补全记忆改双列等宽排布并镜像骨架；StatCard 容器化并引入「个人记忆」维度，杜绝零集合双 0 占位；热门 Topic 改横向平展条形图消除 -35° 斜字，直出数量标签，右下角拆解拼凑并引入正向集合引导；全局滚动容器统一增加 `pb-24` 安全内边距，确保 Ask 纯浮层下触底内容完整可见。四道门禁与 294 项测试全绿。见 `logs/2026-09-22-insights-ui-ux-refactor-and-dock-safe-area.md`。
 - **2026-09-20 · #36 以来的代码复核与整改**：对产品转向至今的改动做系统复核并逐项整改。根因是一条贯穿性的「双份存储」反模式，
   统一改为单一真相源：BYOK 只存同意、key 运行时从连接库解析（轮换 / 停用即时生效）；`ask-generate` 补 `max_tokens`、
   `redirect: 'manual'`、原型安全的 provider 查表与可配 CORS；`saveMemory` 改条件 upsert，`source_created_at` 回填下推为

@@ -398,8 +398,8 @@ function BrowseDataPage() {
           ref={setRepoScrollElement}
           data-browse-scroll-container
           className={cn(
-            'asterism-scroll-gutter min-h-0 flex-1 overflow-y-auto px-6 pb-6',
-            bulkSelectionMode && 'pb-44 sm:pb-24',
+            'asterism-scroll-gutter min-h-0 flex-1 overflow-y-auto px-6 pb-24',
+            bulkSelectionMode && 'pb-44 sm:pb-32',
           )}
         >
           <div className="mx-auto w-full max-w-6xl">{repoContent}</div>
@@ -465,8 +465,9 @@ function BrowseDataPage() {
 
   return (
     <div
+      ref={setRepoScrollElement}
       data-browse-scroll-container
-      className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6"
+      className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-24"
     >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
         <PageHeader

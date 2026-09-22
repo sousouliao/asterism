@@ -1,11 +1,13 @@
 import { deriveDashboardInsights, type Memory } from '@asterism/core';
 import { Button } from '@asterism/ui';
 import {
+  ActivityIcon,
   AlertTriangleIcon,
   FolderIcon,
   LanguagesIcon,
   LoaderCircleIcon,
   LogInIcon,
+  NotebookPenIcon,
   RefreshCwIcon,
   StarIcon,
 } from 'lucide-react';
@@ -76,10 +78,15 @@ export function DashboardPage() {
     [records, collections, collectionRepos],
   );
 
+  const recordedMemoryCount = useMemo(
+    () => (memories ?? []).filter((m) => Boolean(m.whySaved?.trim() || m.note?.trim())).length,
+    [memories],
+  );
+
   const formatCount = (value: number) => new Intl.NumberFormat(i18n.language).format(value);
 
   return (
-    <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+    <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-24">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <PageHeader title={t('dashboard.title')} description={t('dashboard.subtitle')} />
 
@@ -162,15 +169,39 @@ export function DashboardPage() {
                 value={formatCount(insights.stats.languageCount)}
               />
               <StatCard
-                icon={FolderIcon}
-                label={t('dashboard.collectedRepos')}
-                value={formatCount(insights.stats.collectedRepoCount)}
+                icon={NotebookPenIcon}
+                label={t('dashboard.memoriesCount')}
+                value={formatCount(recordedMemoryCount)}
+                subtext={
+                  records.length > 0
+                    ? `${Math.round((recordedMemoryCount / records.length) * 100)}%`
+                    : undefined
+                }
               />
-              <StatCard
-                icon={FolderIcon}
-                label={t('dashboard.collections')}
-                value={formatCount(insights.stats.collectionCount)}
-              />
+              {insights.stats.collectionCount > 0 ? (
+                <StatCard
+                  icon={FolderIcon}
+                  label={t('dashboard.collections')}
+                  value={formatCount(insights.stats.collectionCount)}
+                  subtext={t('dashboard.reposCount', {
+                    count: insights.stats.collectedRepoCount,
+                  })}
+                />
+              ) : (
+                <StatCard
+                  icon={ActivityIcon}
+                  label={t('dashboard.activeRate')}
+                  value={
+                    records.length > 0
+                      ? `${Math.round((insights.archiveSplit.active / records.length) * 100)}%`
+                      : '0%'
+                  }
+                  subtext={t('dashboard.archiveStatus', {
+                    active: insights.archiveSplit.active,
+                    archived: insights.archiveSplit.archived,
+                  })}
+                />
+              )}
             </div>
 
             <Suspense

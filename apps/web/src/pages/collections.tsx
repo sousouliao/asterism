@@ -63,7 +63,7 @@ export function CollectionsPage() {
   });
 
   return (
-    <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+    <div className="asterism-scroll-gutter -m-6 min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-24">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <PageHeader
           title={t('collections.title')}

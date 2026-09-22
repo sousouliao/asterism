@@ -96,7 +96,7 @@ export const ResurfaceCard = memo(function ResurfaceCard({
           ) : null}
         </div>
 
-        <ul className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
+        <ul className="flex min-w-0 flex-wrap gap-1.5">
           {candidate.reasons.map((reason) => (
             <ResurfaceReasonItem key={reason.kind} reason={reason} t={t} locale={locale} />
           ))}

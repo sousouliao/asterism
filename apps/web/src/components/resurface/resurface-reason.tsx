@@ -61,8 +61,13 @@ export function ResurfaceReasonItem({
 }) {
   const Icon = REASON_ICONS[reason.kind];
   return (
-    <li className={cn('flex items-center gap-1.5 text-caption text-muted-foreground', className)}>
-      <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+    <li
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2 py-0.5 text-caption font-medium text-muted-foreground',
+        className,
+      )}
+    >
+      <Icon className="size-3.5 shrink-0 text-muted-foreground/80" aria-hidden="true" />
       {resurfaceReasonText(reason, t, locale)}
     </li>
   );

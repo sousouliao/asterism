@@ -15,7 +15,7 @@ export function ResurfaceSectionSkeleton() {
         <Skeleton className="hidden h-[172px] rounded-lg xl:block" />
       </div>
       <Skeleton className="h-4 w-24" />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Skeleton className="h-[124px] rounded-lg" />
         <Skeleton className="h-[124px] rounded-lg" />
       </div>

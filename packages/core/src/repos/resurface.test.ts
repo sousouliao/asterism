@@ -112,6 +112,7 @@ describe('deriveResurfaceStreams · worth remembering', () => {
     });
     const candidate = streams.worthRemembering[0];
     expect(candidate?.primaryReason).toEqual({ kind: 'anniversary', years: 2 });
+    expect(candidate?.reasons.map((reason) => reason.kind)).toEqual(['anniversary']);
   });
 
   it('keeps anniversaries within the ±3 day window and drops those outside', () => {
