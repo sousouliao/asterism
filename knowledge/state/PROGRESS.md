@@ -12,7 +12,7 @@
 
 ## 已完成里程碑
 
-- **2026-09-22 · Ask 纯前端历史会话列表与快捷斜杠命令落地（ADR 0048）**：在 Ask Asterism 底部气泡舱内落地纯客户端历史会话体系与 `/history`、`/new` 斜杠命令。零服务端依赖（IndexedDB + localStorage 兜底）；7 天智能老化淘汰（保底 5 条避免休假清空，上限 30 条防止存储膨胀）；斜杠浮动毛玻璃菜单；历史列表直接在舱内切换展示，输入框就地作为搜索过滤框；支持键盘方向键高亮、回车加载历史并恢复全部轮次（Turns）继续追问、Esc 随时返回。全库 54 套件 294 项单测、类型与 Biome 门禁全绿。见 ADR 0048 与 `logs/2026-09-22-ask-local-session-history-and-slash-commands.md`。
+- **2026-09-22 · Ask 纯前端历史会话列表与快捷斜杠命令落地（ADR 0048）**：在 Ask Asterism 底部气泡舱内落地纯客户端历史会话体系与 `/history`、`/new` 斜杠命令。零服务端依赖（IndexedDB + localStorage 兜底）；7 天智能老化淘汰（保底 5 条避免休假清空，上限 30 条防止存储膨胀）；斜杠浮动毛玻璃菜单；历史列表直接在舱内切换展示，输入框就地作为搜索过滤框；支持键盘方向键高亮、回车加载历史并恢复全部轮次（Turns）继续追问、Esc 随时返回。经用户走查与 ego-browser 真实验证，彻底去除外部面板卡片硬壳，建立消息气泡、选项 item 与历史会话 item 三层鲜明而统一的无边框 Liquid Glass 视觉规范。全库 54 套件 294 项单测、类型与 Biome 门禁全绿。见 ADR 0048 与 `logs/2026-09-22-ask-local-session-history-and-slash-commands.md`。
 
 - **2026-09-22 · Ask Asterism 生产环境验收与 #41 关闭**：Edge Function `ask-generate` 重新部署（`tool` 角色、长上下文、`tools` 透传与 SSE `tool_call` 协议转换），Web 生产就绪（流光拉手、气泡对话、内联探针门禁与模型实时切换）。真实环境验收通过未配置 Key 引导、非法凭据拒入与错误双语映射、防幻觉 read gate 与流式体验。GitHub #41 附验收评论后正式关闭。见 `logs/2026-09-22-ask-asterism-production-acceptance.md`。
 

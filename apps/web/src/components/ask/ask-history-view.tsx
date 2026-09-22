@@ -5,6 +5,7 @@ import {
   ClockIcon,
   HistoryIcon,
   SearchXIcon,
+  SparklesIcon,
   Trash2Icon,
   XIcon,
 } from 'lucide-react';
@@ -72,9 +73,9 @@ export function AskHistoryView({
         return true;
       }
       return s.turns.some(
-        (t) =>
-          t.question.toLowerCase().includes(cleanFilter) ||
-          t.summary.toLowerCase().includes(cleanFilter),
+        (turn) =>
+          turn.question.toLowerCase().includes(cleanFilter) ||
+          turn.summary.toLowerCase().includes(cleanFilter),
       );
     });
   }, [sessions, cleanFilter]);
@@ -106,24 +107,24 @@ export function AskHistoryView({
   }, [highlightedIndex, filteredSessions.length]);
 
   return (
-    <div className="flex h-full max-h-[min(34rem,calc(100dvh-10rem))] w-full flex-col rounded-3xl border border-[var(--border)]/60 bg-[var(--card)]/80 p-3 sm:p-4 shadow-2xl backdrop-blur-3xl backdrop-saturate-[190%]">
-      {/* 顶部工具栏 */}
-      <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)]/40 pb-3 px-1">
-        <div className="flex items-center gap-2">
+    <div className="flex h-full max-h-[min(36rem,calc(100dvh_-_8.5rem))] w-full flex-col gap-2.5">
+      {/* 浮动顶栏：无外层硬框与分割线，轻盈通透 */}
+      <div className="flex shrink-0 items-center justify-between px-1 py-0.5 select-none">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={onBack}
-            className="flex size-7 items-center justify-center rounded-lg border border-[var(--border)]/60 bg-[var(--secondary)]/60 text-[var(--muted-foreground)] hover:bg-[var(--accent)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
+            className="flex size-7 items-center justify-center rounded-full border border-white/80 dark:border-white/10 bg-white/70 dark:bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/90 dark:hover:bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] backdrop-blur-md transition-all cursor-pointer"
             title={t('ask.history.backToChat')}
             aria-label={t('ask.history.backToChat')}
           >
             <ArrowLeftIcon className="size-3.5" />
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-[var(--foreground)]">
+            <span className="text-sm font-semibold text-foreground tracking-tight">
               {t('ask.history.title')}
             </span>
-            <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-[11px] font-medium text-[var(--muted-foreground)]">
+            <span className="rounded-full border border-white/60 dark:border-white/10 bg-white/50 dark:bg-white/5 px-2 py-0.5 text-[11px] font-medium text-muted-foreground backdrop-blur-xs">
               {t('ask.history.sessionCount', { count: sessions.length })}
             </span>
           </div>
@@ -132,7 +133,7 @@ export function AskHistoryView({
         <div className="flex items-center gap-2">
           {confirmClearOpen ? (
             <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
-              <span className="text-xs text-[var(--destructive)] hidden sm:inline">
+              <span className="text-xs text-destructive hidden sm:inline font-medium">
                 {t('ask.history.confirmClear')}?
               </span>
               <button
@@ -141,7 +142,7 @@ export function AskHistoryView({
                   onClearAll();
                   setConfirmClearOpen(false);
                 }}
-                className="flex items-center gap-1 rounded-lg bg-[var(--destructive)] px-2 py-1 text-xs font-medium text-[var(--destructive-foreground)] hover:opacity-90 transition-opacity cursor-pointer"
+                className="flex items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-medium text-destructive-foreground hover:opacity-90 shadow-xs transition-all cursor-pointer"
               >
                 <CheckIcon className="size-3" />
                 <span>{t('ask.history.confirmClear')}</span>
@@ -149,7 +150,7 @@ export function AskHistoryView({
               <button
                 type="button"
                 onClick={() => setConfirmClearOpen(false)}
-                className="flex size-6 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
+                className="flex size-6 items-center justify-center rounded-full border border-white/60 dark:border-white/10 bg-white/60 dark:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 title={t('ask.history.cancel')}
               >
                 <XIcon className="size-3" />
@@ -160,9 +161,9 @@ export function AskHistoryView({
               <button
                 type="button"
                 onClick={() => setConfirmClearOpen(true)}
-                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--muted-foreground)] hover:bg-[var(--destructive)]/10 hover:text-[var(--destructive)] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 rounded-full border border-white/40 dark:border-white/10 bg-white/40 dark:bg-white/5 px-2.5 py-1 text-xs text-muted-foreground hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive backdrop-blur-xs transition-all cursor-pointer"
               >
-                <Trash2Icon className="size-3.5" />
+                <Trash2Icon className="size-3" />
                 <span>{t('ask.history.clearAll')}</span>
               </button>
             )
@@ -170,32 +171,28 @@ export function AskHistoryView({
         </div>
       </div>
 
-      {/* 历史列表内容区 */}
+      {/* 历史会话卡片流：无硬卡片外壳，Memory Tiles 在氛围层中自然铺展 */}
       <div
         ref={listRef}
-        className="flex-1 min-h-0 overflow-y-auto pt-2 space-y-1.5 asterism-scroll-gutter"
+        className="flex-1 min-h-0 overflow-y-auto space-y-2.5 px-0.5 py-1 asterism-scroll-gutter"
       >
         {sessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-[var(--secondary)] text-[var(--muted-foreground)] mb-3">
-              <HistoryIcon className="size-5 opacity-60" />
+          <div className="flex flex-col items-center justify-center py-14 text-center">
+            <div className="flex size-11 items-center justify-center rounded-2xl border border-white/60 dark:border-white/10 bg-white/50 dark:bg-white/5 text-muted-foreground shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] backdrop-blur-md mb-3">
+              <HistoryIcon className="size-5 opacity-70" />
             </div>
-            <p className="text-sm font-medium text-[var(--foreground)]">
-              {t('ask.history.emptyTitle')}
-            </p>
-            <p className="text-xs text-[var(--muted-foreground)] mt-1 max-w-xs">
+            <p className="text-sm font-medium text-foreground">{t('ask.history.emptyTitle')}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
               {t('ask.history.emptyDescription')}
             </p>
           </div>
         ) : filteredSessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-[var(--secondary)] text-[var(--muted-foreground)] mb-3">
-              <SearchXIcon className="size-5 opacity-60" />
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex size-11 items-center justify-center rounded-2xl border border-white/60 dark:border-white/10 bg-white/50 dark:bg-white/5 text-muted-foreground shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] backdrop-blur-md mb-3">
+              <SearchXIcon className="size-5 opacity-70" />
             </div>
-            <p className="text-sm font-medium text-[var(--foreground)]">
-              {t('ask.history.noResultsTitle')}
-            </p>
-            <p className="text-xs text-[var(--muted-foreground)] mt-1 max-w-xs">
+            <p className="text-sm font-medium text-foreground">{t('ask.history.noResultsTitle')}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
               {t('ask.history.noResultsDescription')}
             </p>
           </div>
@@ -215,11 +212,17 @@ export function AskHistoryView({
                 data-highlighted={isHighlighted ? 'true' : undefined}
                 onPointerEnter={() => onHighlightChange(index)}
                 className={cn(
-                  'group relative flex items-center justify-between gap-2 rounded-2xl p-2.5 sm:p-3 text-left transition-all border select-none',
-                  isHighlighted
-                    ? 'border-[var(--primary)]/40 bg-[var(--accent)]/90 shadow-sm'
-                    : 'border-transparent hover:border-[var(--border)]/40 hover:bg-[var(--secondary)]/50',
-                  isActive && 'ring-1 ring-[var(--primary)]/50 bg-[var(--primary)]/5',
+                  'group relative flex items-center justify-between gap-3 rounded-2xl p-3 text-left transition-all duration-200 select-none cursor-pointer',
+                  // 历史会话项专属：Liquid Glass 晶莹记忆瓦片质感
+                  'border border-white/70 dark:border-white/10 backdrop-blur-xl',
+                  isActive
+                    ? 'bg-gradient-to-b from-white/95 via-primary/[0.04] to-white/75 dark:from-[#1E293B]/85 dark:via-primary/[0.08] dark:to-[#111827]/75 ring-1.5 ring-primary/45 shadow-sm'
+                    : 'bg-gradient-to-b from-white/85 via-white/70 to-white/55 dark:from-[#1A2230]/75 dark:via-[#131A24]/65 dark:to-[#0F141C]/55 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.85),0_2px_10px_rgba(0,0,0,0.02)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_2px_10px_rgba(0,0,0,0.25)]',
+                  isHighlighted &&
+                    'ring-1.5 ring-primary/40 -translate-y-0.5 shadow-md from-white/95 via-white/85 to-white/70 dark:from-[#243144]/80 dark:to-[#16202D]/70',
+                  !isHighlighted &&
+                    !isActive &&
+                    'hover:-translate-y-0.5 hover:from-white/92 hover:via-white/80 hover:to-white/65 dark:hover:from-[#202A3B]/80 dark:hover:to-[#141B26]/65 hover:shadow-md',
                 )}
               >
                 <button
@@ -229,24 +232,22 @@ export function AskHistoryView({
                 >
                   <div className="flex items-center gap-2">
                     {isActive ? (
-                      <span className="shrink-0 flex items-center gap-1 rounded-full bg-[var(--primary)]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[var(--primary)]">
-                        <span className="size-1.5 rounded-full bg-[var(--primary)]" />
+                      <span className="shrink-0 flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/25 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                        <span className="size-1.5 rounded-full bg-primary animate-pulse" />
                         {t('ask.history.activeBadge')}
                       </span>
                     ) : null}
                     <span
                       className={cn(
                         'text-sm font-medium truncate',
-                        isActive
-                          ? 'text-[var(--primary)] font-semibold'
-                          : 'text-[var(--foreground)]',
+                        isActive ? 'text-primary font-semibold' : 'text-foreground',
                       )}
                     >
                       {session.title}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-[var(--muted-foreground)]">
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <ClockIcon className="size-3 opacity-60" />
                       {formatRelativeTime(session.updatedAt, t)}
@@ -256,7 +257,10 @@ export function AskHistoryView({
                     {recCount > 0 ? (
                       <>
                         <span>•</span>
-                        <span>{t('ask.history.recommendationCount', { count: recCount })}</span>
+                        <span className="flex items-center gap-1 text-primary/85">
+                          <SparklesIcon className="size-2.5 opacity-80" />
+                          {t('ask.history.recommendationCount', { count: recCount })}
+                        </span>
                       </>
                     ) : null}
                   </div>
@@ -265,8 +269,11 @@ export function AskHistoryView({
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    onClick={() => onDeleteSession(session.id)}
-                    className="flex size-7 items-center justify-center rounded-lg text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-[var(--destructive)]/10 hover:text-[var(--destructive)] transition-all cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteSession(session.id);
+                    }}
+                    className="flex size-7 items-center justify-center rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-destructive/15 hover:text-destructive backdrop-blur-xs transition-all cursor-pointer"
                     title={t('ask.history.deleteAria')}
                     aria-label={t('ask.history.deleteAria')}
                   >

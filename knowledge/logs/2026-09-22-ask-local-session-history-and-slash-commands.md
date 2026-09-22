@@ -53,8 +53,17 @@
 - `apps/web/src/pages/ask-preview.tsx`：
   - 在 fixture 中注入模拟会话数据，方便本地预览不同阶段下的会话与命令交互。
 
+### 6. 无边框 Liquid Glass 重塑与三类项样式明确区分
+- **用户反馈与走查**：在初版交付后，通过 `/ego-browser` 截图走查，用户指出弹出面板带有常规“面板壳”（Boxy Panel Shell），割裂了 Ask 原有的无边框流动质感；
+- **重构落实**：
+  - 彻底剥除 `AskHistoryView` 外层大卡片壳与顶部分割线，历史列表直接在底部 Dock 的液态氛围层中自如垂直流动；
+  - 移除 `AskSlashMenu` 通用 Card 容器，升级为贴合输入框胶囊的高阶渐变液态悬浮岛；
+  - 明确规范「消息气泡」（非对称语音角、黑曜石/白玉）、「选项 item」（无壳悬浮、等宽命令胶囊 `/history`、回车提示）与「历史会话 item」（宽幅对称记忆瓦片、双行元数据、微浮雕光泽）三层视觉语言；
+- **走查验证**：经 `ego-browser` 走查 light/dark 模式及键盘导航交互，视觉层次分明通透。
+
 ## 验证情况
 - 全库测试：`pnpm test` 全部 54 个测试套件、294 项单元测试 100% 通过；
 - 代码质量：`pnpm biome check .` 0 错误、0 警告；
 - 类型检查：`pnpm typecheck` 全部 8 个 package 全绿；
-- 生产构建：`pnpm build` 全流程通过无阻断。
+- 生产构建：`pnpm build` 全流程通过无阻断；
+- 视觉核验：`ego-browser` 端到端截图验证通过。

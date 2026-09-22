@@ -84,14 +84,16 @@ export function AskSlashMenu({
       role="menu"
       aria-label="Slash commands"
       className={cn(
-        'pointer-events-auto absolute bottom-full mb-2 w-full max-w-md left-1/2 -translate-x-1/2',
-        'rounded-2xl border border-[var(--border)] bg-[var(--card)]/90 p-1.5 backdrop-blur-2xl shadow-xl shadow-black/5 dark:shadow-black/40',
+        'pointer-events-auto absolute bottom-full mb-2.5 w-full max-w-md left-1/2 -translate-x-1/2',
+        'rounded-2xl border border-white/80 dark:border-white/15',
+        'bg-gradient-to-b from-white/95 via-white/90 to-white/80 dark:from-[#1A2230]/95 dark:via-[#131A24]/90 dark:to-[#0F141C]/85',
+        'p-1.5 backdrop-blur-2xl backdrop-saturate-[190%]',
+        'shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_12px_36px_rgba(0,0,0,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_12px_36px_rgba(0,0,0,0.4)]',
         'animate-in fade-in slide-in-from-bottom-2 duration-150 motion-reduce:animate-none z-50',
       )}
     >
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-1">
         {filteredCommands.map((cmd, index) => {
-          const Icon = cmd.icon;
           const isHighlighted = index === highlightedIndex;
           return (
             <button
@@ -103,35 +105,45 @@ export function AskSlashMenu({
               onPointerEnter={() => onHighlightChange(index)}
               onClick={() => onSelectCommand(cmd.id)}
               className={cn(
-                'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors cursor-pointer select-none',
+                'group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-all duration-150 cursor-pointer select-none',
                 isHighlighted
-                  ? 'bg-[var(--accent)] text-[var(--accent-foreground)]'
-                  : 'text-[var(--foreground)] hover:bg-[var(--accent)]/60',
+                  ? 'bg-white/90 dark:bg-white/10 ring-1 ring-primary/30 shadow-xs'
+                  : 'text-foreground hover:bg-white/50 dark:hover:bg-white/5',
               )}
             >
-              <div
+              {/* 选项特征：左侧专属等宽命令胶囊 */}
+              <span
                 className={cn(
-                  'flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors',
+                  'shrink-0 font-mono text-xs font-semibold px-2 py-0.5 rounded-md border transition-colors',
                   isHighlighted
-                    ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)]'
-                    : 'border-[var(--border)] bg-[var(--secondary)] text-[var(--muted-foreground)]',
+                    ? 'bg-primary text-primary-foreground border-transparent shadow-xs'
+                    : 'bg-primary/10 text-primary border-primary/20',
                 )}
               >
-                <Icon className="size-4" />
-              </div>
+                {cmd.command}
+              </span>
+
+              {/* 中间文字 */}
               <div className="flex flex-1 min-w-0 flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-semibold text-[var(--foreground)]">
-                    {cmd.command}
-                  </span>
-                  <span className="text-xs text-[var(--foreground)] truncate">
-                    {cmd.label.replace(cmd.command, '').trim()}
-                  </span>
-                </div>
-                <span className="text-[11px] text-[var(--muted-foreground)] truncate">
+                <span className="text-xs font-medium text-foreground truncate">
+                  {cmd.label.replace(cmd.command, '').trim()}
+                </span>
+                <span className="text-[11px] text-muted-foreground truncate">
                   {cmd.description}
                 </span>
               </div>
+
+              {/* 右侧回车提示 */}
+              <kbd
+                className={cn(
+                  'hidden sm:inline-flex h-5 items-center px-1.5 rounded text-[10px] font-mono transition-colors',
+                  isHighlighted
+                    ? 'bg-primary/15 text-primary font-medium'
+                    : 'bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground/60',
+                )}
+              >
+                ↵
+              </kbd>
             </button>
           );
         })}
