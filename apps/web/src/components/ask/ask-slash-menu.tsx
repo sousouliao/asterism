@@ -86,9 +86,9 @@ export function AskSlashMenu({
       className={cn(
         // 宽度完全与下方输入框对齐，绝对定位紧贴上方，呈现高阶 Apple Liquid Glass 物理晶莹感
         'pointer-events-auto absolute bottom-full mb-3 inset-x-0 w-full',
-        'rounded-2xl border border-white/80 dark:border-white/15',
-        'bg-white/88 dark:bg-[#151D2A]/90 backdrop-blur-2xl backdrop-saturate-[190%] backdrop-contrast-[102%]',
-        'p-1.5 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_16px_36px_-6px_rgba(15,23,42,0.14),0_4px_12px_-2px_rgba(15,23,42,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_16px_36px_-6px_rgba(0,0,0,0.6)]',
+        'rounded-2xl border border-black/[0.08] dark:border-white/15',
+        'bg-white/75 dark:bg-[#131A24]/85 backdrop-blur-2xl backdrop-saturate-[190%] backdrop-contrast-[102%]',
+        'p-1.5 shadow-[inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]',
         'animate-in fade-in slide-in-from-bottom-2 duration-150 motion-reduce:animate-none z-50',
       )}
     >
@@ -105,19 +105,19 @@ export function AskSlashMenu({
               onPointerEnter={() => onHighlightChange(index)}
               onClick={() => onSelectCommand(cmd.id)}
               className={cn(
-                'group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-150 cursor-pointer select-none border-0',
+                'group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-150 cursor-pointer select-none border border-transparent',
                 isHighlighted
-                  ? 'bg-white/85 dark:bg-white/10 text-foreground shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_2px_6px_rgba(15,23,42,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]'
-                  : 'text-foreground hover:bg-white/45 dark:hover:bg-white/5',
+                  ? 'border-primary/25 bg-primary/[0.07] dark:border-primary/30 dark:bg-primary/[0.14] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]'
+                  : 'text-foreground hover:bg-black/[0.03] dark:hover:bg-white/5',
               )}
             >
-              {/* 选项特征：左侧纯净等宽命令药丸，无额外线框 */}
+              {/* 选项特征：左侧纯净等宽命令药丸，柔和透亮微胶囊 */}
               <span
                 className={cn(
-                  'shrink-0 font-mono text-xs font-semibold px-2 py-0.5 rounded-md transition-colors',
+                  'shrink-0 font-mono text-xs font-semibold px-2 py-0.5 rounded-md border transition-colors',
                   isHighlighted
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-primary/10 text-primary',
+                    ? 'border-primary/30 bg-primary/15 text-primary dark:border-primary/40 dark:bg-primary/25'
+                    : 'border-black/[0.05] bg-black/[0.03] text-muted-foreground dark:border-white/10 dark:bg-white/5',
                 )}
               >
                 {cmd.command}
@@ -125,7 +125,12 @@ export function AskSlashMenu({
 
               {/* 中间文字 */}
               <div className="flex flex-1 min-w-0 flex-col gap-0.5">
-                <span className="text-xs font-medium text-foreground truncate">
+                <span
+                  className={cn(
+                    'text-xs truncate transition-colors',
+                    isHighlighted ? 'font-semibold text-primary' : 'font-medium text-foreground',
+                  )}
+                >
                   {cmd.label.replace(cmd.command, '').trim()}
                 </span>
                 <span className="text-[11px] text-muted-foreground truncate">
@@ -137,7 +142,7 @@ export function AskSlashMenu({
               <span
                 className={cn(
                   'hidden sm:inline-flex items-center text-xs font-mono transition-colors pr-1',
-                  isHighlighted ? 'text-primary font-medium' : 'text-muted-foreground/40',
+                  isHighlighted ? 'text-primary font-semibold' : 'text-muted-foreground/30',
                 )}
               >
                 ↵

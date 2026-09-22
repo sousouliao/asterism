@@ -31,13 +31,13 @@ export const AskRecommendationCard = memo(function AskRecommendationCard({
     <li
       data-selected={selected || undefined}
       className={cn(
-        'group relative rounded-xl border border-white/60 bg-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xs transition-[border-color,background-color] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-primary/50 hover:bg-white/90 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none dark:hover:border-primary/50 dark:hover:bg-white/[0.08]',
+        'group relative rounded-xl border border-black/[0.08] bg-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xs transition-all duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-primary/60 hover:bg-primary/[0.04] hover:shadow-[inset_0_1px_1.5px_rgba(255,255,255,1)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none dark:hover:border-primary/60 dark:hover:bg-primary/[0.08]',
         selected && 'border-ring/70 bg-accent/40 shadow-[inset_0_0_0_1px_var(--ring)]',
       )}
     >
       <button
         type="button"
-        className="flex w-full flex-col gap-2 rounded-xl p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="flex w-full flex-col gap-2 rounded-xl p-3 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={(event) => onSelect(candidate.item, event.detail === 0 ? 'keyboard' : 'pointer')}
       >
         <span className="flex min-w-0 items-center gap-2 text-body">

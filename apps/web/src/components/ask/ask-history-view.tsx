@@ -2,10 +2,8 @@ import { cn } from '@asterism/ui';
 import {
   ArrowLeftIcon,
   CheckIcon,
-  ClockIcon,
   HistoryIcon,
   SearchXIcon,
-  SparklesIcon,
   Trash2Icon,
   XIcon,
 } from 'lucide-react';
@@ -107,24 +105,24 @@ export function AskHistoryView({
   }, [highlightedIndex, filteredSessions.length]);
 
   return (
-    <div className="flex h-full max-h-[min(36rem,calc(100dvh_-_8.5rem))] w-full flex-col gap-2.5">
-      {/* 浮动顶栏：纯无边框设计，融入 Liquid Glass 氛围 */}
-      <div className="flex shrink-0 items-center justify-between px-1 py-0.5 select-none">
-        <div className="flex items-center gap-2.5">
+    <div className="flex h-full max-h-[min(36rem,calc(100dvh_-_8.5rem))] w-full flex-col rounded-2xl border border-black/[0.08] dark:border-white/15 bg-white/75 dark:bg-[#131A24]/85 backdrop-blur-2xl p-1.5 shadow-[inset_0_1px_1.5px_rgba(255,255,255,1)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
+      {/* 浮动顶栏：去除生硬截断分割线，以纯净负空间与内容自然对齐 */}
+      <div className="flex shrink-0 items-center justify-between px-2 pt-1 pb-1 mb-0.5 select-none">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="flex size-7 items-center justify-center rounded-full border-0 bg-white/60 dark:bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/90 dark:hover:bg-white/15 backdrop-blur-md transition-all cursor-pointer shadow-xs"
+            className="flex size-6 items-center justify-center rounded-full border-0 text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/10 transition-colors cursor-pointer"
             title={t('ask.history.backToChat')}
             aria-label={t('ask.history.backToChat')}
           >
             <ArrowLeftIcon className="size-3.5" />
           </button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-foreground tracking-tight">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-foreground tracking-tight">
               {t('ask.history.title')}
             </span>
-            <span className="rounded-full border-0 bg-white/40 dark:bg-white/5 px-2 py-0.5 text-[11px] font-medium text-muted-foreground backdrop-blur-xs">
+            <span className="rounded-full bg-black/[0.04] dark:bg-white/5 px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
               {t('ask.history.sessionCount', { count: sessions.length })}
             </span>
           </div>
@@ -133,7 +131,7 @@ export function AskHistoryView({
         <div className="flex items-center gap-2">
           {confirmClearOpen ? (
             <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
-              <span className="text-xs text-destructive hidden sm:inline font-medium">
+              <span className="text-[11px] text-destructive hidden sm:inline font-medium">
                 {t('ask.history.confirmClear')}?
               </span>
               <button
@@ -142,7 +140,7 @@ export function AskHistoryView({
                   onClearAll();
                   setConfirmClearOpen(false);
                 }}
-                className="flex items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-medium text-destructive-foreground hover:opacity-90 shadow-xs transition-all cursor-pointer border-0"
+                className="flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 text-[11px] font-medium text-destructive-foreground hover:opacity-90 shadow-xs transition-all cursor-pointer border-0"
               >
                 <CheckIcon className="size-3" />
                 <span>{t('ask.history.confirmClear')}</span>
@@ -150,7 +148,7 @@ export function AskHistoryView({
               <button
                 type="button"
                 onClick={() => setConfirmClearOpen(false)}
-                className="flex size-6 items-center justify-center rounded-full border-0 bg-white/60 dark:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="flex size-5 items-center justify-center rounded-full border-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 title={t('ask.history.cancel')}
               >
                 <XIcon className="size-3" />
@@ -161,7 +159,7 @@ export function AskHistoryView({
               <button
                 type="button"
                 onClick={() => setConfirmClearOpen(true)}
-                className="flex items-center gap-1.5 rounded-full border-0 bg-white/40 dark:bg-white/5 px-2.5 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive backdrop-blur-xs transition-all cursor-pointer"
+                className="flex items-center gap-1 rounded-full border-0 px-2 py-0.5 text-[11px] text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer"
               >
                 <Trash2Icon className="size-3" />
                 <span>{t('ask.history.clearAll')}</span>
@@ -171,28 +169,28 @@ export function AskHistoryView({
         </div>
       </div>
 
-      {/* 历史会话卡片流：纯无边框设计，Memory Tiles 在氛围层中自然铺展 */}
+      {/* 历史会话卡片流：内嵌纯净列表行 */}
       <div
         ref={listRef}
-        className="flex-1 min-h-0 overflow-y-auto space-y-2 px-0.5 py-1 asterism-scroll-gutter"
+        className="flex-1 min-h-0 overflow-y-auto space-y-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {sessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 text-center">
-            <div className="flex size-11 items-center justify-center rounded-2xl border-0 bg-white/40 dark:bg-white/5 text-muted-foreground backdrop-blur-md mb-3">
-              <HistoryIcon className="size-5 opacity-70" />
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex size-10 items-center justify-center rounded-xl border-0 bg-black/[0.03] dark:bg-white/5 text-muted-foreground mb-2.5">
+              <HistoryIcon className="size-5 opacity-60" />
             </div>
-            <p className="text-sm font-medium text-foreground">{t('ask.history.emptyTitle')}</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
+            <p className="text-xs font-medium text-foreground">{t('ask.history.emptyTitle')}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 max-w-xs leading-relaxed">
               {t('ask.history.emptyDescription')}
             </p>
           </div>
         ) : filteredSessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="flex size-11 items-center justify-center rounded-2xl border-0 bg-white/40 dark:bg-white/5 text-muted-foreground backdrop-blur-md mb-3">
-              <SearchXIcon className="size-5 opacity-70" />
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="flex size-10 items-center justify-center rounded-xl border-0 bg-black/[0.03] dark:bg-white/5 text-muted-foreground mb-2.5">
+              <SearchXIcon className="size-5 opacity-60" />
             </div>
-            <p className="text-sm font-medium text-foreground">{t('ask.history.noResultsTitle')}</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
+            <p className="text-xs font-medium text-foreground">{t('ask.history.noResultsTitle')}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 max-w-xs leading-relaxed">
               {t('ask.history.noResultsDescription')}
             </p>
           </div>
@@ -212,51 +210,49 @@ export function AskHistoryView({
                 data-highlighted={isHighlighted ? 'true' : undefined}
                 onPointerEnter={() => onHighlightChange(index)}
                 className={cn(
-                  'group relative flex items-center justify-between gap-3 rounded-2xl p-3 text-left transition-all duration-200 select-none cursor-pointer',
-                  'border border-white/70 dark:border-white/10 backdrop-blur-xl',
-                  isActive
-                    ? 'bg-primary/[0.08] dark:bg-primary/[0.16] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_8px_rgba(37,99,235,0.1)]'
-                    : 'bg-white/50 dark:bg-white/[0.04] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] hover:bg-white/80 dark:hover:bg-white/[0.09]',
-                  isHighlighted &&
-                    'bg-white/95 dark:bg-white/[0.14] -translate-y-0.5 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_8px_20px_-4px_rgba(15,23,42,0.1)]',
+                  'group relative flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-all duration-150 select-none cursor-pointer border border-transparent',
+                  isHighlighted
+                    ? 'border-primary/25 bg-primary/[0.07] dark:border-primary/30 dark:bg-primary/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]'
+                    : 'hover:bg-black/[0.03] dark:hover:bg-white/5',
                 )}
               >
                 <button
                   type="button"
                   onClick={() => onSelectSession(session)}
-                  className="flex flex-1 min-w-0 flex-col gap-1 text-left cursor-pointer focus-visible:outline-none"
+                  className="flex flex-1 min-w-0 flex-col gap-0.5 text-left cursor-pointer focus-visible:outline-none"
                 >
-                  <div className="flex items-center gap-2">
-                    {isActive ? (
-                      <span className="shrink-0 flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                        <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-                        {t('ask.history.activeBadge')}
-                      </span>
-                    ) : null}
+                  {/* 标题行：左对齐首字平齐，当前会话在尾部附微胶囊 */}
+                  <div className="flex items-center gap-2 min-w-0">
                     <span
                       className={cn(
-                        'text-sm font-medium truncate',
-                        isActive ? 'text-primary font-semibold' : 'text-foreground',
+                        'text-xs truncate transition-colors',
+                        isHighlighted
+                          ? 'font-semibold text-primary'
+                          : 'font-medium text-foreground',
                       )}
                     >
                       {session.title}
                     </span>
+                    {isActive ? (
+                      <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-1.5 py-0.2 text-[10px] font-medium text-primary">
+                        {t('ask.history.activeBadge')}
+                      </span>
+                    ) : null}
                   </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <ClockIcon className="size-3 opacity-60" />
-                      {formatRelativeTime(session.updatedAt, t)}
-                    </span>
-                    <span>•</span>
-                    <span>{t('ask.history.turnCount', { count: session.turns.length })}</span>
+                  {/* 副行：极简扫描元数据，无冗余毛刺图标，中文间隔点 */}
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <span>{formatRelativeTime(session.updatedAt, t)}</span>
                     {recCount > 0 ? (
                       <>
-                        <span>•</span>
-                        <span className="flex items-center gap-1 text-primary/85">
-                          <SparklesIcon className="size-2.5 opacity-80" />
-                          {t('ask.history.recommendationCount', { count: recCount })}
-                        </span>
+                        <span>·</span>
+                        <span>{t('ask.history.recommendationCount', { count: recCount })}</span>
+                      </>
+                    ) : null}
+                    {session.turns.length > 1 ? (
+                      <>
+                        <span>·</span>
+                        <span>{t('ask.history.turnCount', { count: session.turns.length })}</span>
                       </>
                     ) : null}
                   </div>
@@ -269,11 +265,11 @@ export function AskHistoryView({
                       e.stopPropagation();
                       onDeleteSession(session.id);
                     }}
-                    className="flex size-7 items-center justify-center rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-destructive/15 hover:text-destructive backdrop-blur-xs transition-all cursor-pointer border-0"
+                    className="flex size-6 items-center justify-center rounded-full text-muted-foreground/60 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-destructive/15 hover:text-destructive transition-all cursor-pointer border-0"
                     title={t('ask.history.deleteAria')}
                     aria-label={t('ask.history.deleteAria')}
                   >
-                    <Trash2Icon className="size-3.5" />
+                    <Trash2Icon className="size-3" />
                   </button>
                 </div>
               </div>

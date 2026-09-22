@@ -431,6 +431,9 @@ describe('AskDock states', () => {
 
     expect(document.body.textContent).toContain('React 19 Server Components');
     expect(document.body.textContent).toContain('Rust WebAssembly toolchain');
+    // History view must stay in compact mode aligned with input and slash menu
+    expect(form?.parentElement?.className).toContain('max-w-xl xl:max-w-2xl');
+    expect(form?.parentElement?.className).not.toContain('max-w-2xl xl:max-w-3xl');
 
     // Type query to filter
     await setInputValue(input, 'webassembly');

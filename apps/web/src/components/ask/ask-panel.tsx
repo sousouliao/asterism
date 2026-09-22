@@ -123,6 +123,9 @@ export function AskDockContent({
         ? ask.turns.length > 0 || ask.phase.kind !== 'idle'
         : true;
   const isExpanded = hasThread && !collapsed;
+  // 只有具体的问答会话（Chat Thread）展开时才拓宽为舒展宽态；
+  // 命令面板（Slash Menu）与历史会话列表（History View）均作为选择与索引层保持紧凑等宽（max-w-xl / 2xl）。
+  const isChatExpanded = dockView === 'chat' && isExpanded && !isSlashOpen;
   const openSettings = () => navigate('/settings');
 
   const deepseekModels = ask.availableModels?.filter((m) => m.provider === 'deepseek') ?? [];
@@ -400,7 +403,7 @@ export function AskDockContent({
       <div
         className={cn(
           'flex w-full flex-col items-center gap-2.5 transition-[max-width] duration-200 [transition-timing-function:var(--ease-out-quart)]',
-          isExpanded && !isSlashOpen ? 'max-w-2xl xl:max-w-3xl' : 'max-w-xl xl:max-w-2xl',
+          isChatExpanded ? 'max-w-2xl xl:max-w-3xl' : 'max-w-xl xl:max-w-2xl',
         )}
       >
         {isExpanded && !isSlashOpen ? (
@@ -441,7 +444,7 @@ export function AskDockContent({
                   }
                   followScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
                 }}
-                className="asterism-scroll-gutter flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1 py-1"
+                className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 {ask.configured ? (
                   <AskThread
@@ -799,7 +802,7 @@ function AskQuestionBubble({ question }: { question: string }) {
 function AskAnswerBubble({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
-    <div className="mr-auto flex w-full max-w-[95%] sm:max-w-[92%] flex-col items-start gap-2.5 rounded-2xl rounded-tl-xs border border-white/80 bg-gradient-to-b from-white/95 via-white/85 to-[#F1F5F9]/80 px-4 py-3 text-foreground shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95)] backdrop-blur-xl dark:border-white/[0.12] dark:bg-gradient-to-b dark:from-[#1A2230]/80 dark:via-[#131A24]/75 dark:to-[#0F141C]/70 dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-200 [--tw-ease:var(--ease-out-quart)] motion-reduce:animate-none">
+    <div className="mr-auto flex w-full max-w-[95%] sm:max-w-[92%] flex-col items-start gap-2.5 rounded-2xl rounded-tl-xs border border-black/[0.08] bg-gradient-to-b from-white/98 via-white/92 to-white/96 px-4 py-3 text-foreground shadow-[inset_0_1px_1.5px_rgba(255,255,255,1)] backdrop-blur-2xl dark:border-white/[0.14] dark:bg-gradient-to-b dark:from-[#1A2230]/90 dark:via-[#131A24]/85 dark:to-[#0F141C]/80 dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.18)] animate-in fade-in slide-in-from-bottom-2 duration-200 [--tw-ease:var(--ease-out-quart)] motion-reduce:animate-none">
       <div className="flex items-center gap-1.5 text-micro font-medium text-muted-foreground select-none">
         <SparklesIcon className="size-3 text-primary" aria-hidden="true" />
         <span>{t('ask.title')}</span>
