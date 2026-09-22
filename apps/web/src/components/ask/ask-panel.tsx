@@ -381,8 +381,8 @@ export function AskDockContent({
       data-ask-dock
       className="pointer-events-none fixed bottom-0 right-0 left-0 lg:left-60 z-40 flex flex-col items-center justify-end px-4 pb-4 sm:pb-6"
     >
-      {/* 右侧工作区专属流体 Liquid Glass 氛围层：展开时自底部向上平滑羽化，保护左侧边栏独立性 */}
-      {isExpanded ? (
+      {/* 右侧工作区专属流体 Liquid Glass 氛围层：展开时或输入 / 斜杠命令时自底部向上平滑羽化 */}
+      {isExpanded || isSlashOpen ? (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed bottom-0 right-0 left-0 lg:left-60 -z-10 h-[min(52rem,92vh)] overflow-hidden animate-in fade-in duration-300 motion-reduce:animate-none"
@@ -710,7 +710,7 @@ export function AskThread({
 function AskSetupView({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-2.5 rounded-2xl border border-white/80 bg-gradient-to-b from-white/95 via-white/85 to-[#F1F5F9]/80 px-6 py-6 text-center text-foreground shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95)] backdrop-blur-xl dark:border-white/[0.12] dark:bg-gradient-to-b dark:from-[#1A2230]/80 dark:via-[#131A24]/75 dark:to-[#0F141C]/70 dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
+    <div className="mx-auto flex max-w-md flex-col items-center gap-2.5 rounded-2xl border-0 bg-white/60 px-6 py-6 text-center text-foreground shadow-lg backdrop-blur-2xl dark:bg-[#1A2230]/70">
       <span className="flex items-center gap-2 font-medium text-foreground text-sm">
         <SettingsIcon className="size-4 text-muted-foreground" aria-hidden="true" />
         {t('ask.needsSetupTitle')}

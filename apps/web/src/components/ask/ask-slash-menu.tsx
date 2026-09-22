@@ -84,15 +84,15 @@ export function AskSlashMenu({
       role="menu"
       aria-label="Slash commands"
       className={cn(
-        'pointer-events-auto absolute bottom-full mb-2.5 w-full max-w-md left-1/2 -translate-x-1/2',
-        'rounded-2xl border border-white/80 dark:border-white/15',
-        'bg-gradient-to-b from-white/95 via-white/90 to-white/80 dark:from-[#1A2230]/95 dark:via-[#131A24]/90 dark:to-[#0F141C]/85',
-        'p-1.5 backdrop-blur-2xl backdrop-saturate-[190%]',
-        'shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_12px_36px_rgba(0,0,0,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_12px_36px_rgba(0,0,0,0.4)]',
+        // 宽度完全与下方输入框对齐，绝对定位紧贴上方，无硬边框卡片壳
+        'pointer-events-auto absolute bottom-full mb-3 inset-x-0 w-full',
+        'rounded-2xl border-0',
+        'bg-white/60 dark:bg-[#1A2230]/70 backdrop-blur-2xl backdrop-saturate-[190%]',
+        'p-1.5 shadow-xl shadow-black/5 dark:shadow-black/40',
         'animate-in fade-in slide-in-from-bottom-2 duration-150 motion-reduce:animate-none z-50',
       )}
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-0.5">
         {filteredCommands.map((cmd, index) => {
           const isHighlighted = index === highlightedIndex;
           return (
@@ -105,19 +105,19 @@ export function AskSlashMenu({
               onPointerEnter={() => onHighlightChange(index)}
               onClick={() => onSelectCommand(cmd.id)}
               className={cn(
-                'group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-all duration-150 cursor-pointer select-none',
+                'group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-150 cursor-pointer select-none border-0',
                 isHighlighted
-                  ? 'bg-white/90 dark:bg-white/10 ring-1 ring-primary/30 shadow-xs'
-                  : 'text-foreground hover:bg-white/50 dark:hover:bg-white/5',
+                  ? 'bg-white/90 dark:bg-white/10 text-foreground shadow-xs'
+                  : 'text-foreground hover:bg-white/40 dark:hover:bg-white/5',
               )}
             >
-              {/* 选项特征：左侧专属等宽命令胶囊 */}
+              {/* 选项特征：左侧纯净等宽命令药丸，无额外线框 */}
               <span
                 className={cn(
-                  'shrink-0 font-mono text-xs font-semibold px-2 py-0.5 rounded-md border transition-colors',
+                  'shrink-0 font-mono text-xs font-semibold px-2 py-0.5 rounded-md transition-colors',
                   isHighlighted
-                    ? 'bg-primary text-primary-foreground border-transparent shadow-xs'
-                    : 'bg-primary/10 text-primary border-primary/20',
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-primary/10 text-primary',
                 )}
               >
                 {cmd.command}
@@ -133,17 +133,15 @@ export function AskSlashMenu({
                 </span>
               </div>
 
-              {/* 右侧回车提示 */}
-              <kbd
+              {/* 右侧回车提示，无边框方盒 */}
+              <span
                 className={cn(
-                  'hidden sm:inline-flex h-5 items-center px-1.5 rounded text-[10px] font-mono transition-colors',
-                  isHighlighted
-                    ? 'bg-primary/15 text-primary font-medium'
-                    : 'bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground/60',
+                  'hidden sm:inline-flex items-center text-xs font-mono transition-colors pr-1',
+                  isHighlighted ? 'text-primary font-medium' : 'text-muted-foreground/40',
                 )}
               >
                 ↵
-              </kbd>
+              </span>
             </button>
           );
         })}
