@@ -30,15 +30,6 @@ vi.mock('../contexts/embedding-bootstrap-context', () => ({
   }),
 }));
 
-vi.mock('../data/use-sync-stars', () => ({
-  useSyncStars: () => ({
-    requiresReconnect: false,
-    reconnectPending: false,
-    isPending: false,
-    sync: vi.fn(),
-  }),
-}));
-
 vi.mock('./language-toggle', () => ({ LanguageToggle: () => null }));
 vi.mock('./sidebar-nav', () => ({ SidebarNav: () => null }));
 vi.mock('./theme-toggle', () => ({ ThemeToggle: () => null }));

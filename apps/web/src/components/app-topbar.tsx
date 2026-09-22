@@ -1,6 +1,5 @@
 import {
   Button,
-  cn,
   Input,
   Popover,
   PopoverAnchor,
@@ -9,18 +8,13 @@ import {
   SheetContent,
   SheetTitle,
   SheetTrigger,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from '@asterism/ui';
 import {
   DownloadIcon,
   LoaderCircleIcon,
   MenuIcon,
-  RefreshCwIcon,
   SearchIcon,
   TriangleAlertIcon,
-  UnplugIcon,
   XIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -28,7 +22,6 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { useSession } from '../auth/use-session';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
-import { useSyncStars } from '../data/use-sync-stars';
 import { dismissEmbeddingPrompt, readEmbeddingPromptDismissal } from '../lib/embedding-consent';
 import { useBrowseFilters } from '../stores/browse-filters';
 import { LanguageToggle } from './language-toggle';
@@ -46,17 +39,8 @@ export function AppTopbar() {
   const { session } = useSession();
   const userId = session?.user.id;
   const embedding = useEmbeddingBootstrapContext();
-  const sync = useSyncStars();
   const query = useBrowseFilters((state) => state.query);
   const setQuery = useBrowseFilters((state) => state.setQuery);
-  const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
-  const syncLabel = sync.requiresReconnect
-    ? sync.reconnectPending
-      ? t('sync.reconnecting')
-      : t('sync.reconnectAction')
-    : sync.isPending
-      ? t('sync.syncing')
-      : t('topbar.sync');
   const embeddingProgress =
     embedding.phase === 'loading-model'
       ? Math.round(embedding.modelProgress)
@@ -222,41 +206,6 @@ export function AppTopbar() {
       ) : null}
 
       <div className="ml-auto flex items-center gap-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="xs"
-              className={cn(
-                'h-8 gap-1.5 px-3 text-body',
-                sync.requiresReconnect &&
-                  'border-warning/35 bg-warning/5 hover:border-warning/50 hover:bg-warning/10',
-              )}
-              aria-label={syncLabel}
-              disabled={syncPending}
-              onClick={sync.sync}
-            >
-              {sync.requiresReconnect ? (
-                sync.reconnectPending ? (
-                  <LoaderCircleIcon className="size-3.5 animate-spin text-warning motion-reduce:animate-none" />
-                ) : (
-                  <UnplugIcon className="size-3.5 text-warning" />
-                )
-              ) : (
-                <RefreshCwIcon
-                  className={cn(
-                    'size-3.5',
-                    sync.isPending && 'animate-spin motion-reduce:animate-none',
-                  )}
-                />
-              )}
-              <span className="hidden sm:inline">{syncLabel}</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6} className="max-w-none whitespace-nowrap">
-            {sync.requiresReconnect ? t('sync.reconnectDescription') : syncLabel}
-          </TooltipContent>
-        </Tooltip>
         <LanguageToggle />
         <ThemeToggle />
         <UserMenu />

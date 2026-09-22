@@ -176,14 +176,12 @@ Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 +
 
 ### Session Recovery Pattern · 会话恢复模式
 
-GitHub 会话中的 provider token 缺失时，先检查受信存储的连接。仅当两者都不可用或存储连接已失效时才提示重新连接。连接问题只影响同步能力，不属于全局应用故障。不得使用横跨 App Shell、推挤页面内容的持久 banner；恢复状态由原 Sync 入口就地承载，页面高度保持稳定。
+GitHub 会话中的 provider token 缺失时，先检查受信存储的连接。仅当两者都不可用或存储连接已失效时才提示重新连接。连接问题只影响同步能力，不属于全局应用故障。不得使用横跨 App Shell、推挤页面内容的持久 banner。
 
-Browse 默认显示当前 Star，标题区提供「当前 Star / 历史」范围切换。历史包含已取消 Star 的仓库，卡片、列表、Quick Look 与 Ask 推荐均标明状态；Memory、Collection 和可检索性保持。历史空状态解释保留规则；当前 Star 为空而历史非空时提供直达历史入口。历史时间只表示同步发现取消的时间，不表述为用户操作时间。
-
-- Topbar：正常显示 Sync；需要恢复时原位切换为 warning 风格的 Reconnect GitHub，移动端保留图标、tooltip 与 aria-label，pending 原位显示 Connecting。
-- User Menu：以简短标题和说明解释 GitHub 连接已过期，并提供同一恢复动作作为备用入口；技术性的 provider token / authorization 描述不得暴露给普通用户。
-- Browse / Dashboard 空状态：需要恢复时直接显示 Reconnect GitHub，不隐藏唯一主操作。
-- Toast 只报告恢复启动失败，不承担持久状态提示；恢复状态不得通过 modal 阻断浏览已有仓库。
+- Topbar：保持清爽无感，不常驻显式同步或重连按钮；日常同步由开站静默同步与后台定时任务驱动。
+- User Menu：承载手动同步与会话恢复入口。连接正常时提供「同步」项；连接失效时以简短标题和说明解释 GitHub 连接已过期，并提供 warning 风格的「重新连接 GitHub」入口。技术性的 provider token / authorization 描述不得暴露给普通用户。
+- Browse / Dashboard 空状态：完全无仓库时的主操作在需要恢复时直接显示「重新连接 GitHub」，已连接时显示「同步 Star」。
+- Toast 只报告恢复或同步失败，不承担持久状态提示；恢复状态不得通过 modal 阻断浏览已有仓库。
 
 实现保留 `GlassControlRow` + `GlassRail` + `SegmentedControl` API，以及 4px rail padding、12px rail radius、4px indicator inset、8px/14px tab padding、10px tab radius、14px icon 与 240ms indicator 滑动。GlassRail 自带轨道高度（≈46px），**不与应用表单控件的 default 尺寸强行对齐**：收敛 tab 垂直留白会把文字挤在蓝色 indicator 里，已试过并回退；设置行内的一致性只要求 Select / Button 彼此对齐。控制条 blur 为 8px；浮层与吸顶背景为 12px。动效使用 `--ease-out-quart`，交互反馈 120–240ms，并支持 `prefers-reduced-motion`。
 

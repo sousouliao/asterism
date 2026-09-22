@@ -29,8 +29,8 @@ import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
-import { useLibraryRepos } from '../data/use-library-repos';
 import { useMemoriesList } from '../data/use-memories-list';
+import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useUnifiedRetrieval } from '../data/use-unified-retrieval';
 import { useBrowseView } from '../hooks/use-browse-view';
@@ -62,18 +62,8 @@ function BrowseDataPage() {
   const deferredQuery = useDeferredValue(filters.query);
   const { requestOpen, requestClose, registerContext } = useRepoInspector();
   const selectedRepoId = useRepoInspectorStore((state) => state.record?.repoId);
-  const { data, isLoading: reposLoading, isError, refetch, isFetching } = useLibraryRepos();
-  const [libraryView, setLibraryView] = useState<'current' | 'history'>('current');
-  const libraryRecords = useMemo(() => data ?? [], [data]);
-  const records = useMemo(
-    () =>
-      libraryRecords.filter(
-        (record) => Boolean(record.unstarredAt) === (libraryView === 'history'),
-      ),
-    [libraryRecords, libraryView],
-  );
-  const historyCount =
-    libraryRecords.length - libraryRecords.filter((record) => !record.unstarredAt).length;
+  const { data, isLoading: reposLoading, isError, refetch, isFetching } = useStarredRepos();
+  const records = useMemo(() => data ?? [], [data]);
   const embeddingBootstrap = useEmbeddingBootstrapContext();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
@@ -127,7 +117,7 @@ function BrowseDataPage() {
       return;
     }
     repoScrollElement.scrollTop = 0;
-  }, [view, libraryView, repoScrollElement]);
+  }, [view, repoScrollElement]);
 
   const facets = useMemo(() => deriveRepoFacets(records), [records]);
   const collectionsByRepoId = useMemo(() => {
@@ -236,7 +226,7 @@ function BrowseDataPage() {
     return ids;
   }, [memoriesList]);
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
-  const hasRepos = libraryRecords.length > 0;
+  const hasRepos = records.length > 0;
   const activeFilter = hasActiveFilter(toRepoFilter(filters));
   const selectedVisibleCount = useMemo(() => {
     let count = 0;
@@ -319,23 +309,6 @@ function BrowseDataPage() {
         </Button>
       }
     />
-  ) : records.length === 0 && libraryView === 'history' ? (
-    <EmptyState
-      icon={StarIcon}
-      title={t('browse.historyEmptyTitle')}
-      description={t('browse.historyEmptyDescription')}
-    />
-  ) : records.length === 0 ? (
-    <EmptyState
-      icon={StarIcon}
-      title={t('browse.currentEmptyTitle')}
-      description={t('browse.currentEmptyDescription')}
-      action={
-        <Button variant="outline" onClick={() => setLibraryView('history')}>
-          {t('browse.history')}
-        </Button>
-      }
-    />
   ) : visible.length === 0 ? (
     <EmptyState
       icon={SearchXIcon}
@@ -395,25 +368,6 @@ function BrowseDataPage() {
                   description={!isError ? t('browse.count', { total }) : undefined}
                 />
                 <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-                  <fieldset className="flex items-center gap-1">
-                    <legend className="sr-only">{t('browse.libraryView')}</legend>
-                    <Button
-                      variant={libraryView === 'current' ? 'secondary' : 'ghost'}
-                      size="sm"
-                      aria-pressed={libraryView === 'current'}
-                      onClick={() => setLibraryView('current')}
-                    >
-                      {t('browse.currentStars')}
-                    </Button>
-                    <Button
-                      variant={libraryView === 'history' ? 'secondary' : 'ghost'}
-                      size="sm"
-                      aria-pressed={libraryView === 'history'}
-                      onClick={() => setLibraryView('history')}
-                    >
-                      {t('browse.history')} ({historyCount})
-                    </Button>
-                  </fieldset>
                   <RepoViewToggle committedView={view} onSelect={transitionTo} />
                 </div>
               </div>

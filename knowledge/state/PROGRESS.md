@@ -13,6 +13,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-22 · 顶栏与浏览页工具栏极简化清理**：按用户诉求移除 Browse 工具栏的「当前 Star / 历史」切换按钮，恢复纯净单一的 Star 列表浏览；彻底移除 Topbar 常驻的同步/重连按钮，日常同步完全由开站静默同步与后台定时任务驱动；手动同步与重新连接入口收敛至 UserMenu（用户头像菜单）中，消除顶栏视觉打扰。四道工程门禁全绿。见 `logs/2026-09-22-simplify-topbar-and-browse-toolbar.md`。
+
 - **2026-09-22 · Star 完整同步与可找回历史本地实现**：移除增量截断，完整分页后在单事务中对账；持久化加密 GitHub 凭据；历史仓库在 Browse、Collection、Ask 与导入导出中可找回。TypeScript 类型检查、Core/DB/Web 单测与 Biome 通过；数据库 pgTAP 和远端验收待有 Supabase 环境时执行。见 ADR 0047 与 `logs/2026-09-22-star-snapshot-and-history.md`。
 
 - **2026-09-22 · 下拉菜单与浮层 Trigger 激活态统一优化**：解决设置页 AI 连接卡片更多按钮点击弹出浮层时无激活态问题；在 `packages/ui` 中将 `data-[state=open]` 与 `aria-expanded` 属性映射至 `buttonVariants`（`ghost`、`outline`、`secondary`、`default`）；升级 `SelectTrigger` 增加展开态边框与底色反馈；在 Browse 筛选栏（`FILTER_TRIGGER_CLASS`、`FILTER_TRIGGER_ACTIVE_CLASS`）、集合卡片操作按钮与 Ask 模型选择器上系统性补齐展开激活视觉；全库 53 套件 279 项单测、类型与 Biome 门禁全绿。见 `logs/2026-09-22-dropdown-and-trigger-active-states.md`。

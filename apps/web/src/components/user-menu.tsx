@@ -12,16 +12,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@asterism/ui';
-import { CircleAlertIcon, LoaderCircleIcon, LogInIcon, LogOutIcon } from 'lucide-react';
+import {
+  CircleAlertIcon,
+  LoaderCircleIcon,
+  LogInIcon,
+  LogOutIcon,
+  RefreshCwIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { useSession } from '../auth/use-session';
+import { useSyncStars } from '../data/use-sync-stars';
 import { supabase } from '../lib/supabase';
 
 export function UserMenu() {
   const { t } = useTranslation();
   const { session } = useSession();
-  const { reconnectPending, requiresReconnect, reconnect } = useGitHubReconnect();
+  const sync = useSyncStars();
+  const { reconnectPending, requiresReconnect, reconnect } = sync;
   const user = session?.user;
   const name =
     (user?.user_metadata?.user_name as string | undefined) ??
@@ -74,7 +81,20 @@ export function UserMenu() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
-        ) : null}
+        ) : (
+          <>
+            <DropdownMenuItem disabled={sync.isPending} onClick={() => sync.sync()}>
+              <RefreshCwIcon
+                className={cn(
+                  'size-4',
+                  sync.isPending && 'animate-spin motion-reduce:animate-none',
+                )}
+              />
+              {sync.isPending ? t('sync.syncing') : t('topbar.sync')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem variant="destructive" onClick={() => void signOut(supabase)}>
           <LogOutIcon className="size-4" />
           {t('auth.signOut')}
