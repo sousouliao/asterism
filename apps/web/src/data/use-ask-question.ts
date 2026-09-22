@@ -17,6 +17,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/use-session';
 import { getAvailableAiModels, useAiSettingsValue } from '../lib/ai-connections';
 import { useAskByok } from '../lib/ask-byok';
+import {
+  type AskSessionRecord,
+  clearAllAskSessions,
+  deleteAskSession,
+  formatSessionTitle,
+  getAskSessions,
+  saveAskSession,
+} from '../lib/ask-session-storage';
 import { supabase } from '../lib/supabase';
 import { useAiConnections, useUpdateAiSettings } from './use-ai-connections';
 import { useLibraryRepos } from './use-library-repos';
@@ -121,6 +129,9 @@ export function useAskQuestion() {
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [phase, setPhase] = useState<AskPhase>({ kind: 'idle' });
   const [turns, setTurns] = useState<AskTurn[]>([]);
+  const [sessions, setSessions] = useState<AskSessionRecord[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const activeSessionIdRef = useRef<string | null>(null);
   const nextId = useRef(1);
   const settledId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -143,6 +154,19 @@ export function useAskQuestion() {
     return map;
   }, [memoriesQuery.data]);
 
+  const refreshSessions = useCallback(async () => {
+    try {
+      const records = await getAskSessions();
+      setSessions(records);
+    } catch {
+      // 忽略读取错误
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshSessions();
+  }, [refreshSessions]);
+
   const cancelInFlight = useCallback((asStop: boolean) => {
     stopRef.current = asStop;
     abortRef.current?.abort();
@@ -151,6 +175,36 @@ export function useAskQuestion() {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+  }, []);
+
+  const appendTurnAndPersist = useCallback((turn: AskTurn) => {
+    const sessionId = activeSessionIdRef.current ?? crypto.randomUUID();
+    activeSessionIdRef.current = sessionId;
+    setCurrentSessionId(sessionId);
+
+    setTurns((current) => {
+      const nextTurns = [...current, turn];
+      void (async () => {
+        try {
+          const allSessions = await getAskSessions();
+          const existing = allSessions.find((s) => s.id === sessionId);
+          const record: AskSessionRecord = {
+            id: sessionId,
+            title: existing?.title ?? formatSessionTitle(nextTurns[0]?.question ?? turn.question),
+            createdAt: existing?.createdAt ?? Date.now(),
+            updatedAt: Date.now(),
+            turns: nextTurns,
+          };
+          await saveAskSession(record);
+          const refreshed = await getAskSessions();
+          setSessions(refreshed);
+        } catch {
+          // 忽略持久化异常
+        }
+      })();
+      return nextTurns;
+    });
+    setPhase({ kind: 'answered', turn });
   }, []);
 
   const ask = useCallback(
@@ -191,13 +245,55 @@ export function useAskQuestion() {
     cancelInFlight(true);
   }, [cancelInFlight, phase.kind]);
 
-  const reset = useCallback(() => {
+  const startNewSession = useCallback(() => {
     cancelInFlight(false);
     resumeRef.current = null;
+    activeSessionIdRef.current = null;
+    setCurrentSessionId(null);
     setSubmission(null);
     setPhase({ kind: 'idle' });
     setTurns([]);
   }, [cancelInFlight]);
+
+  const reset = startNewSession;
+
+  const loadSession = useCallback(
+    (session: AskSessionRecord) => {
+      cancelInFlight(false);
+      resumeRef.current = null;
+      activeSessionIdRef.current = session.id;
+      setCurrentSessionId(session.id);
+      setSubmission(null);
+      setTurns(session.turns);
+      const maxId = session.turns.reduce((max, t) => Math.max(max, t.id), 0);
+      nextId.current = Math.max(nextId.current, maxId + 1);
+
+      const lastTurn = session.turns[session.turns.length - 1];
+      if (lastTurn) {
+        setPhase({ kind: 'answered', turn: lastTurn });
+      } else {
+        setPhase({ kind: 'idle' });
+      }
+    },
+    [cancelInFlight],
+  );
+
+  const deleteSession = useCallback(
+    async (sessionId: string) => {
+      await deleteAskSession(sessionId);
+      if (activeSessionIdRef.current === sessionId) {
+        startNewSession();
+      }
+      await refreshSessions();
+    },
+    [refreshSessions, startNewSession],
+  );
+
+  const clearAllSessions = useCallback(async () => {
+    await clearAllAskSessions();
+    startNewSession();
+    setSessions([]);
+  }, [startNewSession]);
 
   useEffect(() => {
     if (!submission || settledId.current === submission.id) {
@@ -404,8 +500,7 @@ export function useAskQuestion() {
             summary: parsed.answer.summary,
             recommendations: mapRecommendations(parsed.answer.recommendations, records),
           };
-          setTurns((current) => [...current, turn]);
-          setPhase({ kind: 'answered', turn });
+          appendTurnAndPersist(turn);
           return;
         }
       } catch (error) {
@@ -421,8 +516,7 @@ export function useAskQuestion() {
               summary: parsed.answer.summary,
               recommendations: mapRecommendations(parsed.answer.recommendations, records),
             };
-            setTurns((current) => [...current, turn]);
-            setPhase({ kind: 'answered', turn });
+            appendTurnAndPersist(turn);
             return;
           }
           setPhase({ kind: 'idle' });
@@ -436,7 +530,7 @@ export function useAskQuestion() {
     };
 
     void run();
-  }, [submission, reposQuery.data, memoriesByRepoId, byok, includeNotes]);
+  }, [submission, reposQuery.data, memoriesByRepoId, byok, includeNotes, appendTurnAndPersist]);
 
   return {
     phase,
@@ -449,5 +543,12 @@ export function useAskQuestion() {
     currentModel,
     availableModels,
     selectModel,
+    currentSessionId,
+    sessions,
+    loadSession,
+    startNewSession,
+    deleteSession,
+    clearAllSessions,
+    refreshSessions,
   };
 }

@@ -236,4 +236,41 @@ describe('useAskQuestion', () => {
     expect(latest?.turns[0]?.recommendations).toEqual([]);
     expect(mocks.streamAskGenerate.mock.calls[0]?.[1]).toHaveProperty('tools');
   });
+
+  it('allows loading a historical session and starting a new session', async () => {
+    await renderHarness();
+    await flushWork();
+
+    const mockSession = {
+      id: 'session-prev',
+      title: 'Historical Question',
+      createdAt: Date.now() - 10000,
+      updatedAt: Date.now() - 5000,
+      turns: [
+        {
+          id: 10,
+          question: 'Historical Question',
+          summary: 'Historical answer',
+          recommendations: [],
+        },
+      ],
+    };
+
+    await act(async () => {
+      latest?.loadSession(mockSession);
+    });
+
+    expect(latest?.currentSessionId).toBe('session-prev');
+    expect(latest?.turns).toHaveLength(1);
+    expect(latest?.turns[0]?.question).toBe('Historical Question');
+    expect(latest?.phase.kind).toBe('answered');
+
+    await act(async () => {
+      latest?.startNewSession();
+    });
+
+    expect(latest?.currentSessionId).toBeNull();
+    expect(latest?.turns).toHaveLength(0);
+    expect(latest?.phase.kind).toBe('idle');
+  });
 });

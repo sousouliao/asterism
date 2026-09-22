@@ -460,6 +460,39 @@
       "openai": "OpenAI",
       "groq": "Groq",
       "openrouter": "OpenRouter"
+    },
+    "commands": {
+      "history": "/history 历史会话",
+      "historyDesc": "查看并继续最近 7 天的会话",
+      "new": "/new 新对话",
+      "newDesc": "开启全新会话，保存当前对话"
+    },
+    "history": {
+      "title": "历史会话",
+      "sessionCount_one": "{{count}} 场会话",
+      "sessionCount_other": "{{count}} 场会话",
+      "backToChat": "返回当前对话",
+      "clearAll": "清空全部",
+      "clearAllConfirmTitle": "清空所有历史会话？",
+      "clearAllConfirmDesc": "这会清除本地保存的所有问答记录，此操作不可撤销。",
+      "confirmClear": "确认清空",
+      "cancel": "取消",
+      "searchPlaceholder": "搜索历史会话… (Esc 返回)",
+      "emptyTitle": "暂无历史会话",
+      "emptyDescription": "最近 7 天的问答分析将保存在这里。",
+      "noResultsTitle": "未找到匹配会话",
+      "noResultsDescription": "尝试其他关键词或按 Esc 返回当前对话。",
+      "activeBadge": "当前",
+      "deleteAria": "删除此条会话",
+      "turnCount_one": "{{count}} 轮",
+      "turnCount_other": "{{count}} 轮",
+      "recommendationCount_one": "{{count}} 个推荐",
+      "recommendationCount_other": "{{count}} 个推荐",
+      "justNow": "刚刚",
+      "minutesAgo": "{{count}} 分钟前",
+      "hoursAgo": "{{count}} 小时前",
+      "yesterday": "昨天",
+      "daysAgo": "{{count}} 天前"
     }
   },
   "settings": {

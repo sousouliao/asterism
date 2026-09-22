@@ -460,6 +460,39 @@
       "openai": "OpenAI",
       "groq": "Groq",
       "openrouter": "OpenRouter"
+    },
+    "commands": {
+      "history": "/history Past sessions",
+      "historyDesc": "View and continue sessions from the last 7 days",
+      "new": "/new New conversation",
+      "newDesc": "Start a fresh conversation, saving the current one"
+    },
+    "history": {
+      "title": "History",
+      "sessionCount_one": "{{count}} session",
+      "sessionCount_other": "{{count}} sessions",
+      "backToChat": "Back to chat",
+      "clearAll": "Clear all",
+      "clearAllConfirmTitle": "Clear all conversation history?",
+      "clearAllConfirmDesc": "This will remove all locally stored Ask sessions. This action cannot be undone.",
+      "confirmClear": "Clear all",
+      "cancel": "Cancel",
+      "searchPlaceholder": "Search past sessions… (Esc to return)",
+      "emptyTitle": "No past sessions",
+      "emptyDescription": "Conversations from the past 7 days will be kept here.",
+      "noResultsTitle": "No matching sessions",
+      "noResultsDescription": "Try a different search term or press Esc to return.",
+      "activeBadge": "Active",
+      "deleteAria": "Delete session",
+      "turnCount_one": "{{count}} turn",
+      "turnCount_other": "{{count}} turns",
+      "recommendationCount_one": "{{count}} recommendation",
+      "recommendationCount_other": "{{count}} recommendations",
+      "justNow": "just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "yesterday": "yesterday",
+      "daysAgo": "{{count}}d ago"
     }
   },
   "settings": {

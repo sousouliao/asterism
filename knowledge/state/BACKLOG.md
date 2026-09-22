@@ -8,7 +8,7 @@
 
 ## 已完成近期 frontier
 
-- [x] **个人私有知识问答（GitHub #41）**：`feat(ask): catalog-resident agent for Ask Asterism`。目录常驻浅层 Agent + 客户端 BYOK + 无状态 `ask-generate` SSE 代理 + read gate、无抽取式兜底（ADR 0042 / 0044 / 0045 / 0046）；一体化上凸流光拉手与双侧流体气泡（Liquid Glass）；生产部署与真实环境验收完成，issue 已关闭（`logs/2026-09-22-ask-asterism-production-acceptance.md`）。
+- [x] **个人私有知识问答（GitHub #41）**：`feat(ask): catalog-resident agent for Ask Asterism`。目录常驻浅层 Agent + 客户端 BYOK + 无状态 `ask-generate` SSE 代理 + read gate、无抽取式兜底（ADR 0042 / 0044 / 0045 / 0046）；一体化上凸流光拉手与双侧流体气泡（Liquid Glass）；生产部署与真实环境验收完成，issue 已关闭（`logs/2026-09-22-ask-asterism-production-acceptance.md`）；补充交付纯前端历史会话与斜杠命令（ADR 0048）。
 - [x] **沉睡记忆唤醒与主页推荐流（GitHub #40）**：`feat(memory): resurface inactive stars and contextual memory streams`。双流卡片、可解释算法、本地反馈、双语与全部门禁已交付（ADR 0041）；真实环境验收通过后 issue 已关闭。
 - [x] **完成 Memory + Why I saved this 交付（GitHub #37）**：本地代码、自动化测试、桌面/手机视觉 QA、远端 Supabase migration (`20260917120000_memory_foundation.sql`) 推送、`sync-stars` Edge Function 部署与 GitHub Issue #37 已全部完成关闭。按 ADR 0038 不迁移旧 Note，也不兼容 v1/v2 JSON。
 - [x] **统一检索引擎（GitHub #39）**：Memory-aware 词法 / 语义检索、可验证 Match Explanation、可信 Related Stars 降级和 consent v2 已完成；代码复核发现的问题已修正并通过全量门禁。

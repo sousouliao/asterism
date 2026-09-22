@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-22 · Ask 纯前端历史会话列表与快捷斜杠命令落地（ADR 0048）**：在 Ask Asterism 底部气泡舱内落地纯客户端历史会话体系与 `/history`、`/new` 斜杠命令。零服务端依赖（IndexedDB + localStorage 兜底）；7 天智能老化淘汰（保底 5 条避免休假清空，上限 30 条防止存储膨胀）；斜杠浮动毛玻璃菜单；历史列表直接在舱内切换展示，输入框就地作为搜索过滤框；支持键盘方向键高亮、回车加载历史并恢复全部轮次（Turns）继续追问、Esc 随时返回。全库 54 套件 294 项单测、类型与 Biome 门禁全绿。见 ADR 0048 与 `logs/2026-09-22-ask-local-session-history-and-slash-commands.md`。
+
 - **2026-09-22 · Ask Asterism 生产环境验收与 #41 关闭**：Edge Function `ask-generate` 重新部署（`tool` 角色、长上下文、`tools` 透传与 SSE `tool_call` 协议转换），Web 生产就绪（流光拉手、气泡对话、内联探针门禁与模型实时切换）。真实环境验收通过未配置 Key 引导、非法凭据拒入与错误双语映射、防幻觉 read gate 与流式体验。GitHub #41 附验收评论后正式关闭。见 `logs/2026-09-22-ask-asterism-production-acceptance.md`。
 
 - **2026-09-22 · CI 数据库测试修复（github_sync_credentials 授权与快照 RPC security definer）**：`20260922120000_github_sync_credentials.sql` 漏授予 `service_role` 权限，且 `apply_github_star_snapshot` 遗漏 `security definer`，导致 CI 本地 pgTAP 测试报 permission denied。补 `20260922144000_grant_sync_credentials_and_snapshot_security.sql` 授权并切换为 security definer，扩充 `star_history.test.sql` 用例（5→7）。见 `logs/2026-09-22-ci-sync-credentials-grant.md`。

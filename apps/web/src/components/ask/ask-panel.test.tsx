@@ -5,6 +5,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AskPhase, AskTurn } from '../../data/use-ask-question';
+import type { AskSessionRecord } from '../../lib/ask-session-storage';
 import '../../i18n';
 import { AskDockContent } from './ask-panel';
 
@@ -13,10 +14,15 @@ const continueMock = vi.hoisted(() => vi.fn());
 const resetMock = vi.hoisted(() => vi.fn());
 const requestOpen = vi.hoisted(() => vi.fn());
 const navigate = vi.hoisted(() => vi.fn());
+const loadSessionMock = vi.hoisted(() => vi.fn());
+const startNewSessionMock = vi.hoisted(() => vi.fn());
+const deleteSessionMock = vi.hoisted(() => vi.fn());
+const clearAllSessionsMock = vi.hoisted(() => vi.fn());
 
 let phaseOverride: AskPhase | undefined;
 let turnsOverride: AskTurn[] = [];
 let configuredOverride = true;
+let sessionsOverride: AskSessionRecord[] = [];
 
 vi.mock('../../data/use-ask-question', () => ({
   useAskQuestion: () => ({
@@ -24,8 +30,13 @@ vi.mock('../../data/use-ask-question', () => ({
     turns: turnsOverride,
     ask: askMock,
     continueAsk: continueMock,
-    reset: vi.fn(),
+    reset: resetMock,
     configured: configuredOverride,
+    sessions: sessionsOverride,
+    loadSession: loadSessionMock,
+    startNewSession: startNewSessionMock,
+    deleteSession: deleteSessionMock,
+    clearAllSessions: clearAllSessionsMock,
   }),
 }));
 vi.mock('../../contexts/repo-inspector-context', () => ({
@@ -83,6 +94,11 @@ beforeEach(() => {
   resetMock.mockClear();
   requestOpen.mockClear();
   navigate.mockClear();
+  loadSessionMock.mockClear();
+  startNewSessionMock.mockClear();
+  deleteSessionMock.mockClear();
+  clearAllSessionsMock.mockClear();
+  sessionsOverride = [];
   phaseOverride = { kind: 'idle' };
   turnsOverride = [];
   configuredOverride = true;
@@ -109,6 +125,11 @@ async function renderPanel() {
           continueAsk: continueMock,
           reset: resetMock,
           configured: configuredOverride,
+          sessions: sessionsOverride,
+          loadSession: loadSessionMock,
+          startNewSession: startNewSessionMock,
+          deleteSession: deleteSessionMock,
+          clearAllSessions: clearAllSessionsMock,
         }}
       />,
     );
@@ -314,5 +335,118 @@ describe('AskDock states', () => {
     await renderPanel();
     const cabin = document.body.querySelector('section');
     expect(cabin?.className).toContain('pointer-events-auto');
+  });
+
+  it('renders slash menu when typing / and triggers /new command', async () => {
+    await renderPanel();
+    const input = document.body.querySelector('input');
+    expect(input).not.toBeNull();
+    if (!input) return;
+
+    await setInputValue(input, '/');
+
+    const menu = document.body.querySelector('[role="menu"]');
+    expect(menu).not.toBeNull();
+    expect(menu?.textContent).toContain('/history');
+    expect(menu?.textContent).toContain('/new');
+
+    const newBtn = Array.from(menu?.querySelectorAll('button') ?? []).find((b) =>
+      b.textContent?.includes('/new'),
+    );
+    expect(newBtn).toBeDefined();
+
+    await click(newBtn ?? null);
+    expect(startNewSessionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders slash menu, selects /history, transitions to history view, and loads a session', async () => {
+    sessionsOverride = [
+      {
+        id: 's-1',
+        title: 'How to build with React 19?',
+        createdAt: Date.now() - 5000,
+        updatedAt: Date.now() - 5000,
+        turns: [turn({ id: 1, question: 'How to build with React 19?' })],
+      },
+    ];
+
+    await renderPanel();
+    const input = document.body.querySelector('input');
+    expect(input).not.toBeNull();
+    if (!input) return;
+
+    await setInputValue(input, '/');
+
+    const historyBtn = Array.from(
+      document.body.querySelectorAll('[role="menu"] button') ?? [],
+    ).find((b) => b.textContent?.includes('/history'));
+    expect(historyBtn).toBeDefined();
+
+    await click(historyBtn ?? null);
+
+    // Should now be in history view
+    expect(input.placeholder).toBe(i18next.t('ask.history.searchPlaceholder', { lng: 'en' }));
+    expect(document.body.textContent).toContain('How to build with React 19?');
+
+    const sessionItem = document.body.querySelector('[data-session-index="0"]');
+    expect(sessionItem).not.toBeNull();
+
+    const sessionBtn = sessionItem?.querySelector('button') ?? null;
+    expect(sessionBtn).not.toBeNull();
+
+    await click(sessionBtn);
+    expect(loadSessionMock).toHaveBeenCalledWith(sessionsOverride[0]);
+  });
+
+  it('filters sessions in history view and supports Esc to return to chat view', async () => {
+    sessionsOverride = [
+      {
+        id: 's-1',
+        title: 'React 19 Server Components',
+        createdAt: Date.now() - 5000,
+        updatedAt: Date.now() - 5000,
+        turns: [turn({ id: 1, question: 'React 19 Server Components' })],
+      },
+      {
+        id: 's-2',
+        title: 'Rust WebAssembly toolchain',
+        createdAt: Date.now() - 10000,
+        updatedAt: Date.now() - 10000,
+        turns: [turn({ id: 2, question: 'Rust WebAssembly toolchain' })],
+      },
+    ];
+
+    await renderPanel();
+    const input = document.body.querySelector('input');
+    expect(input).not.toBeNull();
+    if (!input) return;
+
+    // Open slash menu and enter history
+    await setInputValue(input, '/history');
+    const form = document.body.querySelector('form');
+    expect(form).not.toBeNull();
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+
+    expect(document.body.textContent).toContain('React 19 Server Components');
+    expect(document.body.textContent).toContain('Rust WebAssembly toolchain');
+
+    // Type query to filter
+    await setInputValue(input, 'webassembly');
+    expect(document.body.textContent).not.toContain('React 19 Server Components');
+    expect(document.body.textContent).toContain('Rust WebAssembly toolchain');
+
+    // Esc clears query first
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(input.value).toBe('');
+
+    // Esc again exits history view back to chat view
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(input.placeholder).toBe(i18next.t('ask.placeholder', { lng: 'en' }));
   });
 });

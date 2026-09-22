@@ -139,6 +139,23 @@ const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
   { label: 'idle', phase: { kind: 'idle' }, turns: [] },
 ];
 
+const PREVIEW_SESSIONS = [
+  {
+    id: 's-prev-1',
+    title: 'Which rust websocket library did I save?',
+    createdAt: Date.now() - 3600_000,
+    updatedAt: Date.now() - 3600_000,
+    turns: [ANSWERED_TURN],
+  },
+  {
+    id: 's-prev-2',
+    title: 'Virtual scroll library for React 19',
+    createdAt: Date.now() - 86400_000,
+    updatedAt: Date.now() - 86400_000,
+    turns: [MULTI_TURN[1] as AskTurn],
+  },
+];
+
 /** 底部舱预览用状态面：真实 DialogContent + composer，仅数据为 fixture。 */
 const DOCK_FIXTURES: { label: string; ask: AskViewState }[] = [
   ...PHASES.map(({ label, phase, turns }) => ({
@@ -149,6 +166,7 @@ const DOCK_FIXTURES: { label: string; ask: AskViewState }[] = [
       ask: () => {},
       continueAsk: () => {},
       configured: true,
+      sessions: PREVIEW_SESSIONS,
     } satisfies AskViewState,
   })),
   {
@@ -158,6 +176,7 @@ const DOCK_FIXTURES: { label: string; ask: AskViewState }[] = [
       turns: [],
       ask: () => {},
       configured: false,
+      sessions: PREVIEW_SESSIONS,
     } satisfies AskViewState,
   },
 ];

@@ -14,6 +14,7 @@ import {
 import {
   CheckIcon,
   ChevronDownIcon,
+  HistoryIcon,
   LoaderCircleIcon,
   MessageCircleQuestionIcon,
   SearchXIcon,
@@ -26,8 +27,10 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -36,8 +39,11 @@ import { useNavigate } from 'react-router-dom';
 import { useRepoInspector } from '../../contexts/repo-inspector-context';
 import { type AskPhase, type AskTurn, useAskQuestion } from '../../data/use-ask-question';
 import type { AvailableAiModel } from '../../lib/ai-connections';
+import type { AskSessionRecord } from '../../lib/ask-session-storage';
 import type { RepoOpenModality } from '../../stores/repo-inspector';
+import { AskHistoryView } from './ask-history-view';
 import { AskRecommendationCard } from './ask-recommendation-card';
+import { type AskSlashCommandId, AskSlashMenu } from './ask-slash-menu';
 
 /** 面板渲染所需的最小状态面：生产由 useAskQuestion 提供，dev 预览可注入 fixture。 */
 export interface AskViewState {
@@ -51,6 +57,13 @@ export interface AskViewState {
   currentModel?: string | null;
   availableModels?: readonly AvailableAiModel[];
   selectModel?: (model: string) => void;
+  currentSessionId?: string | null;
+  sessions?: readonly AskSessionRecord[];
+  loadSession?: (session: AskSessionRecord) => void;
+  startNewSession?: () => void;
+  deleteSession?: (sessionId: string) => Promise<void>;
+  clearAllSessions?: () => Promise<void>;
+  refreshSessions?: () => Promise<void>;
 }
 
 type OpenRepoHandler = (
@@ -90,6 +103,10 @@ export function AskDockContent({
   const inspector = useRepoInspector();
   const [question, setQuestion] = useState('');
   const [collapsed, setCollapsed] = useState(false);
+  const [dockView, setDockView] = useState<'chat' | 'history'>('chat');
+  const [slashHighlightIndex, setSlashHighlightIndex] = useState(0);
+  const [historyHighlightIndex, setHistoryHighlightIndex] = useState(0);
+
   const dockRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -97,13 +114,68 @@ export function AskDockContent({
   const followScroll = useRef(true);
   const prevTurnsLength = useRef(ask.turns.length);
   const busy = ask.phase.kind === 'generating';
-  const hasThread = ask.configured ? ask.turns.length > 0 || ask.phase.kind !== 'idle' : true;
+
+  const isSlashOpen = dockView === 'chat' && question.startsWith('/') && !busy;
+  const hasThread =
+    dockView === 'history'
+      ? true
+      : ask.configured
+        ? ask.turns.length > 0 || ask.phase.kind !== 'idle'
+        : true;
   const isExpanded = hasThread && !collapsed;
   const openSettings = () => navigate('/settings');
 
   const deepseekModels = ask.availableModels?.filter((m) => m.provider === 'deepseek') ?? [];
   const openaiModels = ask.availableModels?.filter((m) => m.provider === 'openai') ?? [];
   const hasModels = (ask.availableModels?.length ?? 0) > 0;
+
+  const filteredSessions = useMemo(() => {
+    const cleanFilter = question.trim().toLowerCase();
+    const allSessions = ask.sessions ?? [];
+    if (!cleanFilter || dockView !== 'history') {
+      return allSessions;
+    }
+    return allSessions.filter((s) => {
+      if (s.title.toLowerCase().includes(cleanFilter)) {
+        return true;
+      }
+      return s.turns.some(
+        (t) =>
+          t.question.toLowerCase().includes(cleanFilter) ||
+          t.summary.toLowerCase().includes(cleanFilter),
+      );
+    });
+  }, [ask.sessions, question, dockView]);
+
+  const handleSelectSlashCommand = useCallback(
+    (cmdId: AskSlashCommandId) => {
+      if (cmdId === 'new') {
+        ask.startNewSession?.() ?? ask.reset?.();
+        setDockView('chat');
+        setQuestion('');
+        setCollapsed(false);
+        inputRef.current?.focus();
+      } else if (cmdId === 'history') {
+        setDockView('history');
+        setQuestion('');
+        setHistoryHighlightIndex(0);
+        setCollapsed(false);
+        inputRef.current?.focus();
+      }
+    },
+    [ask],
+  );
+
+  const handleSelectSession = useCallback(
+    (session: AskSessionRecord) => {
+      ask.loadSession?.(session);
+      setDockView('chat');
+      setQuestion('');
+      setCollapsed(false);
+      inputRef.current?.focus();
+    },
+    [ask],
+  );
 
   // 新提问或处于生成状态时自动展开
   useEffect(() => {
@@ -140,10 +212,14 @@ export function AskDockContent({
         return;
       }
       setCollapsed(true);
+      if (dockView === 'history') {
+        setDockView('chat');
+        setQuestion('');
+      }
     };
     window.addEventListener('pointerdown', onPointerDown);
     return () => window.removeEventListener('pointerdown', onPointerDown);
-  }, [isExpanded]);
+  }, [isExpanded, dockView]);
 
   // 全局 Esc 快捷键折叠
   useEffect(() => {
@@ -156,11 +232,15 @@ export function AskDockContent({
           return;
         }
         setCollapsed(true);
+        if (dockView === 'history') {
+          setDockView('chat');
+          setQuestion('');
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isExpanded, question]);
+  }, [isExpanded, question, dockView]);
 
   /** 贴底优先走 ref callback：Radix Portal + StrictMode 下挂载期 effect 早于 ref 附加执行。 */
   const scrollLogToBottom = (behavior: ScrollBehavior) => {
@@ -192,10 +272,31 @@ export function AskDockContent({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (dockView === 'history') {
+      const target = filteredSessions[historyHighlightIndex];
+      if (target) {
+        handleSelectSession(target);
+      }
+      return;
+    }
+
     const trimmed = question.trim();
     if (!trimmed || busy) {
       return;
     }
+
+    if (trimmed.startsWith('/')) {
+      const match = trimmed.toLowerCase();
+      if (match === '/new') {
+        handleSelectSlashCommand('new');
+        return;
+      }
+      if (match === '/history' || match === '/h') {
+        handleSelectSlashCommand('history');
+        return;
+      }
+    }
+
     setCollapsed(false);
     followScroll.current = true;
     ask.ask(trimmed);
@@ -203,6 +304,55 @@ export function AskDockContent({
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (dockView === 'history') {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setHistoryHighlightIndex((prev) =>
+          Math.min(Math.max(0, filteredSessions.length - 1), prev + 1),
+        );
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setHistoryHighlightIndex((prev) => Math.max(0, prev - 1));
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (question) {
+          setQuestion('');
+        } else {
+          setDockView('chat');
+        }
+        return;
+      }
+      return;
+    }
+
+    if (isSlashOpen) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSlashHighlightIndex((prev) => (prev + 1) % 2);
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSlashHighlightIndex((prev) => (prev - 1 + 2) % 2);
+        return;
+      }
+      if (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey)) {
+        event.preventDefault();
+        const cmdId: AskSlashCommandId = slashHighlightIndex === 0 ? 'history' : 'new';
+        handleSelectSlashCommand(cmdId);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setQuestion('');
+        return;
+      }
+    }
+
     if (event.key === 'Escape') {
       if (question) {
         setQuestion('');
@@ -251,62 +401,103 @@ export function AskDockContent({
         )}
       >
         {isExpanded ? (
-          <section
-            aria-label={t('ask.title')}
-            className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh_-_8.5rem))] w-full flex-col animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none"
-          >
-            <p className="sr-only">{t('ask.description')}</p>
-
-            {/* role="log"：新消息只播报增量 */}
-            <div
-              ref={attachLog}
-              role="log"
-              aria-busy={busy}
-              aria-label={t('ask.title')}
-              onScroll={() => {
-                const el = scrollRef.current;
-                if (!el) {
-                  return;
-                }
-                followScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
-              }}
-              className="asterism-scroll-gutter flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1 py-1"
-            >
-              {ask.configured ? (
-                <AskThread
-                  turns={ask.turns}
-                  phase={ask.phase}
-                  onOpenRepo={openRepo}
-                  onRetry={ask.ask}
-                  onContinue={ask.continueAsk}
-                  onOpenSettings={openSettings}
-                />
-              ) : (
-                <AskSetupView onOpenSettings={openSettings} />
-              )}
+          dockView === 'history' ? (
+            <div className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh_-_8.5rem))] w-full flex-col animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none">
+              <AskHistoryView
+                sessions={ask.sessions ?? []}
+                currentSessionId={ask.currentSessionId ?? null}
+                filterQuery={question}
+                highlightedIndex={historyHighlightIndex}
+                onHighlightChange={setHistoryHighlightIndex}
+                onSelectSession={handleSelectSession}
+                onDeleteSession={(id) => ask.deleteSession?.(id)}
+                onClearAll={() => ask.clearAllSessions?.()}
+                onBack={() => {
+                  setDockView('chat');
+                  setQuestion('');
+                }}
+              />
             </div>
-          </section>
+          ) : (
+            <section
+              aria-label={t('ask.title')}
+              className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh_-_8.5rem))] w-full flex-col animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none"
+            >
+              <p className="sr-only">{t('ask.description')}</p>
+
+              {/* role="log"：新消息只播报增量 */}
+              <div
+                ref={attachLog}
+                role="log"
+                aria-busy={busy}
+                aria-label={t('ask.title')}
+                onScroll={() => {
+                  const el = scrollRef.current;
+                  if (!el) {
+                    return;
+                  }
+                  followScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+                }}
+                className="asterism-scroll-gutter flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1 py-1"
+              >
+                {ask.configured ? (
+                  <AskThread
+                    turns={ask.turns}
+                    phase={ask.phase}
+                    onOpenRepo={openRepo}
+                    onRetry={ask.ask}
+                    onContinue={ask.continueAsk}
+                    onOpenSettings={openSettings}
+                  />
+                ) : (
+                  <AskSetupView onOpenSettings={openSettings} />
+                )}
+              </div>
+            </section>
+          )
         ) : null}
 
         <form
           onSubmit={submit}
           className="group/composer relative pointer-events-auto flex h-12 w-full items-center gap-2.5 rounded-full border border-black/[0.09] bg-gradient-to-b from-white/98 via-white/94 to-white/98 px-3.5 shadow-[inset_0_1px_1.5px_rgba(255,255,255,1),0_8px_24px_-4px_rgba(15,23,42,0.12),0_2px_6px_-1px_rgba(15,23,42,0.06)] backdrop-blur-2xl transition-all duration-200 [transition-timing-function:var(--ease-out-quart)] hover:border-black/[0.14] hover:shadow-[inset_0_1px_1.5px_rgba(255,255,255,1),0_12px_28px_-4px_rgba(15,23,42,0.16),0_3px_8px_-1px_rgba(15,23,42,0.08)] focus-within:border-primary/70 focus-within:ring-2 focus-within:ring-ring/30 focus-within:shadow-[inset_0_1px_1.5px_rgba(255,255,255,1),0_14px_32px_-4px_rgba(15,23,42,0.2),0_4px_10px_-1px_rgba(15,23,42,0.1)] dark:border-white/[0.16] dark:bg-gradient-to-r dark:from-[#1A2230]/95 dark:via-[#131A24]/90 dark:to-[#1A2230]/95 dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.18),0_12px_36px_-4px_rgba(0,0,0,0.7),0_2px_8px_-1px_rgba(0,0,0,0.5)] dark:hover:border-white/[0.22]"
         >
+          {/* Slash 命令浮层 */}
+          {isSlashOpen && (
+            <AskSlashMenu
+              query={question}
+              highlightedIndex={slashHighlightIndex}
+              onHighlightChange={setSlashHighlightIndex}
+              onSelectCommand={handleSelectSlashCommand}
+            />
+          )}
+
           {/* 收起状态：横跨输入框的类似横置花括号 { 的渐变流光光拱 */}
           {hasThread && collapsed ? (
             <AskLuminousBracket onClick={() => setCollapsed(false)} label={t('ask.expandThread')} />
           ) : null}
 
-          <MessageCircleQuestionIcon
-            className="size-4 shrink-0 text-foreground/70"
-            aria-hidden="true"
-          />
+          {dockView === 'history' ? (
+            <HistoryIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+          ) : (
+            <MessageCircleQuestionIcon
+              className="size-4 shrink-0 text-foreground/70"
+              aria-hidden="true"
+            />
+          )}
+
           <Input
             ref={inputRef}
             value={question}
-            aria-label={t('ask.questionLabel')}
-            placeholder={t('ask.placeholder')}
-            onChange={(inputEvent) => setQuestion(inputEvent.target.value)}
+            aria-label={dockView === 'history' ? t('ask.history.title') : t('ask.questionLabel')}
+            placeholder={
+              dockView === 'history' ? t('ask.history.searchPlaceholder') : t('ask.placeholder')
+            }
+            onChange={(inputEvent) => {
+              setQuestion(inputEvent.target.value);
+              if (dockView === 'history') {
+                setHistoryHighlightIndex(0);
+              }
+            }}
             onFocus={() => {
               if (hasThread && collapsed) {
                 setCollapsed(false);
