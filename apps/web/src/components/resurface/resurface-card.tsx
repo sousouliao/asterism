@@ -58,7 +58,7 @@ export const ResurfaceCard = memo(function ResurfaceCard({
       />
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-3 pointer-events-none">
-        <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-2 text-body">
             <span
               aria-hidden="true"
@@ -87,7 +87,7 @@ export const ResurfaceCard = memo(function ResurfaceCard({
           </span>
           {starred && compactStarred ? (
             <span
-              className="shrink-0 text-caption text-muted-foreground tabular-nums"
+              className="shrink-0 text-caption leading-5 text-muted-foreground tabular-nums"
               title={t('browse.starred', { time: starred })}
             >
               <span aria-hidden="true">{t('browse.starredCompact', { time: compactStarred })}</span>
