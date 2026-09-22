@@ -387,20 +387,23 @@ export function AskDockContent({
           aria-hidden="true"
           className="pointer-events-none fixed bottom-0 right-0 left-0 lg:left-60 -z-10 h-[min(52rem,92vh)] overflow-hidden animate-in fade-in duration-300 motion-reduce:animate-none"
         >
-          {/* 基础高阶模糊层 + 线性渐隐蒙版：自下而上从 100% 渐变到 0% 丝滑融于页面 */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--background)] via-[var(--background)]/80 to-transparent backdrop-blur-2xl backdrop-saturate-[190%] [mask-image:linear-gradient(to_top,black_40%,transparent_100%)]" />
-          {/* 液态微流光：底部中央轻微的冷光晕染，赋予真正的液体玻璃光泽感 */}
-          <div className="absolute inset-x-0 bottom-0 h-3/4 bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(37,99,235,0.06),transparent_70%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(96,165,250,0.08),transparent_70%)]" />
+          {/* Apple Liquid Glass 专属多层流体结构：高阶光学模糊 + 极高饱和度透光 + 微晶噪点 + 液态冷光折射 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/45 to-transparent dark:from-[#0B0E13]/90 dark:via-[#0B0E13]/55 dark:to-transparent backdrop-blur-3xl backdrop-saturate-[220%] backdrop-brightness-[103%] [mask-image:linear-gradient(to_top,black_0%,black_40%,rgba(0,0,0,0.85)_60%,rgba(0,0,0,0.35)_82%,transparent_100%)]" />
+          {/* 液态微晶粒子层：打破数字模糊塑料感，赋予真实物理水晶磨砂颗粒度 */}
+          <div className="absolute inset-0 opacity-40 dark:opacity-25 mix-blend-overlay bg-[url('data:image/svg+xml,%3Csvg_viewBox=%220_0_200_200%22_xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter_id=%22noiseFilter%22%3E%3CfeTurbulence_type=%22fractalNoise%22_baseFrequency=%220.85%22_numOctaves=%223%22_stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect_width=%22100%25%22_height=%22100%25%22_filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] [mask-image:linear-gradient(to_top,black_40%,transparent_100%)]" />
+          {/* 液态多色散冷光折射：电光蓝 + 水青色彩色流光，模仿 Apple 真实流体折射光晕 */}
+          <div className="absolute inset-x-0 bottom-0 h-4/5 bg-[radial-gradient(ellipse_80%_65%_at_50%_100%,rgba(37,99,235,0.08),transparent_75%)] dark:bg-[radial-gradient(ellipse_80%_65%_at_50%_100%,rgba(96,165,250,0.12),transparent_75%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-3/5 bg-[radial-gradient(ellipse_60%_45%_at_30%_90%,rgba(56,189,248,0.06),transparent_70%)] dark:bg-[radial-gradient(ellipse_60%_45%_at_30%_90%,rgba(56,189,248,0.08),transparent_70%)]" />
         </div>
       ) : null}
 
       <div
         className={cn(
           'flex w-full flex-col items-center gap-2.5 transition-[max-width] duration-200 [transition-timing-function:var(--ease-out-quart)]',
-          isExpanded ? 'max-w-2xl xl:max-w-3xl' : 'max-w-xl xl:max-w-2xl',
+          isExpanded && !isSlashOpen ? 'max-w-2xl xl:max-w-3xl' : 'max-w-xl xl:max-w-2xl',
         )}
       >
-        {isExpanded ? (
+        {isExpanded && !isSlashOpen ? (
           dockView === 'history' ? (
             <div className="pointer-events-auto flex max-h-[min(36rem,calc(100dvh_-_8.5rem))] w-full flex-col animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none">
               <AskHistoryView
@@ -472,7 +475,7 @@ export function AskDockContent({
           )}
 
           {/* 收起状态：横跨输入框的类似横置花括号 { 的渐变流光光拱 */}
-          {hasThread && collapsed ? (
+          {hasThread && collapsed && !isSlashOpen ? (
             <AskLuminousBracket onClick={() => setCollapsed(false)} label={t('ask.expandThread')} />
           ) : null}
 

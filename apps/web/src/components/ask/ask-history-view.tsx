@@ -212,13 +212,13 @@ export function AskHistoryView({
                 data-highlighted={isHighlighted ? 'true' : undefined}
                 onPointerEnter={() => onHighlightChange(index)}
                 className={cn(
-                  'group relative flex items-center justify-between gap-3 rounded-2xl p-3 text-left transition-all duration-200 select-none cursor-pointer border-0',
-                  // 纯粹依赖 Liquid Glass 毛玻璃底色与平滑浮雕反馈，无多重硬线框
-                  'backdrop-blur-xl',
+                  'group relative flex items-center justify-between gap-3 rounded-2xl p-3 text-left transition-all duration-200 select-none cursor-pointer',
+                  'border border-white/70 dark:border-white/10 backdrop-blur-xl',
                   isActive
-                    ? 'bg-primary/[0.08] dark:bg-primary/[0.16] shadow-xs'
-                    : 'bg-white/45 dark:bg-white/[0.04] hover:bg-white/75 dark:hover:bg-white/[0.09]',
-                  isHighlighted && 'bg-white/90 dark:bg-white/[0.14] -translate-y-0.5 shadow-md',
+                    ? 'bg-primary/[0.08] dark:bg-primary/[0.16] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_8px_rgba(37,99,235,0.1)]'
+                    : 'bg-white/50 dark:bg-white/[0.04] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] hover:bg-white/80 dark:hover:bg-white/[0.09]',
+                  isHighlighted &&
+                    'bg-white/95 dark:bg-white/[0.14] -translate-y-0.5 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_8px_20px_-4px_rgba(15,23,42,0.1)]',
                 )}
               >
                 <button

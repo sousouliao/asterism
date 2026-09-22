@@ -84,11 +84,11 @@ export function AskSlashMenu({
       role="menu"
       aria-label="Slash commands"
       className={cn(
-        // 宽度完全与下方输入框对齐，绝对定位紧贴上方，无硬边框卡片壳
+        // 宽度完全与下方输入框对齐，绝对定位紧贴上方，呈现高阶 Apple Liquid Glass 物理晶莹感
         'pointer-events-auto absolute bottom-full mb-3 inset-x-0 w-full',
-        'rounded-2xl border-0',
-        'bg-white/60 dark:bg-[#1A2230]/70 backdrop-blur-2xl backdrop-saturate-[190%]',
-        'p-1.5 shadow-xl shadow-black/5 dark:shadow-black/40',
+        'rounded-2xl border border-white/80 dark:border-white/15',
+        'bg-white/88 dark:bg-[#151D2A]/90 backdrop-blur-2xl backdrop-saturate-[190%] backdrop-contrast-[102%]',
+        'p-1.5 shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.95),0_16px_36px_-6px_rgba(15,23,42,0.14),0_4px_12px_-2px_rgba(15,23,42,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_16px_36px_-6px_rgba(0,0,0,0.6)]',
         'animate-in fade-in slide-in-from-bottom-2 duration-150 motion-reduce:animate-none z-50',
       )}
     >
@@ -107,8 +107,8 @@ export function AskSlashMenu({
               className={cn(
                 'group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-150 cursor-pointer select-none border-0',
                 isHighlighted
-                  ? 'bg-white/90 dark:bg-white/10 text-foreground shadow-xs'
-                  : 'text-foreground hover:bg-white/40 dark:hover:bg-white/5',
+                  ? 'bg-white/85 dark:bg-white/10 text-foreground shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_2px_6px_rgba(15,23,42,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]'
+                  : 'text-foreground hover:bg-white/45 dark:hover:bg-white/5',
               )}
             >
               {/* 选项特征：左侧纯净等宽命令药丸，无额外线框 */}
