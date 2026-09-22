@@ -5,13 +5,14 @@
 ## 当前状态
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
-- **Star 同步与历史（ADR 0047）**：本地实现已完成完整快照对账、加密保存 GitHub 连接、开站静默同步、定时同步配置，以及 Browse 历史入口。取消 Star 保留 Memory 与 Collection，再次 Star 回到当前列表。待部署两项 migration、`sync-stars` Edge Function、Secrets/Cron 和 Web，并以真实账号验收。
-- **当前状态**：GitHub #41 Ask Asterism 已从固定 top-K RAG 重构为目录常驻浅层 Agent（ADR 0045）：全库目录作稳定前缀，本地 `filter` / `search` / `expand`，read gate 校验 `repoId`。ADR 0046 撤销了 0045 的能力分级与同意重签——Agent 是唯一路径，固定召回流程已删除，`test` 回到纯连通性检测，旧同意向前迁移。待办：重新部署 `ask-generate` 与 Web，再用真实账号 smoke 后关闭 issue。
-- **当前工程 frontier**：三个纵向切片中的 #39、#40 已完成；#41（Ask Asterism 私有问答）本地实现已交付（ADR 0042 / 0044 / 0045：目录常驻 Agent + 客户端 BYOK + 无状态 SSE 代理 + read gate、无抽取式兜底），剩余远端部署与真实环境验收。
+- **三大纵向切片已完成闭环**：#39（Unified Retrieval Engine）、#40（Resurface & Memory Streams）与 #41（Ask Asterism 私有问答）已全部完成交付、代码审查、门禁与真实生产环境验收。
+- **当前工程 frontier**：Star 同步与历史（ADR 0047）。本地实现已完成完整快照对账、加密保存 GitHub 连接、开站静默同步、定时同步配置，以及 Browse 历史入口。待远端部署 migration、`sync-stars` Edge Function、Secrets/Cron 并以真实账号验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
 
 ## 已完成里程碑
+
+- **2026-09-22 · Ask Asterism 生产环境验收与 #41 关闭**：Edge Function `ask-generate` 重新部署（`tool` 角色、长上下文、`tools` 透传与 SSE `tool_call` 协议转换），Web 生产就绪（流光拉手、气泡对话、内联探针门禁与模型实时切换）。真实环境验收通过未配置 Key 引导、非法凭据拒入与错误双语映射、防幻觉 read gate 与流式体验。GitHub #41 附验收评论后正式关闭。见 `logs/2026-09-22-ask-asterism-production-acceptance.md`。
 
 - **2026-09-22 · CI 数据库测试修复（github_sync_credentials 授权与快照 RPC security definer）**：`20260922120000_github_sync_credentials.sql` 漏授予 `service_role` 权限，且 `apply_github_star_snapshot` 遗漏 `security definer`，导致 CI 本地 pgTAP 测试报 permission denied。补 `20260922144000_grant_sync_credentials_and_snapshot_security.sql` 授权并切换为 security definer，扩充 `star_history.test.sql` 用例（5→7）。见 `logs/2026-09-22-ci-sync-credentials-grant.md`。
 
@@ -82,7 +83,7 @@
 
 ## 下一恢复点
 
-1. #41 收尾：目录常驻 Agent（ADR 0045 / 0046）本地已交付。剩余：重新部署 `ask-generate`（`tool` 角色、消息上限、`tools` 透传、SSE `tool_call`）与 Web，维护者用真实账号 smoke——既有连接与既有同意应当无需任何手工操作即可继续提问 → ⌘K 提问（确认目录可见、工具轮次、正文流式、停止生成、追问、预算耗尽后继续深入）→ 引用直达 Quick Look → 空库返回「未找到」且不与预算耗尽混淆——验收通过后附 issue 评论关闭 #41，并同步本文件与 BACKLOG。
+1. Star 完整同步与历史远端验收（ADR 0047）：本地代码已完成合入 main；按 `supabase/functions/sync-stars/README.md` 应用两项 migration、设置 Edge/Vault secrets、部署 `sync-stars` 与 Web、安装 Cron，运行数据库 pgTAP；用真实账号验证首连、刷新后免重新连接、取消/再次 Star、Memory 与 Collection 保留、关站定时同步和授权失效提示。
 
 ## 环境提示
 
