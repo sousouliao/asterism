@@ -48,8 +48,15 @@
 - `user_id` → `auth.users(id)`
 - `repo_id` → `repos(id)`
 - `starred_at` — 用户在 GitHub 上 star 该仓库的时间
+- `unstarred_at` — 完整同步首次发现该仓库不在 GitHub 当前 Star 列表的时间；`null` 表示当前仍 Star。不是 GitHub 实际取消操作的时间。重新 Star 时清空，`starred_at` 更新为新时间。
 
 约束：`(user_id, repo_id)` 唯一。
+
+取消 Star 不删除此行，也不删除 `memories` 或 `collection_repos`。当前 Star 查询只取 `unstarred_at is null`；资料库历史与 Ask 可读取全部行。
+
+### `github_sync_credentials` — 受信同步连接
+
+每个用户一行。GitHub access / refresh token 以 Edge Function 配置的 AES-GCM 密钥加密后保存；普通客户端无表级读写权限，只能通过本人鉴权的状态 RPC 得到连接状态和上次同步时间。服务端定时任务按用户触发完整对账，令牌无效时记录待重新连接状态。任何 token、加密密钥与调度密钥不得写入日志或仓库。
 
 ### `tags` / `repo_tags` — 已退役（ADR 0035）
 

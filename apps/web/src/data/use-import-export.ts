@@ -46,6 +46,7 @@ export function useImportUserData() {
       void queryClient.invalidateQueries({ queryKey: collectionRepoKeys.list(userId) });
       void queryClient.invalidateQueries({ queryKey: memoryKeys.all });
       void queryClient.invalidateQueries({ queryKey: repoKeys.starred(userId) });
+      void queryClient.invalidateQueries({ queryKey: repoKeys.library(userId) });
     },
   });
 }

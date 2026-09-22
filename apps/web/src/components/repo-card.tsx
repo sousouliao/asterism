@@ -194,6 +194,11 @@ export const RepoCard = memo(function RepoCard({
               {t('browse.archived')}
             </Badge>
           ) : null}
+          {record.unstarredAt ? (
+            <Badge variant="outline" className="h-5 shrink-0 text-muted-foreground">
+              {t('browse.unstarred')}
+            </Badge>
+          ) : null}
         </div>
 
         <div className="min-h-10">

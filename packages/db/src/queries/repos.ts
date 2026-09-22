@@ -7,10 +7,13 @@ export interface StarredRepoRecord {
   repoId: string;
   repo: Repo;
   starredAt: string | null;
+  /** Null while still starred; timestamp is when a completed sync detected removal. */
+  unstarredAt?: string | null;
 }
 
 interface StarredJoinRow {
   starred_at: string | null;
+  unstarred_at: string | null;
   repos: Tables<'repos'> | null;
 }
 
@@ -41,16 +44,19 @@ export function mapRepoRow(row: Tables<'repos'>): Repo {
  * 读取当前用户 star 的全部仓库（user_stars ⋈ repos），按 starredAt 倒序。
  * 读取走 RLS：repos 全局可读、user_stars 按 user_id 隔离。
  */
-export async function listStarredRepos(
+async function listRepos(
   client: SupabaseClient,
   userId: string,
+  includeHistory: boolean,
 ): Promise<StarredRepoRecord[]> {
   const rows: StarredJoinRow[] = [];
   for (let offset = 0; ; offset += POSTGREST_PAGE_SIZE) {
-    const { data, error } = await client
+    let query = client
       .from('user_stars')
-      .select('starred_at, repos(*)')
-      .eq('user_id', userId)
+      .select('starred_at, unstarred_at, repos(*)')
+      .eq('user_id', userId);
+    if (!includeHistory) query = query.is('unstarred_at', null);
+    const { data, error } = await query
       .order('starred_at', { ascending: false, nullsFirst: false })
       .order('repo_id', { ascending: true })
       .range(offset, offset + POSTGREST_PAGE_SIZE - 1)
@@ -73,27 +79,19 @@ export async function listStarredRepos(
         repoId: row.repos.id,
         repo: mapRepoRow(row.repos),
         starredAt: row.starred_at,
+        unstarredAt: row.unstarred_at,
       });
     }
   }
   return records;
 }
 
-/** 该用户已有的最新 starredAt（增量同步的界）；无记录返回 null。 */
-export async function getLatestStarredAt(
-  client: SupabaseClient,
-  userId: string,
-): Promise<string | null> {
-  const { data, error } = await client
-    .from('user_stars')
-    .select('starred_at')
-    .eq('user_id', userId)
-    .order('starred_at', { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
+/** 当前仍在 GitHub Star 列表中的仓库。 */
+export function listStarredRepos(client: SupabaseClient, userId: string) {
+  return listRepos(client, userId, false);
+}
 
-  if (error) {
-    throw error;
-  }
-  return data?.starred_at ?? null;
+/** 全部曾收藏的仓库，含已取消 Star 的历史。 */
+export function listLibraryRepos(client: SupabaseClient, userId: string) {
+  return listRepos(client, userId, true);
 }

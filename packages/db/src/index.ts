@@ -30,6 +30,8 @@ export { invokeBulkOperation, listBulkOperations } from './bulk-operations';
 export type { SupabaseClient, SupabaseClientOptions } from './client';
 export { createSupabaseClient } from './client';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
+export type { GitHubSyncStatus } from './github-sync-status';
+export { getGitHubSyncStatus } from './github-sync-status';
 export type { ImportUserDataResult } from './import-user-data';
 export { importUserData } from './import-user-data';
 export type {
@@ -65,7 +67,11 @@ export {
   saveMemory,
 } from './queries/memories';
 export type { StarredRepoRecord } from './queries/repos';
-export { getLatestStarredAt, listStarredRepos, mapRepoRow } from './queries/repos';
+export {
+  listLibraryRepos,
+  listStarredRepos,
+  mapRepoRow,
+} from './queries/repos';
 export type { RepoReadmeOutcome, RepoReadmeRequest, RepoReadmeSuccess } from './readme';
 export { invokeRepoReadme } from './readme';
 export type { SyncStarsResult } from './sync';

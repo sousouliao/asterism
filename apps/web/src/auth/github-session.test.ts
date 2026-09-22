@@ -19,6 +19,16 @@ describe('getGitHubSessionStatus', () => {
     expect(getGitHubSessionStatus(session).requiresReconnect).toBe(false);
   });
 
+  it('uses a stored connection after the browser provider token disappears', () => {
+    const session = { user: { id: 'user-1' } } as Session;
+    expect(getGitHubSessionStatus(session, true).requiresReconnect).toBe(false);
+  });
+
+  it('requires reconnect when GitHub revoked the saved credential', () => {
+    const session = { provider_token: 'stale', user: { id: 'user-1' } } as Session;
+    expect(getGitHubSessionStatus(session, false, true).requiresReconnect).toBe(true);
+  });
+
   it('does not require reconnect before the user signs in', () => {
     expect(getGitHubSessionStatus(null)).toEqual({
       hasSession: false,

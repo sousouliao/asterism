@@ -44,7 +44,6 @@ export {
   toQueryInput,
 } from './embeddings/embeddings';
 export type {
-  CollectStarredOptions,
   FetchStarredPage,
   RawStarEdge,
   StarredPage,

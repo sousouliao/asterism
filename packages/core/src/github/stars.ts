@@ -164,21 +164,10 @@ export function createGitHubStarsFetcher(
   };
 }
 
-export interface CollectStarredOptions {
-  /** 增量界：只收集 starredAt 严格晚于该 ISO 时间的项（边按 starredAt 倒序，遇到不晚于即停）。 */
-  since?: string | null;
-}
-
 /**
- * 遍历游标分页，收集 starred 仓库。增量模式下利用「倒序」特性提前截断；跳过缺少 databaseId
- * 的异常节点。纯逻辑，持久化由调用方（Edge Function）负责。
+ * 遍历全部游标页，收集当前 Star 快照。缺页或缺仓库 ID 时抛错，调用方不得对账部分结果。
  */
-export async function collectStarredRepos(
-  fetchPage: FetchStarredPage,
-  options: CollectStarredOptions = {},
-): Promise<StarredRepo[]> {
-  const sinceMs = options.since ? Date.parse(options.since) : null;
-  const hasCutoff = sinceMs !== null && Number.isFinite(sinceMs);
+export async function collectStarredRepos(fetchPage: FetchStarredPage): Promise<StarredRepo[]> {
   const collected: StarredRepo[] = [];
   let cursor: string | null = null;
 
@@ -186,14 +175,14 @@ export async function collectStarredRepos(
     const page = await fetchPage(cursor);
     for (const item of page.repos) {
       if (item.repo.githubId <= 0) {
-        continue;
-      }
-      if (hasCutoff && Date.parse(item.starredAt) <= (sinceMs as number)) {
-        return collected;
+        throw new GitHubSyncError('GitHub returned a repository without an ID');
       }
       collected.push(item);
     }
-    if (!page.hasNextPage || !page.endCursor) {
+    if (page.hasNextPage && (!page.endCursor || page.endCursor === cursor)) {
+      throw new GitHubSyncError('GitHub pagination ended before the final page');
+    }
+    if (!page.hasNextPage) {
       break;
     }
     cursor = page.endCursor;

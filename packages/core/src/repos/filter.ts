@@ -5,6 +5,7 @@ import type { Repo } from '../models/repo';
 export interface StarredRepoLike {
   repo: Repo;
   starredAt: string | null;
+  unstarredAt?: string | null;
   /** Postgres `repos.id`；按集合筛选时需要。 */
   repoId?: string;
 }

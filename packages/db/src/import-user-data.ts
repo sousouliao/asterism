@@ -3,7 +3,7 @@ import type { SupabaseClient } from './client';
 import { mutateCollectionRelation } from './queries/collection-repos';
 import { createCollection, listCollections } from './queries/collections';
 import { saveMemory } from './queries/memories';
-import { listStarredRepos } from './queries/repos';
+import { listLibraryRepos } from './queries/repos';
 
 export interface ImportUserDataResult {
   ok: boolean;
@@ -27,7 +27,7 @@ function isUniqueViolation(error: unknown): boolean {
 
 /**
  * 按依赖顺序导入组织数据（collections → 关联 → memories）。
- * 仓库须已存在于 user_stars；按 fullName 匹配，无法匹配则跳过。
+ * 仓库须曾由 Star 同步进入资料库；按 fullName 匹配，无法匹配则跳过。
  */
 export async function importUserData(
   client: SupabaseClient,
@@ -43,7 +43,7 @@ export async function importUserData(
     memories: 0,
   };
 
-  const starred = await listStarredRepos(client, userId);
+  const starred = await listLibraryRepos(client, userId);
   const repoByFullName = new Map(
     starred.map((record) => [record.repo.fullName.toLowerCase(), record.repoId]),
   );
@@ -83,7 +83,7 @@ export async function importUserData(
     const repoId = repoByFullName.get(link.fullName.toLowerCase());
     const collectionId = collectionByName.get(normalizeClassificationName(link.collectionName));
     if (!repoId) {
-      skipped.push(`Repo not starred: ${link.fullName}`);
+      skipped.push(`Repo not in library: ${link.fullName}`);
       continue;
     }
     if (!collectionId) {

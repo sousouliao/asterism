@@ -10,7 +10,7 @@ import { RepoCollection } from '../components/repo-collection';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
-import { useStarredRepos } from '../data/use-starred-repos';
+import { useLibraryRepos } from '../data/use-library-repos';
 import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
 import { useListScrollStore } from '../stores/list-scroll';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
@@ -23,7 +23,7 @@ export function CollectionDetailPage() {
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
   const { data: collections, isLoading: collectionsLoading } = useCollections();
-  const { data: starredRepos, isLoading: reposLoading } = useStarredRepos();
+  const { data: starredRepos, isLoading: reposLoading } = useLibraryRepos();
   const { data: collectionRepos, isLoading: linksLoading } = useCollectionRepos();
 
   const collection = useMemo(

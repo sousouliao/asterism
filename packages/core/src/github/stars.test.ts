@@ -96,23 +96,7 @@ describe('collectStarredRepos', () => {
     expect(calls).toEqual([null, 'c1']);
   });
 
-  it('stops at the incremental cutoff (starredAt not newer than since)', async () => {
-    const page = pageFromEdges(
-      [
-        makeEdge(1, '2026-03-03T00:00:00Z'),
-        makeEdge(2, '2026-03-02T00:00:00Z'),
-        makeEdge(3, '2026-03-01T00:00:00Z'),
-      ],
-      true,
-      'c1',
-    );
-    const fetchPage: FetchStarredPage = async () => page;
-
-    const result = await collectStarredRepos(fetchPage, { since: '2026-03-02T00:00:00Z' });
-    expect(result.map((item) => item.repo.githubId)).toEqual([1]);
-  });
-
-  it('skips nodes without a databaseId', async () => {
+  it('rejects a repository without a databaseId', async () => {
     const page = pageFromEdges(
       [makeEdge(0, '2026-03-03T00:00:00Z'), makeEdge(5, '2026-03-02T00:00:00Z')],
       false,
@@ -120,7 +104,18 @@ describe('collectStarredRepos', () => {
     );
     const fetchPage: FetchStarredPage = async () => page;
 
-    const result = await collectStarredRepos(fetchPage);
-    expect(result.map((item) => item.repo.githubId)).toEqual([5]);
+    await expect(collectStarredRepos(fetchPage)).rejects.toThrow('without an ID');
+  });
+
+  it('rejects an incomplete pagination cursor', async () => {
+    const fetchPage: FetchStarredPage = async () =>
+      pageFromEdges([makeEdge(1, '2026-03-03T00:00:00Z')], true, null);
+    await expect(collectStarredRepos(fetchPage)).rejects.toThrow('before the final page');
+  });
+
+  it('rejects a cursor that does not advance', async () => {
+    const fetchPage: FetchStarredPage = async () =>
+      pageFromEdges([makeEdge(1, '2026-03-03T00:00:00Z')], true, 'c1');
+    await expect(collectStarredRepos(fetchPage)).rejects.toThrow('before the final page');
   });
 });

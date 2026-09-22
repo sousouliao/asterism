@@ -19,8 +19,8 @@ import { getAvailableAiModels, useAiSettingsValue } from '../lib/ai-connections'
 import { useAskByok } from '../lib/ask-byok';
 import { supabase } from '../lib/supabase';
 import { useAiConnections, useUpdateAiSettings } from './use-ai-connections';
+import { useLibraryRepos } from './use-library-repos';
 import { useMemoriesList } from './use-memories-list';
-import { useStarredRepos } from './use-starred-repos';
 
 /** 一轮完成的问答：问题、回答与通过 read gate 的推荐。 */
 export interface AskTurn {
@@ -133,7 +133,7 @@ export function useAskQuestion() {
     question: string;
   } | null>(null);
 
-  const reposQuery = useStarredRepos();
+  const reposQuery = useLibraryRepos();
   const memoriesQuery = useMemoriesList();
   const memoriesByRepoId = useMemo(() => {
     const map = new Map();

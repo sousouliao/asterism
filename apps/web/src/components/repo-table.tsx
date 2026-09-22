@@ -286,6 +286,14 @@ export const RepoTableRow = memo(function RepoTableRow({
               {t('browse.archived')}
             </Badge>
           ) : null}
+          {record.unstarredAt ? (
+            <Badge
+              variant="outline"
+              className="h-5 shrink-0 px-1.5 text-micro text-muted-foreground"
+            >
+              {t('browse.unstarred')}
+            </Badge>
+          ) : null}
           {explanation && !bulkSelection ? (
             <MatchExplanationBadge
               explanation={explanation}

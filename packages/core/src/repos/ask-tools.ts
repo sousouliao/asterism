@@ -33,6 +33,7 @@ export interface AskToolHit {
   description: string | null;
   stargazers: number;
   starredAt: string | null;
+  unstarredAt?: string | null;
   score?: number;
 }
 
@@ -51,6 +52,7 @@ export interface AskToolExpanded {
   topics: string[];
   stargazers: number;
   starredAt: string | null;
+  unstarredAt?: string | null;
   whySaved: string | null;
   note: string | null;
 }
@@ -76,6 +78,7 @@ function toHit<T extends StarredRepoLike>(item: CatalogItem<T>, score?: number):
     description: item.repo.description,
     stargazers: item.repo.stargazers,
     starredAt: item.starredAt,
+    ...(item.unstarredAt ? { unstarredAt: item.unstarredAt } : {}),
     ...(score === undefined ? {} : { score }),
   };
 }
@@ -220,6 +223,7 @@ export function expandAskRepos<T extends StarredRepoLike>(
       topics: item.repo.topics,
       stargazers: item.repo.stargazers,
       starredAt: item.starredAt,
+      ...(item.unstarredAt ? { unstarredAt: item.unstarredAt } : {}),
       whySaved: includeNotes ? (memory?.whySaved ?? null) : null,
       note: includeNotes ? (memory?.note ?? null) : null,
     });

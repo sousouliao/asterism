@@ -57,6 +57,11 @@ export const AskRecommendationCard = memo(function AskRecommendationCard({
               {t('browse.archived')}
             </Badge>
           ) : null}
+          {candidate.item.unstarredAt ? (
+            <Badge variant="outline" className="h-5 shrink-0 text-muted-foreground">
+              {t('browse.unstarred')}
+            </Badge>
+          ) : null}
         </span>
         {repo.description ? (
           <span className="line-clamp-2 text-caption text-muted-foreground">

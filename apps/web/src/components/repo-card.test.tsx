@@ -46,6 +46,16 @@ afterEach(async () => {
 });
 
 describe('RepoCard bulk selection', () => {
+  it('identifies an unstarred repository without hiding its details', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+    await act(async () =>
+      root.render(<RepoCard record={{ ...record, unstarredAt: '2026-09-22T00:00:00Z' }} />),
+    );
+    expect(container.textContent).toContain('No longer starred');
+    expect(container.textContent).toContain('Repository description');
+  });
   it('selects from the description while keeping only the repository name as a GitHub link', async () => {
     vi.stubGlobal('ResizeObserver', ResizeObserverMock);
     const onToggle = vi.fn();

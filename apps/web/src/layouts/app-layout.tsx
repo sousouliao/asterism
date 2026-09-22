@@ -6,6 +6,7 @@ import { RepoInspector } from '../components/repo-inspector';
 import { SidebarNav } from '../components/sidebar-nav';
 import { EmbeddingBootstrapProvider } from '../contexts/embedding-bootstrap-context';
 import { RepoInspectorProvider } from '../contexts/repo-inspector-context';
+import { useAutoSyncStars } from '../data/use-auto-sync-stars';
 
 export function AppLayout() {
   return (
@@ -18,6 +19,7 @@ export function AppLayout() {
 }
 
 function AppLayoutContent() {
+  useAutoSyncStars();
   const [askFocusRequest, setAskFocusRequest] = useState(0);
 
   useEffect(() => {

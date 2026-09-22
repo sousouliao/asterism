@@ -747,6 +747,7 @@ function Overview({
             {t('browse.archived')}
           </span>
         ) : null}
+        {record.unstarredAt ? <span>{t('browse.unstarred')}</span> : null}
       </div>
       <button
         type="button"

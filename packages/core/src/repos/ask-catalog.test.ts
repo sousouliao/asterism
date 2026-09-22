@@ -48,6 +48,10 @@ describe('classifyAskCatalogTier', () => {
 });
 
 describe('buildAskCatalog', () => {
+  it('marks historical repositories so Ask cannot describe them as current Stars', () => {
+    const historical = { ...item('old-tool'), unstarredAt: '2026-09-22T00:00:00Z' };
+    expect(buildAskCatalog({ items: [historical] }).text).toContain('no longer starred');
+  });
   it('emits a stable full catalog with truncated descriptions and skips items without repoId', () => {
     const long = 'x'.repeat(120);
     const catalog = buildAskCatalog({

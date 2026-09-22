@@ -15,7 +15,7 @@ import { useAskQuestion } from './use-ask-question';
 
 const mocks = vi.hoisted(() => ({
   streamAskGenerate: vi.fn(),
-  listStarredRepos: vi.fn(),
+  listLibraryRepos: vi.fn(),
   listMemories: vi.fn(),
   session: { current: { user: { id: 'user-a' } } as { user: { id: string } } | null },
 }));
@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@asterism/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@asterism/db')>()),
   streamAskGenerate: mocks.streamAskGenerate,
-  listStarredRepos: mocks.listStarredRepos,
+  listLibraryRepos: mocks.listLibraryRepos,
   listMemories: mocks.listMemories,
 }));
 
@@ -122,7 +122,7 @@ beforeEach(() => {
     options.onDelta(ANSWER);
     return { status: 'success', content: ANSWER, toolCalls: [] };
   });
-  mocks.listStarredRepos.mockReset().mockResolvedValue(RECORDS);
+  mocks.listLibraryRepos.mockReset().mockResolvedValue(RECORDS);
   mocks.listMemories.mockReset().mockResolvedValue([]);
   mocks.session.current = { user: { id: 'user-a' } };
   configureAskConnection();

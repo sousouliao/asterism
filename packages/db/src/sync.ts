@@ -8,8 +8,8 @@ export interface SyncStarsResult {
   upserted: number;
   /** 关联进当前用户 user_stars 的行数。 */
   starsLinked: number;
-  /** 是否为增量同步（基于已有最新 starredAt）。 */
-  incremental: boolean;
+  /** 本次完整对账发现取消 Star 的仓库数。 */
+  unstarred: number;
 }
 
 export class SyncStarsError extends Error {
@@ -60,18 +60,15 @@ async function describeInvokeError(error: unknown): Promise<{ message: string; s
 
 /**
  * 触发 Edge Function `sync-stars` 完成 stars 同步（受信路径写入，见 decisions/0006）。
- * 客户端把会话里的 GitHub `provider_token` 传给函数；函数用 service role 幂等写库。
+ * 客户端有 GitHub provider token 时交给函数保存；之后函数可复用受信存储的连接。
  */
 export async function invokeSyncStars(
   client: SupabaseClient,
-  providerToken: string,
+  providerToken?: string,
+  providerRefreshToken?: string,
 ): Promise<SyncStarsResult> {
-  if (!providerToken) {
-    throw new SyncStarsError('Missing GitHub provider token; please sign in again.');
-  }
-
   const { data, error } = await client.functions.invoke<SyncStarsResult>('sync-stars', {
-    body: { providerToken },
+    body: { providerToken, providerRefreshToken },
   });
 
   if (error) {

@@ -5,12 +5,15 @@
 ## 当前状态
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
+- **Star 同步与历史（ADR 0047）**：本地实现已完成完整快照对账、加密保存 GitHub 连接、开站静默同步、定时同步配置，以及 Browse 历史入口。取消 Star 保留 Memory 与 Collection，再次 Star 回到当前列表。待部署两项 migration、`sync-stars` Edge Function、Secrets/Cron 和 Web，并以真实账号验收。
 - **当前状态**：GitHub #41 Ask Asterism 已从固定 top-K RAG 重构为目录常驻浅层 Agent（ADR 0045）：全库目录作稳定前缀，本地 `filter` / `search` / `expand`，read gate 校验 `repoId`。ADR 0046 撤销了 0045 的能力分级与同意重签——Agent 是唯一路径，固定召回流程已删除，`test` 回到纯连通性检测，旧同意向前迁移。待办：重新部署 `ask-generate` 与 Web，再用真实账号 smoke 后关闭 issue。
 - **当前工程 frontier**：三个纵向切片中的 #39、#40 已完成；#41（Ask Asterism 私有问答）本地实现已交付（ADR 0042 / 0044 / 0045：目录常驻 Agent + 客户端 BYOK + 无状态 SSE 代理 + read gate、无抽取式兜底），剩余远端部署与真实环境验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
 
 ## 已完成里程碑
+
+- **2026-09-22 · Star 完整同步与可找回历史本地实现**：移除增量截断，完整分页后在单事务中对账；持久化加密 GitHub 凭据；历史仓库在 Browse、Collection、Ask 与导入导出中可找回。TypeScript 类型检查、Core/DB/Web 单测与 Biome 通过；数据库 pgTAP 和远端验收待有 Supabase 环境时执行。见 ADR 0047 与 `logs/2026-09-22-star-snapshot-and-history.md`。
 
 - **2026-09-22 · 下拉菜单与浮层 Trigger 激活态统一优化**：解决设置页 AI 连接卡片更多按钮点击弹出浮层时无激活态问题；在 `packages/ui` 中将 `data-[state=open]` 与 `aria-expanded` 属性映射至 `buttonVariants`（`ghost`、`outline`、`secondary`、`default`）；升级 `SelectTrigger` 增加展开态边框与底色反馈；在 Browse 筛选栏（`FILTER_TRIGGER_CLASS`、`FILTER_TRIGGER_ACTIVE_CLASS`）、集合卡片操作按钮与 Ask 模型选择器上系统性补齐展开激活视觉；全库 53 套件 279 项单测、类型与 Biome 门禁全绿。见 `logs/2026-09-22-dropdown-and-trigger-active-states.md`。
 

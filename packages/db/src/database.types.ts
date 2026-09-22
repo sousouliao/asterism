@@ -58,6 +58,7 @@ export interface Database {
           user_id: string;
           repo_id: string;
           starred_at: string | null;
+          unstarred_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -66,6 +67,7 @@ export interface Database {
           user_id: string;
           repo_id: string;
           starred_at?: string | null;
+          unstarred_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -330,6 +332,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      github_sync_status: {
+        Args: Record<string, never>;
+        Returns: { connected: boolean; last_synced_at: string | null; last_error: string | null }[];
+      };
       create_bulk_operation: {
         Args: {
           p_user_id: string;

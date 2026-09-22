@@ -6,13 +6,18 @@ export interface GitHubSessionStatus {
   requiresReconnect: boolean;
 }
 
-export function getGitHubSessionStatus(session: Session | null): GitHubSessionStatus {
+export function getGitHubSessionStatus(
+  session: Session | null,
+  storedConnection = false,
+  connectionInvalid = false,
+): GitHubSessionStatus {
   const hasSession = Boolean(session);
   const hasProviderToken = Boolean(session?.provider_token);
 
   return {
     hasSession,
     hasProviderToken,
-    requiresReconnect: hasSession && !hasProviderToken,
+    requiresReconnect:
+      hasSession && (connectionInvalid || (!hasProviderToken && !storedConnection)),
   };
 }

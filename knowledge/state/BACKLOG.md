@@ -4,6 +4,7 @@
 
 ## 当前 frontier
 
+- [ ] **Star 完整同步与历史远端验收（ADR 0047）**：本地代码已完成；按 `supabase/functions/sync-stars/README.md` 应用两项 migration、设置 Edge/Vault secrets、部署 `sync-stars` 与 Web、安装 Cron，运行数据库 pgTAP；用真实账号验证首连、刷新后免重新连接、取消/再次 Star、Memory 与 Collection 保留、关站定时同步和授权失效提示。
 - [ ] **个人私有知识问答（GitHub #41）· 目录常驻 Agent 本地实现已交付，待重新部署 `ask-generate` 与真实环境验收**：`feat(ask): catalog-resident agent for Ask Asterism`。生成策略为客户端 BYOK + 目录常驻浅层 Agent + 无状态 `ask-generate` SSE 代理 + read gate、无抽取式兜底（ADR 0042 / 0044 / 0045 / 0046）；core / Edge Function / db / Settings / Ask 面板 / 双语 i18n / dev 预览与四道门禁全部完成（`logs/2026-09-21-ask-catalog-resident-agent.md`、`logs/2026-09-21-ask-drop-capability-gate.md`）。剩余：远端重新部署 `ask-generate` 与 Web、真实账号 smoke（既有连接与同意免手工、目录可见、工具轮次、继续深入）、production 验收后关闭 issue。
 
 ## 已完成近期 frontier

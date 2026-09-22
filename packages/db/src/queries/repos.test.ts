@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SupabaseClient } from '../client';
 import type { Tables } from '../database.types';
-import { listStarredRepos } from './repos';
+import { listLibraryRepos, listStarredRepos } from './repos';
 
 function repoRow(index: number): Tables<'repos'> {
   return {
@@ -31,9 +31,10 @@ describe('listStarredRepos', () => {
     const pages = [
       Array.from({ length: 1_000 }, (_, index) => ({
         starred_at: '2026-07-24T00:00:00.000Z',
+        unstarred_at: null,
         repos: repoRow(index),
       })),
-      [{ starred_at: '2026-07-23T00:00:00.000Z', repos: repoRow(1_000) }],
+      [{ starred_at: '2026-07-23T00:00:00.000Z', unstarred_at: null, repos: repoRow(1_000) }],
     ];
     const ranges: Array<{ from: number; to: number }> = [];
     let pageIndex = 0;
@@ -44,6 +45,9 @@ describe('listStarredRepos', () => {
             return builder;
           },
           eq() {
+            return builder;
+          },
+          is() {
             return builder;
           },
           order() {
@@ -71,5 +75,40 @@ describe('listStarredRepos', () => {
       { from: 0, to: 999 },
       { from: 1_000, to: 1_999 },
     ]);
+  });
+
+  it('retains historical repositories with their detected unstar time', async () => {
+    const client = {
+      from() {
+        const builder = {
+          select() {
+            return builder;
+          },
+          eq() {
+            return builder;
+          },
+          order() {
+            return builder;
+          },
+          range() {
+            return builder;
+          },
+          returns() {
+            return Promise.resolve({
+              data: [
+                {
+                  starred_at: '2026-07-23T00:00:00Z',
+                  unstarred_at: '2026-09-22T00:00:00Z',
+                  repos: repoRow(1),
+                },
+              ],
+              error: null,
+            });
+          },
+        };
+        return builder;
+      },
+    } as unknown as SupabaseClient;
+    expect((await listLibraryRepos(client, 'user-1'))[0]?.unstarredAt).toBe('2026-09-22T00:00:00Z');
   });
 });

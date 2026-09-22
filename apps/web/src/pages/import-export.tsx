@@ -23,8 +23,8 @@ import {
   serializeExport,
   useImportUserData,
 } from '../data/use-import-export';
+import { useLibraryRepos } from '../data/use-library-repos';
 import { useMemoriesList } from '../data/use-memories-list';
-import { useStarredRepos } from '../data/use-starred-repos';
 import { buildExportSnapshot } from '../lib/export-snapshot';
 
 const FORMAT_OPTIONS: { id: ExportFormat; icon: typeof FileJsonIcon; ext: string; mime: string }[] =
@@ -39,7 +39,7 @@ export function ImportExportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const { data: starredRepos, isLoading: starredReposLoading } = useStarredRepos();
+  const { data: starredRepos, isLoading: starredReposLoading } = useLibraryRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
   const { data: memories, isLoading: memoriesLoading } = useMemoriesList();

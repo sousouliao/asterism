@@ -64,12 +64,12 @@ function formatTopics(topics: readonly string[]): string {
 
 function formatFullLine<T extends StarredRepoLike>(item: T & { repoId: string }): string {
   const description = truncateDescription(item.repo.description);
-  const base = `${item.repoId} | ${item.repo.fullName} | ${item.repo.language ?? '-'} | ${formatTopics(item.repo.topics)}`;
+  const base = `${item.repoId} | ${item.repo.fullName} | ${item.repo.language ?? '-'} | ${formatTopics(item.repo.topics)}${item.unstarredAt ? ' | no longer starred' : ''}`;
   return description ? `${base} | ${description}` : base;
 }
 
 function formatCompactLine<T extends StarredRepoLike>(item: T & { repoId: string }): string {
-  return `${item.repoId} | ${item.repo.fullName} | ${item.repo.language ?? '-'} | ${formatTopics(item.repo.topics)}`;
+  return `${item.repoId} | ${item.repo.fullName} | ${item.repo.language ?? '-'} | ${formatTopics(item.repo.topics)}${item.unstarredAt ? ' | no longer starred' : ''}`;
 }
 
 function formatGroupedCatalog<T extends StarredRepoLike>(

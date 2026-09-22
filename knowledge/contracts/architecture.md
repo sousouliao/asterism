@@ -101,19 +101,21 @@ sequenceDiagram
 
   U->>SB: 1. GitHub OAuth 登录
   SB-->>C: 返回会话 / provider_token
-  C->>Fn: 2. 触发同步（用户 JWT + provider_token）
-  Fn->>GH: 3. GraphQL 拉取 starred（全量 / 增量）
+  C->>Fn: 2. 首次连接提交 provider_token；后续开站或定时触发
+  Fn->>GH: 3. GraphQL 完整分页拉取当前 starred
   GH-->>Fn: 仓库数据
   Fn->>SB: 4. service role 幂等写入 repos + user_stars + 基础 memories
   SB-->>C: 5. 客户端按查询边界读取（RLS：repos 全局读 / user_stars 按 user）
 ```
 
-1. **OAuth 登录**：经 Supabase GitHub provider 获取会话与 `provider_token`（GitHub 访问令牌）。
-2. **触发同步**：客户端调用 Edge Function `sync-stars`，带上用户 JWT 与 `provider_token`。
-3. **GraphQL pull stars**：函数调 GitHub GraphQL API 拉取 starred（支持增量）；纯查询/映射逻辑在 `core`。
-4. **Postgres source-of-truth**：函数用 **service role** 幂等写入 `repos`（全局）与该用户 `user_stars`；Memory Foundation 落地后同时只创建缺失的基础 `memories`，不得覆盖用户填写的 `why_saved` 或 `note`。`repos` RLS 仅允许受信路径写（见 `data-model.md`），故写入集中在函数，客户端不直写。
+1. **OAuth 登录**：经 Supabase GitHub provider 获取会话与 `provider_token`（GitHub 访问令牌）；首次同步时由受信函数加密保存，若存在 `provider_refresh_token` 也一并保存。
+2. **触发同步**：客户端带用户 JWT 调用 `sync-stars`；会话有新 provider token 时提交，没有时函数使用已保存连接。定时任务使用独立调度密钥调用同一函数。
+3. **GraphQL pull stars**：函数用受信存储的 GitHub 凭据完整拉取 `viewer.starredRepositories` 的所有分页；任何分页失败都不应用快照。
+4. **Postgres source-of-truth**：函数用 **service role** 调用单个数据库事务，幂等写入 `repos`、对账该用户 `user_stars`、修复基础 `memories`，并把快照中缺席的旧 Star 标记为历史。Memory 的 `why_saved` / `note` 与 Collection 不受 GitHub 取消 Star 影响；重新 Star 清除历史状态并复用同一 Memory。
 5. **读取 / 会话收敛**：客户端按 RLS 读取结果（`repos` 全局可读、`user_stars` 按 `user_id`）；进入页面、查询刷新、完成本地操作或重新连接后重新读取 Postgres。多个在线会话不承诺主动推送收敛。
 6. **请求缓存**：客户端使用 TanStack Query 做会话内去重与新鲜度管理；不建立浏览器持久缓存，也不承诺离线读取。
+
+GitHub access / refresh token 仅在受信函数中以 AES-GCM 加密存储。开站时若上次成功同步超过 6 小时，客户端静默请求一次；Supabase Cron + pg_net 每 6 小时为到期连接调用同一函数，关站后仍继续。Supabase Auth 不刷新 GitHub provider token；函数在 GitHub access token 失效且具备 refresh token 时向 GitHub 轮换，无法恢复时将连接标记为需要重新连接。调度调用同时要求网关 JWT 与独立服务端调度密钥，用户请求仍需 Supabase 用户 JWT。
 
 > Stars 同步由受信 Edge Function `sync-stars` 执行，满足「全局 `repos` 仅受信路径写」的 RLS 约束。批量整理继续使用与 AI 无关的持久化执行路径：用户确认后固化 repository ID 范围与逐关系项目，服务端按有界批次执行并记录结果；成功项目保留，恢复时只领取待执行或可重试失败项目，幂等关系写保证重复提交不产生脏数据。客户端只经 `packages/db` 创建、触发、查询、重试或明确结束操作，并在查询边界重新读取权威状态。
 
