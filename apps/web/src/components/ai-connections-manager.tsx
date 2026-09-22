@@ -298,7 +298,7 @@ export function AiConnectionsManager({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-11 shrink-0 text-muted-foreground sm:size-8"
+                        className="size-11 shrink-0 text-muted-foreground hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground sm:size-8"
                         aria-label={t('common.actions')}
                       >
                         <MoreHorizontalIcon className="size-4" />

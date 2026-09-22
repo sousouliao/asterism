@@ -322,7 +322,7 @@ export function AskDockContent({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex h-7 max-w-[130px] shrink-0 items-center gap-1 truncate rounded-full border border-black/[0.06] bg-black/[0.03] px-2.5 font-mono text-micro text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur-xs transition-colors hover:bg-black/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/10 sm:max-w-[200px] sm:text-caption"
+                  className="flex h-7 max-w-[130px] shrink-0 items-center gap-1 truncate rounded-full border border-black/[0.06] bg-black/[0.03] px-2.5 font-mono text-micro text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur-xs transition-colors hover:bg-black/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring data-[state=open]:bg-black/[0.06] data-[state=open]:text-foreground dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/10 dark:data-[state=open]:bg-white/10 aria-expanded:bg-black/[0.06] aria-expanded:text-foreground dark:aria-expanded:bg-white/10 sm:max-w-[200px] sm:text-caption"
                   aria-label={t('ask.switchModel')}
                 >
                   <span className="truncate">{ask.currentModel ?? t('ask.switchModel')}</span>

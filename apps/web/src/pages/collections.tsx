@@ -150,7 +150,7 @@ export function CollectionsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-10 text-muted-foreground sm:size-7"
+                          className="size-10 text-muted-foreground hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground sm:size-7"
                           aria-label={t('common.actions')}
                           onClick={(event) => event.stopPropagation()}
                         >

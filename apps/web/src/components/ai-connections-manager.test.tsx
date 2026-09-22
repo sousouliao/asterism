@@ -371,4 +371,20 @@ describe('AiConnectionsManager', () => {
     expect(discoverSelect).not.toBeNull();
     expect(dialog?.textContent).toContain('deepseek-reasoner');
   });
+
+  it('applies open-state visual classes and attribute to actions trigger when menu is opened', async () => {
+    hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
+    hooks.useAiSettings.mockReturnValue({ data: settings });
+    await render();
+
+    const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Actions"]');
+    expect(trigger).not.toBeNull();
+    expect(trigger?.getAttribute('data-state')).toBe('closed');
+    expect(trigger?.className).toContain('data-[state=open]:bg-accent');
+    expect(trigger?.className).toContain('data-[state=open]:text-foreground');
+
+    await openConnectionMenu();
+
+    expect(trigger?.getAttribute('data-state')).toBe('open');
+  });
 });

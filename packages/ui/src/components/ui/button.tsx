@@ -8,14 +8,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        default:
+          'bg-primary text-primary-foreground hover:bg-primary/90 data-[state=open]:bg-primary/90 aria-expanded:bg-primary/90',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
         outline:
-          'border border-[var(--glass-border)] bg-[var(--glass-surface)] shadow-[inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[8px] hover:bg-accent hover:text-accent-foreground',
+          'border border-[var(--glass-border)] bg-[var(--glass-surface)] shadow-[inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[8px] hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground',
         secondary:
-          'border border-[var(--glass-border)] bg-[var(--glass-surface)] text-secondary-foreground shadow-[inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[8px] hover:bg-secondary',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
+          'border border-[var(--glass-border)] bg-[var(--glass-surface)] text-secondary-foreground shadow-[inset_0_1px_0_var(--glass-highlight)] backdrop-blur-[8px] hover:bg-secondary data-[state=open]:bg-secondary aria-expanded:bg-secondary',
+        ghost:
+          'hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground',
         link: 'text-link underline-offset-4 hover:underline',
       },
       size: {

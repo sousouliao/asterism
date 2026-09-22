@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-22 · 下拉菜单与浮层 Trigger 激活态统一优化**：解决设置页 AI 连接卡片更多按钮点击弹出浮层时无激活态问题；在 `packages/ui` 中将 `data-[state=open]` 与 `aria-expanded` 属性映射至 `buttonVariants`（`ghost`、`outline`、`secondary`、`default`）；升级 `SelectTrigger` 增加展开态边框与底色反馈；在 Browse 筛选栏（`FILTER_TRIGGER_CLASS`、`FILTER_TRIGGER_ACTIVE_CLASS`）、集合卡片操作按钮与 Ask 模型选择器上系统性补齐展开激活视觉；全库 53 套件 279 项单测、类型与 Biome 门禁全绿。见 `logs/2026-09-22-dropdown-and-trigger-active-states.md`。
+
 - **2026-09-22 · Ask 对话展开收起重构与水平 { 状渐变流光拱落地**：按用户草图精准实现横跨输入框上方（宽达 88%）、形如水平横卧大括号 `{` 的高阶渐变流光拱（`AskLuminousBracket`）；贝塞尔双曲波浪两翼贴输入框平滑淡出，中央汇聚为向上微尖角与微星聚光点；融合双层冷晶发光材质（高斯模糊电光蓝光晕 + 晶莹白金渐变高光脊线）；提供全域点击展开热区与悬停上浮呼吸；彻底废除右上角违和关闭按钮，实现点击外部空白处（Click Outside）与按 Esc 键可逆收起、再次按 Esc 彻底清空；输入框重新聚焦或提交自动展开。双语 i18n、ui-ux 契约、272 项全库单测与代码门禁全部通过。见 `logs/2026-09-22-ask-horizontal-luminous-bracket.md`。
 
 - **2026-09-22 · Ask 对话舱右侧内容区居中与分层响应式宽度重构**：针对桌面端左侧边栏（`w-60` = 240px）导致的“整屏居中视觉向左偏离 120px”问题，将 AskDock 根节点与流体氛围层定位约束至右侧主工作区（`fixed bottom-0 right-0 left-0 lg:left-60`），实现与星标卡片网格的完美垂直对齐，并保护边栏导航不受遮罩污染；建立分层响应式宽度体系（未激活胶囊 `max-w-xl xl:max-w-2xl`，展开气泡流 `max-w-2xl xl:max-w-3xl`），保障最佳单行阅读行宽与仓库推荐卡片横向舒展排布；精调气泡内部动态比例（用户 80% 自适应贴右 vs 助手 92% 舒展贴左）；纵向高度增至 `36rem`。ui-ux 契约、272 项全库单测与代码门禁全部通过。见 `logs/2026-09-22-ask-content-center-and-width-system.md`。
