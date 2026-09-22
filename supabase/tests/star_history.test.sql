@@ -1,7 +1,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(5);
+select extensions.plan(7);
 
 insert into auth.users (id, email)
 values ('10000000-0000-4000-8000-000000000051', 'history@example.test');
@@ -15,8 +15,14 @@ values
   ('10000000-0000-4000-8000-000000000051', '20000000-0000-4000-8000-000000000052', '2026-01-02T00:00:00Z');
 insert into public.memories (user_id, repo_id, note)
 values ('10000000-0000-4000-8000-000000000051', '20000000-0000-4000-8000-000000000052', 'Keep this memory');
+insert into public.github_sync_credentials (user_id, access_token_ciphertext)
+values ('10000000-0000-4000-8000-000000000051', 'test_cipher');
 
 set role service_role;
+select extensions.ok(
+  exists (select 1 from public.github_sync_credentials where user_id = '10000000-0000-4000-8000-000000000051'),
+  'service_role can read github_sync_credentials'
+);
 select extensions.is(
   (public.apply_github_star_snapshot(
     '10000000-0000-4000-8000-000000000051',
@@ -27,6 +33,12 @@ select extensions.is(
   'complete snapshot marks one missing Star as history'
 );
 reset role;
+
+select extensions.is(
+  (select last_synced_at from public.github_sync_credentials where user_id = '10000000-0000-4000-8000-000000000051'),
+  '2026-09-22T00:00:00Z'::timestamptz,
+  'snapshot updates credential last_synced_at'
+);
 
 select extensions.is(
   (select unstarred_at from public.user_stars where repo_id = '20000000-0000-4000-8000-000000000052'),

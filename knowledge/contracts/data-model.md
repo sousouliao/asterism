@@ -171,4 +171,9 @@ ADR 0038 采用无旧数据兼容的干净切换：`notes` 表与旧查询已经
   - INSERT / UPDATE / DELETE：普通客户端无直接表权限；创建、执行、重试与明确结束只经受信批量写入路径完成。
   - 受信路径必须校验操作、项目、仓库成员关系以及目标集合都属于当前用户。cutover 前仍校验历史标签目标。
 
+- **`github_sync_credentials`**
+  - 受信同步凭据表：仅 `service_role` 拥有表级读写特权；`anon` 与 `authenticated` 无直接表访问权限。
+  - 普通客户端仅能通过本人鉴权的 `security definer` RPC（`github_sync_status`）读取连接状态与同步时间。
+  - 完整快照对账由仅授权给 `service_role` 的 `security definer` RPC（`apply_github_star_snapshot`）在单一事务中执行。
+
 > 通用规则：只有 `repos` 全局可读；用户私有数据都以 `auth.uid()` 与行内 `user_id` 匹配作为访问前提。连接表冗余存 `user_id` 即为简化此类 RLS 过滤。

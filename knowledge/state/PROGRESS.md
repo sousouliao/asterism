@@ -13,6 +13,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-22 · CI 数据库测试修复（github_sync_credentials 授权与快照 RPC security definer）**：`20260922120000_github_sync_credentials.sql` 漏授予 `service_role` 权限，且 `apply_github_star_snapshot` 遗漏 `security definer`，导致 CI 本地 pgTAP 测试报 permission denied。补 `20260922144000_grant_sync_credentials_and_snapshot_security.sql` 授权并切换为 security definer，扩充 `star_history.test.sql` 用例（5→7）。见 `logs/2026-09-22-ci-sync-credentials-grant.md`。
+
 - **2026-09-22 · 顶栏与浏览页工具栏极简化清理**：按用户诉求移除 Browse 工具栏的「当前 Star / 历史」切换按钮，恢复纯净单一的 Star 列表浏览；彻底移除 Topbar 常驻的同步/重连按钮，日常同步完全由开站静默同步与后台定时任务驱动；手动同步与重新连接入口收敛至 UserMenu（用户头像菜单）中，消除顶栏视觉打扰。四道工程门禁全绿。见 `logs/2026-09-22-simplify-topbar-and-browse-toolbar.md`。
 
 - **2026-09-22 · Star 完整同步与可找回历史本地实现**：移除增量截断，完整分页后在单事务中对账；持久化加密 GitHub 凭据；历史仓库在 Browse、Collection、Ask 与导入导出中可找回。TypeScript 类型检查、Core/DB/Web 单测与 Biome 通过；数据库 pgTAP 和远端验收待有 Supabase 环境时执行。见 ADR 0047 与 `logs/2026-09-22-star-snapshot-and-history.md`。
