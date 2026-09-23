@@ -1,5 +1,5 @@
 import type { StarredRepoRecord } from '@asterism/db';
-import { Button, Skeleton, Textarea } from '@asterism/ui';
+import { Button, cn, Skeleton, Textarea } from '@asterism/ui';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRepoInspector } from '../../contexts/repo-inspector-context';
@@ -140,13 +140,23 @@ export function MemorySection({ record }: { record: StarredRepoRecord }) {
         <div className="flex flex-col gap-4">
           <div>
             <p className="font-medium text-caption text-foreground">{t('drawer.whySaved')}</p>
-            <p className="mt-1 whitespace-pre-wrap text-body text-muted-foreground">
+            <p
+              className={cn(
+                'mt-1 whitespace-pre-wrap text-caption',
+                memoryDraft.serverWhySaved ? 'text-foreground/90' : 'text-muted-foreground',
+              )}
+            >
               {memoryDraft.serverWhySaved || t('drawer.notRecordedYet')}
             </p>
           </div>
           <div>
             <p className="font-medium text-caption text-foreground">{t('drawer.note')}</p>
-            <p className="mt-1 whitespace-pre-wrap text-body text-muted-foreground">
+            <p
+              className={cn(
+                'mt-1 whitespace-pre-wrap text-caption',
+                memoryDraft.serverNote ? 'text-foreground/90' : 'text-muted-foreground',
+              )}
+            >
               {memoryDraft.serverNote || t('drawer.noNoteYet')}
             </p>
           </div>

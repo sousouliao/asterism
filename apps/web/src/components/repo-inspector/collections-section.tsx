@@ -53,7 +53,7 @@ export function CollectionsSection({ repoId }: { repoId: string }) {
         ) : null}
       </div>
       {collections.length === 0 ? (
-        <p className="text-body text-muted-foreground">{t('drawer.noCollections')}</p>
+        <p className="text-caption text-muted-foreground">{t('drawer.noCollections')}</p>
       ) : editing ? (
         <div className="flex flex-col gap-2">
           <div className="relative">
