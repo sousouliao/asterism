@@ -136,6 +136,10 @@ const PHASES: { label: string; phase: AskPhase; turns?: AskTurn[] }[] = [
     phase: { kind: 'generating', question: 'which of those is lighter?', text: '' },
     turns: [ANSWERED_TURN],
   },
+  {
+    label: 'needs setup · turn',
+    phase: { kind: 'needs_setup', question: 'Which rust websocket library did I save?' },
+  },
   { label: 'idle', phase: { kind: 'idle' }, turns: [] },
 ];
 
@@ -170,11 +174,23 @@ const DOCK_FIXTURES: { label: string; ask: AskViewState }[] = [
     } satisfies AskViewState,
   })),
   {
-    label: 'needs setup',
+    label: 'idle · unconfigured',
     ask: {
       phase: { kind: 'idle' },
       turns: [],
       ask: () => {},
+      continueAsk: () => {},
+      configured: false,
+      sessions: PREVIEW_SESSIONS,
+    } satisfies AskViewState,
+  },
+  {
+    label: 'needs setup',
+    ask: {
+      phase: { kind: 'needs_setup', question: 'Which rust websocket library did I save?' },
+      turns: [],
+      ask: () => {},
+      continueAsk: () => {},
       configured: false,
       sessions: PREVIEW_SESSIONS,
     } satisfies AskViewState,

@@ -273,4 +273,21 @@ describe('useAskQuestion', () => {
     expect(latest?.turns).toHaveLength(0);
     expect(latest?.phase.kind).toBe('idle');
   });
+
+  it('transitions to needs_setup phase when asking without byok configured', async () => {
+    window.localStorage.clear();
+    resetAskByokState();
+    clearAiConnectionsState();
+    await renderHarness();
+    await flushWork();
+
+    expect(latest?.configured).toBe(false);
+    expect(latest?.phase.kind).toBe('idle');
+
+    await ask('any rust websocket?');
+    await flushWork();
+
+    expect(latest?.phase).toEqual({ kind: 'needs_setup', question: 'any rust websocket?' });
+    expect(mocks.streamAskGenerate).not.toHaveBeenCalled();
+  });
 });

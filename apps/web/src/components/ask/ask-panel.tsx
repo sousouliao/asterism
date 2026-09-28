@@ -117,11 +117,7 @@ export function AskDockContent({
 
   const isSlashOpen = dockView === 'chat' && question.startsWith('/') && !busy;
   const hasThread =
-    dockView === 'history'
-      ? true
-      : ask.configured
-        ? ask.turns.length > 0 || ask.phase.kind !== 'idle'
-        : true;
+    dockView === 'history' ? true : ask.turns.length > 0 || ask.phase.kind !== 'idle';
   const isExpanded = hasThread && !collapsed;
   // 只有具体的问答会话（Chat Thread）展开时才拓宽为舒展宽态；
   // 命令面板（Slash Menu）与历史会话列表（History View）均作为选择与索引层保持紧凑等宽（max-w-xl / 2xl）。
@@ -446,18 +442,15 @@ export function AskDockContent({
                 }}
                 className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                {ask.configured ? (
-                  <AskThread
-                    turns={ask.turns}
-                    phase={ask.phase}
-                    onOpenRepo={openRepo}
-                    onRetry={ask.ask}
-                    onContinue={ask.continueAsk}
-                    onOpenSettings={openSettings}
-                  />
-                ) : (
-                  <AskSetupView onOpenSettings={openSettings} />
-                )}
+                <AskThread
+                  turns={ask.turns}
+                  phase={ask.phase}
+                  configured={ask.configured}
+                  onOpenRepo={openRepo}
+                  onRetry={ask.ask}
+                  onContinue={ask.continueAsk}
+                  onOpenSettings={openSettings}
+                />
               </div>
             </section>
           )
@@ -496,7 +489,11 @@ export function AskDockContent({
             value={question}
             aria-label={dockView === 'history' ? t('ask.history.title') : t('ask.questionLabel')}
             placeholder={
-              dockView === 'history' ? t('ask.history.searchPlaceholder') : t('ask.placeholder')
+              dockView === 'history'
+                ? t('ask.history.searchPlaceholder')
+                : ask.configured
+                  ? t('ask.placeholder')
+                  : t('ask.placeholderUnconfigured')
             }
             onChange={(inputEvent) => {
               setQuestion(inputEvent.target.value);
@@ -579,8 +576,9 @@ export function AskDockContent({
             <button
               type="button"
               onClick={openSettings}
-              className="flex h-7 shrink-0 items-center gap-1 rounded-full border border-black/[0.06] bg-black/[0.03] px-2 text-micro text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur-xs transition-colors hover:bg-black/[0.06] hover:text-foreground dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/10 sm:text-caption"
+              className="flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-black/[0.06] bg-black/[0.03] px-2.5 text-micro font-medium text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur-xs transition-colors hover:bg-black/[0.06] hover:text-foreground dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/10 sm:text-caption"
             >
+              <SettingsIcon className="size-3 opacity-70" aria-hidden="true" />
               <span>{t('ask.setupModel')}</span>
             </button>
           )}
@@ -685,6 +683,7 @@ function AskLuminousBracket({ onClick, label }: { onClick: () => void; label: st
 export function AskThread({
   turns,
   phase,
+  configured = true,
   onOpenRepo,
   onRetry,
   onContinue,
@@ -692,6 +691,7 @@ export function AskThread({
 }: {
   turns: readonly AskTurn[];
   phase: AskPhase;
+  configured?: boolean;
   onOpenRepo: OpenRepoHandler;
   onRetry: (question: string) => void;
   onContinue?: () => void;
@@ -705,29 +705,12 @@ export function AskThread({
       ))}
       <AskLiveTurnView
         phase={phase}
+        configured={configured}
         onRetry={onRetry}
         onContinue={onContinue}
         onOpenSettings={onOpenSettings}
       />
     </>
-  );
-}
-
-function AskSetupView({ onOpenSettings }: { onOpenSettings: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-2.5 rounded-2xl border-0 bg-white/60 px-6 py-6 text-center text-foreground shadow-lg backdrop-blur-2xl dark:bg-[#1A2230]/70">
-      <span className="flex items-center gap-2 font-medium text-foreground text-sm">
-        <SettingsIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-        {t('ask.needsSetupTitle')}
-      </span>
-      <p className="max-w-[44ch] text-caption text-muted-foreground">
-        {t('ask.needsSetupDescription')}
-      </p>
-      <Button size="xs" variant="outline" className="mt-2" onClick={onOpenSettings}>
-        {t('ask.openSettings')}
-      </Button>
-    </div>
   );
 }
 
@@ -758,11 +741,13 @@ function AskTurnView({ turn, onOpenRepo }: { turn: AskTurn; onOpenRepo: OpenRepo
 /** 进行中 / 收尾的一轮：问题先行入列，回答位置由状态气泡占位（不影响已完成轮次）。 */
 function AskLiveTurnView({
   phase,
+  configured = true,
   onRetry,
   onContinue,
   onOpenSettings,
 }: {
   phase: AskPhase;
+  configured?: boolean;
   onRetry: (question: string) => void;
   onContinue?: () => void;
   onOpenSettings?: () => void;
@@ -776,6 +761,7 @@ function AskLiveTurnView({
       <AskAnswerBubble>
         <AskPendingView
           phase={phase}
+          configured={configured}
           onRetry={onRetry}
           onContinue={onContinue}
           onOpenSettings={onOpenSettings}
@@ -817,16 +803,46 @@ function AskAnswerBubble({ children }: { children: ReactNode }) {
 
 function AskPendingView({
   phase,
+  configured = true,
   onRetry,
   onContinue,
   onOpenSettings,
 }: {
   phase: AskPhase;
+  configured?: boolean;
   onRetry: (question: string) => void;
   onContinue?: () => void;
   onOpenSettings?: () => void;
 }) {
   const { t } = useTranslation();
+  if (phase.kind === 'needs_setup') {
+    return (
+      <div className="flex flex-col items-start gap-2.5" role="status">
+        <div className="flex items-center gap-2 font-medium text-foreground text-sm">
+          <SettingsIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+          <span>{t('ask.needsSetupTitle')}</span>
+        </div>
+        <p className="max-w-[48ch] text-caption leading-relaxed text-muted-foreground">
+          {t('ask.needsSetupDescription')}
+        </p>
+        {configured ? (
+          <Button
+            size="xs"
+            variant="default"
+            className="mt-1 gap-1"
+            onClick={() => onRetry(phase.question)}
+          >
+            <SparklesIcon className="size-3" aria-hidden="true" />
+            {t('ask.submitNow')}
+          </Button>
+        ) : onOpenSettings ? (
+          <Button size="xs" variant="outline" className="mt-1" onClick={onOpenSettings}>
+            {t('ask.openSettings')}
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
   if (phase.kind === 'generating') {
     if (phase.text.length > 0) {
       return <StreamingMarkdown content={phase.text} animated />;

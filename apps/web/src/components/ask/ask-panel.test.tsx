@@ -163,14 +163,44 @@ async function setInputValue(input: Element, value: string) {
 }
 
 describe('AskDock states', () => {
-  it('guides to settings when no byok key is configured', async () => {
+  it('shows unconfigured composer placeholder and guides to settings on setup button click', async () => {
     configuredOverride = false;
     await renderPanel();
 
-    const label = i18next.t('ask.openSettings', { lng: 'en' });
+    // 未提问时绝不展示上方浮层大白框，保持主内容无遮挡
+    expect(text()).not.toContain(i18next.t('ask.needsSetupTitle', { lng: 'en' }));
+    const input = document.body.querySelector('input');
+    expect(input?.placeholder).toBe(i18next.t('ask.placeholderUnconfigured', { lng: 'en' }));
+
+    // 输入框右侧的配置模型按钮可前往设置
+    const setupModelLabel = i18next.t('ask.setupModel', { lng: 'en' });
+    await click(buttonByText(setupModelLabel));
+    expect(navigate).toHaveBeenCalledWith('/settings');
+  });
+
+  it('renders needs_setup turn in thread with guidance and guides to settings', async () => {
+    configuredOverride = false;
+    phaseOverride = { kind: 'needs_setup', question: 'which rust websocket library?' };
+    await renderPanel();
+
+    expect(text()).toContain('which rust websocket library?');
     expect(text()).toContain(i18next.t('ask.needsSetupTitle', { lng: 'en' }));
+    expect(text()).toContain(i18next.t('ask.needsSetupDescription', { lng: 'en' }));
+
+    const label = i18next.t('ask.openSettings', { lng: 'en' });
     await click(buttonByText(label));
     expect(navigate).toHaveBeenCalledWith('/settings');
+  });
+
+  it('renders submit-now button in needs_setup turn when key becomes configured', async () => {
+    configuredOverride = true;
+    phaseOverride = { kind: 'needs_setup', question: 'which rust websocket library?' };
+    await renderPanel();
+
+    const submitNowLabel = i18next.t('ask.submitNow', { lng: 'en' });
+    expect(buttonByText(submitNowLabel)).not.toBeNull();
+    await click(buttonByText(submitNowLabel));
+    expect(askMock).toHaveBeenCalledWith('which rust websocket library?');
   });
 
   it('renders pill composer without empty hint and submits a trimmed question', async () => {

@@ -41,6 +41,7 @@ export interface AskTurn {
 
 export type AskPhase =
   | { kind: 'idle' }
+  | { kind: 'needs_setup'; question: string }
   | { kind: 'generating'; question: string; text: string; toolLabel?: string }
   | { kind: 'answered'; turn: AskTurn }
   | { kind: 'not_found'; question: string }
@@ -210,7 +211,13 @@ export function useAskQuestion() {
   const ask = useCallback(
     (rawQuestion: string) => {
       const question = rawQuestion.trim();
-      if (!question || !byok) {
+      if (!question) {
+        return;
+      }
+      if (!byok) {
+        cancelInFlight(false);
+        resumeRef.current = null;
+        setPhase({ kind: 'needs_setup', question });
         return;
       }
       cancelInFlight(false);
