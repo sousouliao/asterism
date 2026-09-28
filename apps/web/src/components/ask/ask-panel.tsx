@@ -489,11 +489,7 @@ export function AskDockContent({
             value={question}
             aria-label={dockView === 'history' ? t('ask.history.title') : t('ask.questionLabel')}
             placeholder={
-              dockView === 'history'
-                ? t('ask.history.searchPlaceholder')
-                : ask.configured
-                  ? t('ask.placeholder')
-                  : t('ask.placeholderUnconfigured')
+              dockView === 'history' ? t('ask.history.searchPlaceholder') : t('ask.placeholder')
             }
             onChange={(inputEvent) => {
               setQuestion(inputEvent.target.value);

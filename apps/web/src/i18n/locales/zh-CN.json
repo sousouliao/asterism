@@ -435,7 +435,6 @@
     "title": "Ask Asterism",
     "description": "就你保存过的项目提问；回答只依据你的个人收藏。",
     "placeholder": "Ask Asterism…",
-    "placeholderUnconfigured": "就你的收藏提问…（配置模型后解答）",
     "questionLabel": "你的问题",
     "submit": "提问",
     "submitNow": "立即提问",

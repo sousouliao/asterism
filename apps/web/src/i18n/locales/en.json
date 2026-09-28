@@ -435,7 +435,6 @@
     "title": "Ask Asterism",
     "description": "Ask questions about the projects you saved. Answers are grounded in your collection only.",
     "placeholder": "Ask Asterism…",
-    "placeholderUnconfigured": "Ask anything about your stars… (configure model to answer)",
     "questionLabel": "Your question",
     "submit": "Ask",
     "submitNow": "Submit question",

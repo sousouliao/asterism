@@ -163,14 +163,14 @@ async function setInputValue(input: Element, value: string) {
 }
 
 describe('AskDock states', () => {
-  it('shows unconfigured composer placeholder and guides to settings on setup button click', async () => {
+  it('shows standard composer placeholder and guides to settings on setup button click', async () => {
     configuredOverride = false;
     await renderPanel();
 
     // 未提问时绝不展示上方浮层大白框，保持主内容无遮挡
     expect(text()).not.toContain(i18next.t('ask.needsSetupTitle', { lng: 'en' }));
     const input = document.body.querySelector('input');
-    expect(input?.placeholder).toBe(i18next.t('ask.placeholderUnconfigured', { lng: 'en' }));
+    expect(input?.placeholder).toBe(i18next.t('ask.placeholder', { lng: 'en' }));
 
     // 输入框右侧的配置模型按钮可前往设置
     const setupModelLabel = i18next.t('ask.setupModel', { lng: 'en' });

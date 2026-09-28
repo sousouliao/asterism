@@ -10,7 +10,7 @@
 2. **重构范式（方案 B：意图优先 · 提交时流式承接）**：
    - **平时静默态（Idle & Unconfigured）**：
      - 未提问且未配置 Key 时，上方**绝对不展开**任何多余图层，保持纯净通透的 48px Graphite Glass 胶囊；
-     - 胶囊 Placeholder 更新为针对性轻提示文案：`“就你的收藏提问…（配置模型后解答）”` / `“Ask anything about your stars… (configure model to answer)”`；
+     - 胶囊 Placeholder 保持纯净统一的 `“Ask Asterism…”`，避免冗长文案在胶囊内截断与杂乱；
      - 胶囊右侧紧凑药丸按钮注入微型 `SettingsIcon`，清晰表明 `[ ⚙️ 配置模型 ]` 操作入口。
    - **交互提交态（On Submit · Needs Setup Phase）**：
      - 允许用户正常聚焦并输入问题，按下 Enter 提交；
@@ -27,10 +27,10 @@
   - `hasThread` 判定移除 `ask.configured` 的强制展开：`dockView === 'history' ? true : ask.turns.length > 0 || ask.phase.kind !== 'idle'`；
   - 彻底移除独立的 `AskSetupView` 遮挡层，全面收敛至统一的 `AskThread` 体系；
   - `AskPendingView` 补齐 `needs_setup` 渲染逻辑：左侧 Asterism 气泡内展示配置引导卡片，未配置时提供 `[ 打开设置 ]`，配置后提供 `[ 立即提问 ]`；
-  - 输入框根据 `ask.configured` 自适应展示 `placeholder` 或 `placeholderUnconfigured`；
+  - 输入框 Placeholder 保持标准统一的 `Ask Asterism…`；
   - 右侧模型配置按钮增加微型 `SettingsIcon`，优化点击交互。
 - `apps/web/src/i18n/locales/zh-CN.json` & `en.json`：
-  - 新增双语词条 `placeholderUnconfigured` 与 `submitNow`。
+  - 新增双语词条 `submitNow`。
 - `apps/web/src/pages/ask-preview.tsx`：
   - 预览夹具增加 `needs setup · turn` 与 `idle · unconfigured` 状态。
 - 测试用例：
