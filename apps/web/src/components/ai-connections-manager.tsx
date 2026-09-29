@@ -16,15 +16,7 @@ import {
   Switch,
   toast,
 } from '@asterism/ui';
-import {
-  MoreHorizontalIcon,
-  PencilIcon,
-  PlugZapIcon,
-  PlusIcon,
-  PowerIcon,
-  SparklesIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import { MoreHorizontalIcon, PencilIcon, PlugZapIcon, PowerIcon, Trash2Icon } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
@@ -43,7 +35,6 @@ import { readAskConsent } from '../lib/ask-byok';
 import { AiConnectionFormDialog } from './ai-connection-form-dialog';
 import { AiConnectionTestDialog } from './ai-connection-test-dialog';
 import { ConfirmDialog } from './confirm-dialog';
-import { EmptyState } from './empty-state';
 import { PendingActionContent } from './pending-action-content';
 import { SectionHeader } from './section-header';
 
@@ -175,21 +166,15 @@ export function AiConnectionsManager({
     ? connections.find((candidate) => candidate.id === pendingActivation.connectionId)
     : undefined;
 
-  const addButton =
-    connections.length > 0 ? (
-      <Button size="sm" onClick={openCreate}>
-        <PlusIcon className="size-4" />
-        {t('settings.ai.addConnection')}
-      </Button>
-    ) : null;
+  const addButton = <Button onClick={openCreate}>{t('settings.ai.addConnection')}</Button>;
 
   return (
     <section className="flex flex-col gap-4">
       {title ? (
         <SectionHeader title={title} description={description} badge={badge} actions={addButton} />
-      ) : addButton ? (
+      ) : (
         <div className="flex justify-end">{addButton}</div>
-      ) : null}
+      )}
 
       {connectionsQuery.isLoading ? (
         <div role="status" aria-busy="true" className="flex flex-col gap-3 rounded-lg border p-4">
@@ -208,19 +193,12 @@ export function AiConnectionsManager({
           </Button>
         </div>
       ) : connections.length === 0 ? (
-        <div className="rounded-lg border">
-          <EmptyState
-            icon={SparklesIcon}
-            title={t('settings.ai.emptyTitle')}
-            description={t('settings.ai.emptyDescription')}
-            action={
-              <Button onClick={openCreate}>
-                <PlusIcon className="size-4" />
-                {t('settings.ai.addConnection')}
-              </Button>
-            }
-          />
-        </div>
+        !title ? (
+          <div className="rounded-lg border p-6 text-center">
+            <p className="font-medium text-foreground text-sm">{t('settings.ai.emptyTitle')}</p>
+            <p className="text-muted-foreground text-sm">{t('settings.ai.emptyDescription')}</p>
+          </div>
+        ) : null
       ) : (
         <ul className="divide-y rounded-lg border">
           {connections.map((connection) => {
