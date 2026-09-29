@@ -120,12 +120,12 @@ export function OverflowChipRow<T>({
     <div ref={containerRef} className={cn('relative min-w-0', className)}>
       <div className="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden">
         {visibleItems.map((item) => (
-          <span key={getKey(item)} className="shrink-0">
+          <span key={getKey(item)} className="inline-flex shrink-0 items-center">
             {renderChip(item)}
           </span>
         ))}
         {overflowCount > 0 ? (
-          <span className="shrink-0">
+          <span className="inline-flex shrink-0 items-center">
             <Tooltip>
               <TooltipTrigger asChild>
                 {/* 按需求用 div 承载 tooltip 触发器（shadcn Button 不适用），以 role=button 保留可访问性 */}
@@ -141,10 +141,10 @@ export function OverflowChipRow<T>({
                   {renderOverflowChip(overflowCount)}
                 </div>
               </TooltipTrigger>
-              <TooltipContent sideOffset={6} className="max-w-64 text-left">
+              <TooltipContent sideOffset={6} className="max-w-64 p-2 text-left">
                 <div className="flex max-w-64 flex-wrap gap-1.5">
                   {overflowItems.map((item) => (
-                    <span key={getKey(item)}>
+                    <span key={getKey(item)} className="inline-flex shrink-0 items-center">
                       {renderTooltipItem ? (
                         renderTooltipItem(item)
                       ) : (
@@ -176,7 +176,7 @@ export function OverflowChipRow<T>({
                 itemRefs.current.delete(getKey(item));
               }
             }}
-            className="shrink-0"
+            className="inline-flex shrink-0 items-center"
           >
             {renderChip(item)}
           </span>
@@ -191,7 +191,7 @@ export function OverflowChipRow<T>({
                 overflowRefs.current.delete(count);
               }
             }}
-            className="shrink-0"
+            className="inline-flex shrink-0 items-center"
           >
             {renderOverflowChip(count)}
           </span>

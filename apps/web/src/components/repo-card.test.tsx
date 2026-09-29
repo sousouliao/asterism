@@ -173,4 +173,38 @@ describe('RepoCard bulk selection', () => {
     expect(checkbox).not.toBeNull();
     expect(checkbox?.querySelector('svg')).not.toBeNull();
   });
+
+  it('renders collections with FolderIcon while keeping topics clean', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <RepoCard
+          record={{
+            ...record,
+            repo: {
+              ...record.repo,
+              topics: ['typescript'],
+            },
+          }}
+          collections={[{ id: 'col-1', name: 'React' }]}
+        />,
+      );
+    });
+
+    const badges = container.querySelectorAll('[data-slot="badge"]');
+    const labels = Array.from(badges).map((b) => b.textContent);
+    expect(labels).toContain('React');
+    expect(labels).toContain('typescript');
+
+    const reactBadge = Array.from(badges).find((b) => b.textContent === 'React');
+    expect(reactBadge?.className).toContain('bg-secondary');
+    expect(reactBadge?.querySelector('svg')).not.toBeNull();
+
+    const topicBadge = Array.from(badges).find((b) => b.textContent === 'typescript');
+    expect(topicBadge?.className).toContain('bg-secondary');
+    expect(topicBadge?.querySelector('svg')).toBeNull();
+  });
 });

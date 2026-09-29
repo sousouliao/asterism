@@ -12,11 +12,8 @@ import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { MatchExplanationBadge } from './match-explanation-badge';
 import { OverflowChipRow } from './overflow-chip-row';
-import {
-  buildRepoContextItems,
-  type RepoCardCollection,
-  type RepoContextItem,
-} from './repo-card-context';
+import { buildRepoContextItems, type RepoCardCollection } from './repo-card-context';
+import { ContextChip } from './repo-context-chip';
 import { SemanticSectionLabel } from './semantic-section-separator';
 
 const DESKTOP_ROW_HEIGHT = 64;
@@ -90,14 +87,6 @@ function ActivityValue({
   );
 }
 
-function ContextChip({ item }: { item: RepoContextItem }) {
-  return (
-    <Badge variant="secondary" className="h-[22px] font-normal">
-      {item.label}
-    </Badge>
-  );
-}
-
 function RepoContext({
   collections,
   topics,
@@ -126,8 +115,11 @@ function RepoContext({
             overflowLabel={(count) => t('browse.moreContextLabel', { count })}
             renderChip={(item) => <ContextChip item={item} />}
             renderOverflowChip={(count) => (
-              <Badge variant="secondary" className="h-[22px] font-normal text-muted-foreground">
-                +{count}
+              <Badge
+                variant="secondary"
+                className="h-[22px] font-normal leading-none text-muted-foreground"
+              >
+                <span className="leading-none">+{count}</span>
               </Badge>
             )}
             renderTooltipItem={(item) => <ContextChip item={item} />}

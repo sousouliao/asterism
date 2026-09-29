@@ -20,11 +20,8 @@ import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } fr
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { MatchExplanationBadge } from './match-explanation-badge';
 import { OverflowChipRow } from './overflow-chip-row';
-import {
-  buildRepoContextItems,
-  type RepoCardCollection,
-  type RepoContextItem,
-} from './repo-card-context';
+import { buildRepoContextItems, type RepoCardCollection } from './repo-card-context';
+import { ContextChip } from './repo-context-chip';
 import { TruncatedDescription } from './truncated-description';
 
 function RepoOwnerAvatar({ owner }: { owner: string }) {
@@ -75,14 +72,6 @@ function StatusIndicator({
       </TooltipTrigger>
       <TooltipContent sideOffset={6}>{label}</TooltipContent>
     </Tooltip>
-  );
-}
-
-function ContextChip({ item }: { item: RepoContextItem }) {
-  return (
-    <Badge variant="secondary" className="h-[22px] font-normal">
-      {item.label}
-    </Badge>
   );
 }
 
@@ -246,8 +235,11 @@ export const RepoCard = memo(function RepoCard({
                 overflowLabel={(count) => t('browse.moreContextLabel', { count })}
                 renderChip={(item) => <ContextChip item={item} />}
                 renderOverflowChip={(count) => (
-                  <Badge variant="secondary" className="h-[22px] font-normal text-muted-foreground">
-                    +{count}
+                  <Badge
+                    variant="secondary"
+                    className="h-[22px] font-normal leading-none text-muted-foreground"
+                  >
+                    <span className="leading-none">+{count}</span>
                   </Badge>
                 )}
                 renderTooltipItem={(item) => <ContextChip item={item} />}
