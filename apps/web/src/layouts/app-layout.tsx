@@ -7,6 +7,7 @@ import { SidebarNav } from '../components/sidebar-nav';
 import { EmbeddingBootstrapProvider } from '../contexts/embedding-bootstrap-context';
 import { RepoInspectorProvider } from '../contexts/repo-inspector-context';
 import { useAutoSyncStars } from '../data/use-auto-sync-stars';
+import { useBulkSelectionStore } from '../stores/bulk-selection';
 
 export function AppLayout() {
   return (
@@ -25,6 +26,9 @@ function AppLayoutContent() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!isAskShortcut(event)) {
+        return;
+      }
+      if (useBulkSelectionStore.getState().active) {
         return;
       }
       event.preventDefault();

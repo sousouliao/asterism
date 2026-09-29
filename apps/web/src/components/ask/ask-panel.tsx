@@ -40,6 +40,7 @@ import { useRepoInspector } from '../../contexts/repo-inspector-context';
 import { type AskPhase, type AskTurn, useAskQuestion } from '../../data/use-ask-question';
 import type { AvailableAiModel } from '../../lib/ai-connections';
 import type { AskSessionRecord } from '../../lib/ask-session-storage';
+import { useBulkSelectionStore } from '../../stores/bulk-selection';
 import type { RepoOpenModality } from '../../stores/repo-inspector';
 import { AskHistoryView } from './ask-history-view';
 import { AskRecommendationCard } from './ask-recommendation-card';
@@ -106,6 +107,7 @@ export function AskDockContent({
   const [dockView, setDockView] = useState<'chat' | 'history'>('chat');
   const [slashHighlightIndex, setSlashHighlightIndex] = useState(0);
   const [historyHighlightIndex, setHistoryHighlightIndex] = useState(0);
+  const isBulkSelectionActive = useBulkSelectionStore((state) => state.active);
 
   const dockRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -378,7 +380,10 @@ export function AskDockContent({
     <div
       ref={dockRef}
       data-ask-dock
-      className="pointer-events-none fixed bottom-0 right-0 left-0 lg:left-60 z-40 flex flex-col items-center justify-end px-4 pb-4 sm:pb-6"
+      className={cn(
+        'pointer-events-none fixed bottom-0 right-0 left-0 lg:left-60 z-40 flex flex-col items-center justify-end px-4 pb-4 sm:pb-6',
+        isBulkSelectionActive && 'hidden',
+      )}
     >
       {/* 右侧工作区专属流体 Liquid Glass 氛围层：展开时或输入 / 斜杠命令时自底部向上平滑羽化 */}
       {isExpanded || isSlashOpen ? (

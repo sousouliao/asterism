@@ -134,4 +134,43 @@ describe('RepoCard bulk selection', () => {
 
     expect(container.textContent).not.toContain('替换微服务网关');
   });
+
+  it('renders owner avatar with fallback initial', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(<RepoCard record={record} />);
+    });
+
+    const avatar = container.querySelector('[data-slot="avatar"]');
+    expect(avatar).not.toBeNull();
+    expect(avatar?.getAttribute('aria-hidden')).toBe('true');
+    expect(avatar?.textContent).toContain('O');
+  });
+
+  it('renders bulk selection checkbox without pl-7 content offset shift', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <RepoCard
+          record={record}
+          bulkSelection={{ repoIds: new Set([record.repoId]), onToggle: vi.fn() }}
+        />,
+      );
+    });
+
+    // Content container should not have pl-7 shift
+    const contentContainer = container.querySelector('.relative.z-10.flex');
+    expect(contentContainer?.className).not.toContain('pl-7');
+
+    // Right-aligned checkbox should reflect selected state
+    const checkbox = container.querySelector('.bg-primary.text-primary-foreground');
+    expect(checkbox).not.toBeNull();
+    expect(checkbox?.querySelector('svg')).not.toBeNull();
+  });
 });

@@ -44,6 +44,7 @@ import {
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
+import { useBulkSelectionStore } from '../stores/bulk-selection';
 import { useListScrollStore } from '../stores/list-scroll';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
 
@@ -84,7 +85,15 @@ function BrowseDataPage() {
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
   const [repoScrollElement, setRepoScrollElement] = useState<HTMLElement | null>(null);
   const [stuck, setStuck] = useState(false);
-  const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
+  const bulkSelectionMode = useBulkSelectionStore((state) => state.active);
+  const setBulkSelectionMode = useBulkSelectionStore((state) => state.setActive);
+
+  useEffect(() => {
+    return () => {
+      setBulkSelectionMode(false);
+    };
+  }, [setBulkSelectionMode]);
+
   const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(() => new Set());
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkExportOpen, setBulkExportOpen] = useState(false);

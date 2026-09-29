@@ -1,13 +1,22 @@
 import type { MatchExplanation } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { Badge, Card, cn, Tooltip, TooltipContent, TooltipTrigger } from '@asterism/ui';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Badge,
+  Card,
+  cn,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@asterism/ui';
 import { ArchiveIcon, CheckIcon, GitForkIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { BulkSelectionController } from '../lib/bulk-selection';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
-import { languageColor } from '../lib/language-colors';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { MatchExplanationBadge } from './match-explanation-badge';
 import { OverflowChipRow } from './overflow-chip-row';
@@ -17,6 +26,23 @@ import {
   type RepoContextItem,
 } from './repo-card-context';
 import { TruncatedDescription } from './truncated-description';
+
+function RepoOwnerAvatar({ owner }: { owner: string }) {
+  const avatarUrl = `https://github.com/${owner}.png?size=40`;
+  const initial = owner.slice(0, 1).toUpperCase();
+
+  return (
+    <Avatar
+      aria-hidden="true"
+      className="size-5 shrink-0 rounded-full border border-border/50 bg-muted/40"
+    >
+      <AvatarImage src={avatarUrl} alt="" loading="lazy" decoding="async" />
+      <AvatarFallback className="text-[10px] font-medium uppercase text-muted-foreground">
+        {initial}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
 
 function StatusIndicator({
   label,
@@ -86,7 +112,6 @@ export const RepoCard = memo(function RepoCard({
   const compactUpdated = formatCompactRelativeTime(repo.pushedAt, locale);
   const starred = formatRelativeTime(starredAt, locale);
   const compactStarred = formatCompactRelativeTime(starredAt, locale);
-  const dotColor = languageColor(repo.language);
   const contextItems = useMemo(
     () => buildRepoContextItems(collections ?? [], repo.topics),
     [collections, repo.topics],
@@ -126,33 +151,16 @@ export const RepoCard = memo(function RepoCard({
         />
       ) : null}
 
-      {bulkSelection ? (
-        <span
-          aria-hidden="true"
-          className={cn(
-            'pointer-events-none absolute top-4 left-4 z-20 flex size-5 items-center justify-center rounded-sm border bg-card',
-            bulkSelected && 'border-primary bg-primary text-primary-foreground',
-          )}
-        >
-          {bulkSelected ? <CheckIcon className="size-3.5" /> : null}
-        </span>
-      ) : null}
-
       <div
         className={cn(
           'relative z-10 flex min-h-0 flex-1 flex-col gap-3',
           (handleOpen || bulkSelection) && 'pointer-events-none',
-          bulkSelection && 'pl-7',
         )}
       >
         <div className="flex h-5 min-w-0 items-start justify-between gap-2">
           {bulkSelection ? (
-            <span className="flex min-w-0 items-center gap-2 text-body">
-              <span
-                aria-hidden="true"
-                className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
-                style={dotColor ? { backgroundColor: dotColor } : undefined}
-              />
+            <span className="flex min-w-0 flex-1 items-center gap-2 text-body">
+              <RepoOwnerAvatar owner={repo.owner} />
               <span className="min-w-0 truncate">
                 <span className="font-medium text-muted-foreground">{repo.owner}</span>
                 <span className="text-muted-foreground"> / </span>
@@ -172,13 +180,9 @@ export const RepoCard = memo(function RepoCard({
               href={`https://github.com/${repo.fullName}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="group/link pointer-events-auto flex min-w-0 items-center gap-2 rounded-sm text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group/link pointer-events-auto flex min-w-0 flex-1 items-center gap-2 rounded-sm text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span
-                aria-hidden="true"
-                className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
-                style={dotColor ? { backgroundColor: dotColor } : undefined}
-              />
+              <RepoOwnerAvatar owner={repo.owner} />
               <span className="min-w-0 truncate">
                 <span className="font-medium text-muted-foreground">{repo.owner}</span>
                 <span className="text-muted-foreground"> / </span>
@@ -188,16 +192,31 @@ export const RepoCard = memo(function RepoCard({
               </span>
             </a>
           )}
-          {repo.archived ? (
-            <Badge variant="outline" className="h-5 shrink-0 gap-1 text-muted-foreground">
-              <ArchiveIcon className="size-3" aria-hidden="true" />
-              {t('browse.archived')}
-            </Badge>
-          ) : null}
-          {record.unstarredAt ? (
-            <Badge variant="outline" className="h-5 shrink-0 text-muted-foreground">
-              {t('browse.unstarred')}
-            </Badge>
+          {repo.archived || record.unstarredAt || bulkSelection ? (
+            <div className="flex shrink-0 items-center gap-1.5">
+              {repo.archived ? (
+                <Badge variant="outline" className="h-5 shrink-0 gap-1 text-muted-foreground">
+                  <ArchiveIcon className="size-3" aria-hidden="true" />
+                  {t('browse.archived')}
+                </Badge>
+              ) : null}
+              {record.unstarredAt ? (
+                <Badge variant="outline" className="h-5 shrink-0 text-muted-foreground">
+                  {t('browse.unstarred')}
+                </Badge>
+              ) : null}
+              {bulkSelection ? (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'flex size-5 items-center justify-center rounded-sm border bg-card transition-colors',
+                    bulkSelected && 'border-primary bg-primary text-primary-foreground',
+                  )}
+                >
+                  {bulkSelected ? <CheckIcon className="size-3.5" /> : null}
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
 

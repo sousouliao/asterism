@@ -6,6 +6,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AskPhase, AskTurn } from '../../data/use-ask-question';
 import type { AskSessionRecord } from '../../lib/ask-session-storage';
+import { useBulkSelectionStore } from '../../stores/bulk-selection';
 import '../../i18n';
 import { AskDockContent } from './ask-panel';
 
@@ -89,6 +90,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  useBulkSelectionStore.getState().setActive(false);
   askMock.mockClear();
   continueMock.mockClear();
   resetMock.mockClear();
@@ -481,5 +483,38 @@ describe('AskDock states', () => {
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
     expect(input.placeholder).toBe(i18next.t('ask.placeholder', { lng: 'en' }));
+  });
+
+  it('hides the ask dock when bulk selection mode is active', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AskDockContent
+          ask={{
+            phase: { kind: 'idle' },
+            turns: [],
+            ask: askMock,
+            configured: true,
+          }}
+        />,
+      );
+    });
+
+    const dock = document.body.querySelector('[data-ask-dock]');
+    expect(dock).not.toBeNull();
+    expect(dock?.className).not.toContain('hidden');
+
+    await act(async () => {
+      useBulkSelectionStore.getState().setActive(true);
+    });
+    expect(dock?.className).toContain('hidden');
+
+    await act(async () => {
+      useBulkSelectionStore.getState().setActive(false);
+    });
+    expect(dock?.className).not.toContain('hidden');
   });
 });
