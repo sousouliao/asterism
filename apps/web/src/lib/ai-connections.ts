@@ -40,9 +40,11 @@ export interface AiSettings {
 
 const connectionsCache = new Map<string, AiConnection[]>();
 const settingsCache = new Map<string, AiSettings>();
+const digestResolvedCache = new Map<string, DigestByokConfig | null>();
 const listeners = new Set<() => void>();
 
 function emitChange() {
+  digestResolvedCache.clear();
   for (const listener of listeners) {
     listener();
   }
@@ -249,6 +251,7 @@ export function getAvailableAiModels(connections: readonly AiConnection[]): Avai
 export function clearAiConnectionsState() {
   connectionsCache.clear();
   settingsCache.clear();
+  digestResolvedCache.clear();
   emitChange();
 }
 
@@ -275,18 +278,24 @@ export interface DigestByokConfig {
 /**
  * 解析单仓库速读专用的模型凭据：
  * 优先匹配用户在设置页选定的 digestModel；未选定则默认使用首个可用模型；
- * 自动匹配提供该模型的有效连接及 API Key。
+ * 自动匹配提供该模型的有效连接及 API Key。带结果快照缓存以保证 useSyncExternalStore 引用稳定。
  */
 export function resolveDigestByok(userId: string): DigestByokConfig | null {
+  if (digestResolvedCache.has(userId)) {
+    return digestResolvedCache.get(userId) ?? null;
+  }
+
   const validConnections = readAiConnections(userId).filter(
     (c) => c.status === 'valid' && c.apiKey.length > 0,
   );
   if (validConnections.length === 0) {
+    digestResolvedCache.set(userId, null);
     return null;
   }
 
   const available = getAvailableAiModels(validConnections);
   if (available.length === 0) {
+    digestResolvedCache.set(userId, null);
     return null;
   }
 
@@ -296,20 +305,24 @@ export function resolveDigestByok(userId: string): DigestByokConfig | null {
     (targetModel ? available.find((candidate) => candidate.model === targetModel) : null) ??
     available[0];
   if (!match) {
+    digestResolvedCache.set(userId, null);
     return null;
   }
 
   const connection = validConnections.find((candidate) => candidate.id === match.connectionId);
   if (!connection) {
+    digestResolvedCache.set(userId, null);
     return null;
   }
 
-  return {
+  const resolved: DigestByokConfig = {
     connectionId: connection.id,
     provider: connection.adapter,
     model: match.model,
     providerKey: connection.apiKey,
   };
+  digestResolvedCache.set(userId, resolved);
+  return resolved;
 }
 
 export function useDigestByok(userId: string | undefined): DigestByokConfig | null {

@@ -124,5 +124,8 @@ describe('ai-connections local store', () => {
       model: 'gpt-4o',
       providerKey: 'sk-oa-key',
     });
+
+    // 稳定引用测试：数据不变时多次调用必须保持引用同一（供 useSyncExternalStore 杜绝重渲染循环）
+    expect(resolveDigestByok(USER)).toBe(selectedByok);
   });
 });
