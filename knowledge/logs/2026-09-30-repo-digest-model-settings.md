@@ -15,10 +15,11 @@
    - 在设置页的连接偏好卡片（`connections.length > 0`）中，新增「速读使用模型」下拉选择控件（`Select`），通过 `getAvailableAiModels(connections)` 聚合所有已通过测试的有效模型，按 Provider（DeepSeek / OpenAI）分组展示。
    - 移动端与桌面端自适应排版（`w-full sm:w-56`），无可用模型时友好提示“暂无可用模型，请先添加并测试通过 AI 连接”。
    - 优化笔记偏好 Switch 的禁用条件为 `!hasValidConnection`，有任何有效连接即可自由切换。
-3. **速读凭据解析器构建与调用层解耦**：
+3. **速读凭据解析器构建、调用层解耦与快照引用稳定化**：
    - 在 `apps/web/src/lib/ai-connections.ts` 中实现 `resolveDigestByok(userId)` 与响应式 Hook `useDigestByok(userId)`。
    - 解析规则：优先匹配用户在设置页选定的 `digestModel`；未指定时自动选用首个可用模型（DeepSeek 优先），实现用户添加连接后零额外操作开箱即用。
    - 将 `useRepoDigest` 彻底解绑 `useAskByok`，改用 `useDigestByok`。
+   - **快照稳定性关键保障**：为 `resolveDigestByok` 配备 `digestResolvedCache` 并在数据发生写入（`emitChange`）与重置时清理失效。严格保证在底层连接与设置未变更时，每次 `getSnapshot` 返回完全相同的对象引用，彻底杜绝在打开 Quick Look 项目抽屉时因 `useSyncExternalStore` 引用变化而触发的 `Maximum update depth exceeded`（`updateStoreInstance` / `forceStoreRerender`）无限循环。
 4. **设置页顶栏徽章判定修正**：
    - `SettingsAskSection` 顶栏徽章判断逻辑修正为 `isConfigured = Boolean(saved || hasValidConnection)`。用户只要添加并测试通过了任意 AI 连接，顶部即清晰显示「已就绪」徽章。
 
