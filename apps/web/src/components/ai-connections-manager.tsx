@@ -2,24 +2,26 @@ import { readGenerationCapability } from '@asterism/core';
 import {
   Badge,
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+  Separator,
   Skeleton,
   Switch,
   toast,
 } from '@asterism/ui';
 import { MoreHorizontalIcon, PencilIcon, PlugZapIcon, PowerIcon, Trash2Icon } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSession } from '../auth/use-session';
 import {
   useAiConnections,
   useAiSettings,
@@ -30,8 +32,11 @@ import {
   useUpdateAiConnection,
   useUpdateAiSettings,
 } from '../data/use-ai-connections';
-import type { AiConnection, AiConnectionStatus } from '../lib/ai-connections';
-import { readAskConsent } from '../lib/ask-byok';
+import {
+  type AiConnection,
+  type AiConnectionStatus,
+  getAvailableAiModels,
+} from '../lib/ai-connections';
 import { AiConnectionFormDialog } from './ai-connection-form-dialog';
 import { AiConnectionTestDialog } from './ai-connection-test-dialog';
 import { ConfirmDialog } from './confirm-dialog';
@@ -93,8 +98,6 @@ export function AiConnectionsManager({
   badge?: ReactNode;
 } = {}) {
   const { t, i18n } = useTranslation();
-  const { session } = useSession();
-  const userId = session?.user.id;
   const connectionsQuery = useAiConnections();
   const settingsQuery = useAiSettings();
   const createConnection = useCreateAiConnection();
@@ -108,19 +111,36 @@ export function AiConnectionsManager({
   const [editing, setEditing] = useState<AiConnection | null>(null);
   const [deleting, setDeleting] = useState<AiConnection | null>(null);
   const [testing, setTesting] = useState<AiConnection | null>(null);
-  const [pendingActivation, setPendingActivation] = useState<{ connectionId: string } | null>(null);
 
   const connections = connectionsQuery.data ?? [];
   const settings = settingsQuery.data;
 
-  const activeConnectionId = settings?.generationConnectionId ?? null;
+  const availableModels = useMemo(() => getAvailableAiModels(connections), [connections]);
+  const deepseekModels = useMemo(
+    () => availableModels.filter((m) => m.provider === 'deepseek'),
+    [availableModels],
+  );
+  const openaiModels = useMemo(
+    () => availableModels.filter((m) => m.provider === 'openai'),
+    [availableModels],
+  );
+
+  const currentDigestModel =
+    (settings?.digestModel
+      ? availableModels.find((m) => m.model === settings.digestModel)?.model
+      : null) ??
+    availableModels[0]?.model ??
+    '';
+
+  const hasValidConnection = connections.some((connection) => connection.status === 'valid');
+  const activeDigestProvider =
+    availableModels.find((m) => m.model === currentDigestModel)?.provider ??
+    availableModels[0]?.provider;
+  const activeProviderName = activeDigestProvider
+    ? t(`settings.ai.adapters.${activeDigestProvider}`)
+    : '';
 
   const failSettings = () => toast.error(t('settings.ai.settingsError'));
-
-  const activeConnection = connections.find((connection) => connection.id === activeConnectionId);
-  const activeProviderName = activeConnection
-    ? t(`settings.ai.adapters.${activeConnection.adapter}`)
-    : '';
 
   const testedConnection =
     testConnection.data?.id === testing?.id ? testConnection.data : undefined;
@@ -142,29 +162,6 @@ export function AiConnectionsManager({
     createConnection.reset();
     setCreateOpen(true);
   };
-
-  /** 激活连接：Provider 与已同意的不一致时先走 ADR 0042 出网披露。 */
-  const activateConnection = (connectionId: string | null) => {
-    if (connectionId === null) {
-      updateSettings.mutate({ generationConnectionId: null }, { onError: failSettings });
-      return;
-    }
-    const connection = connections.find((candidate) => candidate.id === connectionId);
-    if (!connection) {
-      return;
-    }
-    // 同意按 Provider 生效（披露内容只与 Provider 有关）；换同 Provider 的另一条
-    // 连接时直接沿用，激活会把同意重新绑定到新连接。
-    if (readAskConsent(userId ?? '')?.consentedProvider === connection.adapter) {
-      updateSettings.mutate({ generationConnectionId: connectionId }, { onError: failSettings });
-      return;
-    }
-    setPendingActivation({ connectionId });
-  };
-
-  const pendingActivationConnection = pendingActivation
-    ? connections.find((candidate) => candidate.id === pendingActivation.connectionId)
-    : undefined;
 
   const addButton = <Button onClick={openCreate}>{t('settings.ai.addConnection')}</Button>;
 
@@ -341,13 +338,92 @@ export function AiConnectionsManager({
       {connections.length > 0 ? (
         <div className="flex flex-col gap-4 rounded-lg border p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 sm:min-w-0 sm:flex-1">
+              <span className="font-medium text-foreground text-sm">
+                {t('settings.ai.digestModelLabel')}
+              </span>
+              <span className="text-caption text-muted-foreground">
+                {t('settings.ai.digestModelDescription')}
+              </span>
+            </div>
+            <div className="w-full sm:w-auto">
+              {availableModels.length > 0 ? (
+                <Select
+                  value={currentDigestModel}
+                  onValueChange={(val) => {
+                    updateSettings.mutate({ digestModel: val }, { onError: failSettings });
+                  }}
+                  disabled={updateSettings.isPending}
+                >
+                  <SelectTrigger
+                    className="w-full font-mono text-xs sm:w-56"
+                    aria-label={t('settings.ai.digestModelLabel')}
+                  >
+                    <SelectValue placeholder={t('settings.ai.digestModelPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent align="end" className="w-56 font-mono text-xs">
+                    {deepseekModels.length > 0 ? (
+                      <SelectGroup>
+                        <SelectLabel className="font-sans text-micro text-muted-foreground">
+                          DeepSeek
+                        </SelectLabel>
+                        {deepseekModels.map((item) => (
+                          <SelectItem
+                            key={`deepseek-${item.model}`}
+                            value={item.model}
+                            className="font-mono text-xs"
+                          >
+                            {item.model}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ) : null}
+                    {deepseekModels.length > 0 && openaiModels.length > 0 ? (
+                      <SelectSeparator />
+                    ) : null}
+                    {openaiModels.length > 0 ? (
+                      <SelectGroup>
+                        <SelectLabel className="font-sans text-micro text-muted-foreground">
+                          OpenAI
+                        </SelectLabel>
+                        {openaiModels.map((item) => (
+                          <SelectItem
+                            key={`openai-${item.model}`}
+                            value={item.model}
+                            className="font-mono text-xs"
+                          >
+                            {item.model}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ) : null}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select disabled>
+                  <SelectTrigger
+                    className="w-full font-mono text-xs text-muted-foreground sm:w-56"
+                    aria-label={t('settings.ai.digestModelLabel')}
+                  >
+                    <SelectValue placeholder={t('settings.ai.digestModelEmpty')} />
+                  </SelectTrigger>
+                </Select>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-1 sm:min-w-0 sm:flex-1">
               <span className="font-medium text-foreground text-sm">
                 {t('settings.ai.includeNotesLabel')}
               </span>
               <span className="text-caption text-muted-foreground">
-                {activeConnection
-                  ? t('settings.ai.includeNotesDescription', { provider: activeProviderName })
+                {hasValidConnection
+                  ? t('settings.ai.includeNotesDescription', {
+                      provider: activeProviderName || t('settings.ai.title'),
+                    })
                   : t('settings.ai.includeNotesUnavailable')}
               </span>
             </div>
@@ -356,7 +432,7 @@ export function AiConnectionsManager({
               onCheckedChange={(checked) =>
                 updateSettings.mutate({ includeNotesInAi: checked }, { onError: failSettings })
               }
-              disabled={updateSettings.isPending || !activeConnection}
+              disabled={updateSettings.isPending || !hasValidConnection}
               aria-label={t('settings.ai.includeNotesLabel')}
             />
           </div>
@@ -380,11 +456,8 @@ export function AiConnectionsManager({
               generationCapability: values.generationCapability,
             },
             {
-              onSuccess: (newConn) => {
+              onSuccess: () => {
                 setCreateOpen(false);
-                if (!activeConnectionId) {
-                  activateConnection(newConn.id);
-                }
               },
             },
           );
@@ -472,51 +545,6 @@ export function AiConnectionsManager({
           deleteConnection.mutate(deleting, { onSuccess: () => setDeleting(null) });
         }}
       />
-
-      {/* 出网披露同意（ADR 0042）：激活新 Provider 的连接前确认，不用删除语义的 ConfirmDialog。 */}
-      <Dialog
-        open={Boolean(pendingActivation)}
-        onOpenChange={(open) => !open && setPendingActivation(null)}
-      >
-        <DialogContent closeLabel={t('common.close')}>
-          <DialogHeader className="pr-10">
-            <DialogTitle>
-              {t('settings.askConsentTitle', {
-                provider: pendingActivationConnection
-                  ? t(`settings.ai.adapters.${pendingActivationConnection.adapter}`)
-                  : '',
-              })}
-            </DialogTitle>
-            <DialogDescription>
-              {t('settings.askConsentDescription', {
-                provider: pendingActivationConnection
-                  ? t(`settings.ai.adapters.${pendingActivationConnection.adapter}`)
-                  : '',
-              })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setPendingActivation(null)}>
-              {t('common.cancel')}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                if (!pendingActivation) return;
-                updateSettings.mutate(
-                  { generationConnectionId: pendingActivation.connectionId },
-                  {
-                    onSuccess: () => setPendingActivation(null),
-                    onError: failSettings,
-                  },
-                );
-              }}
-            >
-              {t('settings.askConsentConfirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }

@@ -34,6 +34,8 @@ export interface AiSettings {
   /** 当前选中的提问模型（跨 Ask dock 与 Settings 同步）。 */
   selectedModel?: string | null;
   includeNotesInAi: boolean;
+  /** 单仓库核心速读专用模型，默认缺省首个可用模型 */
+  digestModel?: string | null;
 }
 
 const connectionsCache = new Map<string, AiConnection[]>();
@@ -156,6 +158,10 @@ export function readAiSettings(userId: string): AiSettings {
             ? parsed.selectedModel.trim()
             : null,
         includeNotesInAi: parsed.includeNotesInAi !== false,
+        digestModel:
+          typeof parsed.digestModel === 'string' && parsed.digestModel.trim().length > 0
+            ? parsed.digestModel.trim()
+            : null,
       };
     }
   } catch {
@@ -165,11 +171,20 @@ export function readAiSettings(userId: string): AiSettings {
   return settings;
 }
 
-export function writeAiSettings(userId: string, settings: AiSettings) {
+export function writeAiSettings(userId: string, settings: Partial<AiSettings>) {
+  const current = readAiSettings(userId);
   const normalized: AiSettings = {
-    generationConnectionId: settings.generationConnectionId ?? null,
-    selectedModel: settings.selectedModel ?? null,
-    includeNotesInAi: settings.includeNotesInAi !== false,
+    generationConnectionId:
+      settings.generationConnectionId !== undefined
+        ? settings.generationConnectionId
+        : current.generationConnectionId,
+    selectedModel:
+      settings.selectedModel !== undefined ? settings.selectedModel : current.selectedModel,
+    includeNotesInAi:
+      settings.includeNotesInAi !== undefined
+        ? settings.includeNotesInAi
+        : current.includeNotesInAi,
+    digestModel: settings.digestModel !== undefined ? settings.digestModel : current.digestModel,
   };
   try {
     window.localStorage.setItem(aiSettingsStorageKey(userId), JSON.stringify(normalized));
@@ -187,6 +202,7 @@ function defaultAiSettingsValue(): AiSettings {
     generationConnectionId: null,
     selectedModel: null,
     includeNotesInAi: true,
+    digestModel: null,
   });
 }
 
@@ -246,5 +262,60 @@ export function useAiSettingsValue(userId: string | undefined): AiSettings {
     subscribe,
     () => (userId ? readAiSettings(userId) : defaultAiSettings()),
     defaultAiSettings,
+  );
+}
+
+export interface DigestByokConfig {
+  connectionId: string;
+  provider: AskProviderId;
+  model: string;
+  providerKey: string;
+}
+
+/**
+ * 解析单仓库速读专用的模型凭据：
+ * 优先匹配用户在设置页选定的 digestModel；未选定则默认使用首个可用模型；
+ * 自动匹配提供该模型的有效连接及 API Key。
+ */
+export function resolveDigestByok(userId: string): DigestByokConfig | null {
+  const validConnections = readAiConnections(userId).filter(
+    (c) => c.status === 'valid' && c.apiKey.length > 0,
+  );
+  if (validConnections.length === 0) {
+    return null;
+  }
+
+  const available = getAvailableAiModels(validConnections);
+  if (available.length === 0) {
+    return null;
+  }
+
+  const settings = readAiSettings(userId);
+  const targetModel = settings.digestModel;
+  const match =
+    (targetModel ? available.find((candidate) => candidate.model === targetModel) : null) ??
+    available[0];
+  if (!match) {
+    return null;
+  }
+
+  const connection = validConnections.find((candidate) => candidate.id === match.connectionId);
+  if (!connection) {
+    return null;
+  }
+
+  return {
+    connectionId: connection.id,
+    provider: connection.adapter,
+    model: match.model,
+    providerKey: connection.apiKey,
+  };
+}
+
+export function useDigestByok(userId: string | undefined): DigestByokConfig | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => (userId ? resolveDigestByok(userId) : null),
+    () => null,
   );
 }

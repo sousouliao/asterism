@@ -176,15 +176,13 @@ describe('AiConnectionsManager', () => {
     );
   });
 
-  it('gates activating a new provider behind the egress consent dialog', async () => {
-    let createSuccess: ((created: AiConnection) => void) | undefined;
+  it('creates connection without activating global active connection', async () => {
+    let createSuccess: (() => void) | undefined;
     const create = {
       ...idleMutation(),
-      mutate: vi.fn(
-        (_payload: unknown, options?: { onSuccess?: (created: AiConnection) => void }) => {
-          createSuccess = options?.onSuccess;
-        },
-      ),
+      mutate: vi.fn((_payload: unknown, options?: { onSuccess?: () => void }) => {
+        createSuccess = options?.onSuccess;
+      }),
     };
     hooks.useCreateAiConnection.mockReturnValue(create);
     hooks.useTestAndDiscoverProbe.mockReturnValue({
@@ -200,8 +198,7 @@ describe('AiConnectionsManager', () => {
     const updateSettings = idleMutation();
     hooks.useUpdateAiSettings.mockReturnValue(updateSettings);
     hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
-    hooks.useAiSettings.mockReturnValue({ data: { ...settings, generationConnectionId: null } });
-    askByok.readAskConsent.mockReturnValue(null);
+    hooks.useAiSettings.mockReturnValue({ data: settings });
     await render();
 
     const addBtn = [...container.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
@@ -240,106 +237,43 @@ describe('AiConnectionsManager', () => {
     });
 
     await act(async () => {
-      createSuccess?.(connection);
+      createSuccess?.();
     });
 
-    // 尚未同意：先披露（弹层挂在 body），不落偏好。
-    expect(document.body.textContent).toContain('Allow Ask to send context to DeepSeek');
     expect(updateSettings.mutate).not.toHaveBeenCalled();
-
-    const confirm = [...document.body.querySelectorAll('button')]
-      .filter((button) => button.textContent?.includes('I understand — save'))
-      .pop();
-    await act(async () => {
-      confirm?.click();
-    });
-    expect(updateSettings.mutate).toHaveBeenCalledWith(
-      { generationConnectionId: 'conn-1' },
-      expect.objectContaining({ onSuccess: expect.any(Function) }),
-    );
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it('activates without re-disclosure when the provider was already consented', async () => {
-    let createSuccess: ((created: AiConnection) => void) | undefined;
-    const create = {
-      ...idleMutation(),
-      mutate: vi.fn(
-        (_payload: unknown, options?: { onSuccess?: (created: AiConnection) => void }) => {
-          createSuccess = options?.onSuccess;
-        },
-      ),
-    };
-    hooks.useCreateAiConnection.mockReturnValue(create);
-    hooks.useTestAndDiscoverProbe.mockReturnValue({
-      ...idleMutation(),
-      mutate: (_payload: unknown, options?: { onSuccess?: (outcome: unknown) => void }) => {
-        options?.onSuccess?.({
-          ok: true,
-          models: ['deepseek-chat'],
-          testedAt: new Date().toISOString(),
-        });
-      },
-    });
-    const updateSettings = idleMutation();
-    hooks.useUpdateAiSettings.mockReturnValue(updateSettings);
+  it('renders repo digest model selector with available models and defaults to first model', async () => {
     hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
-    hooks.useAiSettings.mockReturnValue({ data: { ...settings, generationConnectionId: null } });
-    askByok.readAskConsent.mockReturnValue({ consentedProvider: 'deepseek' });
-    await render();
-
-    const addBtn = [...container.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
-      b.textContent?.includes('Add connection'),
-    );
-    await act(async () => {
-      addBtn?.click();
-    });
-
-    const dialog = document.body.querySelector('[role="dialog"]');
-    const keyInput = dialog?.querySelector<HTMLInputElement>('input[type="password"]');
-    await act(async () => {
-      if (keyInput) {
-        const descriptor = Object.getOwnPropertyDescriptor(
-          window.HTMLInputElement.prototype,
-          'value',
-        );
-        descriptor?.set?.call(keyInput, 'sk-test-key-12345');
-        keyInput.dispatchEvent(new Event('input', { bubbles: true }));
-        keyInput.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    });
-
-    const testBtn = [...(dialog?.querySelectorAll('button') ?? [])].find((b) =>
-      b.textContent?.includes('Test connection'),
-    );
-    await act(async () => {
-      testBtn?.click();
-    });
-
-    const submitBtn = [...(dialog?.querySelectorAll('button') ?? [])].find(
-      (b) => b.getAttribute('type') === 'submit' && b.textContent?.includes('Add connection'),
-    );
-    await act(async () => {
-      submitBtn?.click();
-    });
-
-    await act(async () => {
-      createSuccess?.(connection);
-    });
-
-    expect(updateSettings.mutate).toHaveBeenCalledWith(
-      { generationConnectionId: 'conn-1' },
-      expect.anything(),
-    );
-    expect(document.body.textContent).not.toContain('Allow Ask to send context to');
-  });
-
-  it('does not offer private-note inclusion without an active connection', async () => {
-    hooks.useAiConnections.mockReturnValue({ data: [connection], isLoading: false });
-    hooks.useAiSettings.mockReturnValue({ data: { ...settings, generationConnectionId: null } });
+    hooks.useAiSettings.mockReturnValue({ data: { ...settings, digestModel: null } });
 
     await render();
 
-    expect(container.textContent).toContain('Choose a valid active connection');
+    expect(container.textContent).toContain('Repo Digest Model');
+    expect(container.textContent).toContain('deepseek-chat');
+  });
+
+  it('shows empty placeholder when no valid connection has models', async () => {
+    const untestedConn = { ...connection, status: 'untested' as const, generationCapability: null };
+    hooks.useAiConnections.mockReturnValue({ data: [untestedConn], isLoading: false });
+    hooks.useAiSettings.mockReturnValue({ data: settings });
+
+    await render();
+
+    expect(container.textContent).toContain(
+      'No models available. Add and verify an AI connection first.',
+    );
+  });
+
+  it('does not offer private-note inclusion without a valid connection', async () => {
+    const invalidConnection = { ...connection, status: 'invalid' as const };
+    hooks.useAiConnections.mockReturnValue({ data: [invalidConnection], isLoading: false });
+    hooks.useAiSettings.mockReturnValue({ data: settings });
+
+    await render();
+
+    expect(container.textContent).toContain('Add and verify a valid AI connection');
     const switchEl = container.querySelector<HTMLButtonElement>('button[data-slot="switch"]');
     expect(switchEl?.disabled).toBe(true);
   });

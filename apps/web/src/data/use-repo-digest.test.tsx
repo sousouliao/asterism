@@ -43,8 +43,8 @@ vi.mock('../auth/use-session', () => ({
   useSession: () => ({ session: mocks.session.current }),
 }));
 
-vi.mock('../lib/ask-byok', () => ({
-  useAskByok: () => mocks.byok.current,
+vi.mock('../lib/ai-connections', () => ({
+  useDigestByok: () => mocks.byok.current,
 }));
 
 vi.mock('@asterism/db', async (importOriginal) => {

@@ -7,6 +7,9 @@ import i18n from '../i18n';
 import { SettingsAskSection } from './settings-ask-section';
 
 const byok = vi.hoisted(() => ({ useAskByok: vi.fn() }));
+const aiConnections = vi.hoisted(() => ({
+  useAiConnections: vi.fn(() => ({ data: [] as { status: string }[] })),
+}));
 
 vi.mock('./ai-connections-manager', () => ({
   AiConnectionsManager: ({
@@ -28,6 +31,7 @@ vi.mock('./ai-connections-manager', () => ({
 vi.mock('../auth/use-session', () => ({
   useSession: () => ({ session: { user: { id: 'ask-settings-user' } } }),
 }));
+vi.mock('../data/use-ai-connections', () => aiConnections);
 vi.mock('../lib/ask-byok', () => byok);
 
 let container: HTMLDivElement;
@@ -71,6 +75,17 @@ describe('SettingsAskSection', () => {
       provider: 'deepseek',
       model: 'deepseek-chat',
       consentedProvider: 'deepseek',
+    });
+    await renderSection();
+
+    expect(container.textContent).toContain('Ready');
+    expect(container.textContent).not.toContain('Not configured');
+  });
+
+  it('shows the ready badge when valid ai connection exists even without saved ask consent', async () => {
+    byok.useAskByok.mockReturnValue(null);
+    aiConnections.useAiConnections.mockReturnValue({
+      data: [{ status: 'valid' }],
     });
     await renderSection();
 

@@ -10,7 +10,7 @@ import { useCallback, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/use-session';
-import { useAskByok } from '../lib/ask-byok';
+import { useDigestByok } from '../lib/ai-connections';
 import { clearRepoDigest, saveRepoDigest, useRepoDigest } from '../lib/repo-digest-storage';
 import { supabase } from '../lib/supabase';
 import { repoKeys } from './keys';
@@ -38,7 +38,7 @@ export function useRepoDigestManager(
 
   const userId = session?.user.id;
   const repoId = record?.repoId;
-  const byok = useAskByok(userId);
+  const byok = useDigestByok(userId);
   const cachedDigest = useRepoDigest(userId, repoId);
 
   const [isGenerating, setIsGenerating] = useState(false);

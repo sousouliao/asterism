@@ -7,6 +7,7 @@ import {
   clearAiConnectionsState,
   readAiConnections,
   readAiSettings,
+  resolveDigestByok,
   writeAiConnections,
   writeAiSettings,
 } from './ai-connections';
@@ -51,13 +52,19 @@ describe('ai-connections local store', () => {
     expect(readAiSettings(USER)).toEqual({
       generationConnectionId: null,
       selectedModel: null,
+      digestModel: null,
       includeNotesInAi: true,
     });
 
-    writeAiSettings(USER, { generationConnectionId: 'conn-1', includeNotesInAi: false });
+    writeAiSettings(USER, {
+      generationConnectionId: 'conn-1',
+      includeNotesInAi: false,
+      digestModel: 'deepseek-chat',
+    });
     expect(readAiSettings(USER)).toEqual({
       generationConnectionId: 'conn-1',
       selectedModel: null,
+      digestModel: 'deepseek-chat',
       includeNotesInAi: false,
     });
     expect(localStorage.getItem(aiSettingsStorageKey(USER))).toContain('conn-1');
@@ -65,5 +72,57 @@ describe('ai-connections local store', () => {
     localStorage.setItem(aiSettingsStorageKey(USER), '{not json');
     clearAiConnectionsState();
     expect(readAiSettings(USER).includeNotesInAi).toBe(true);
+  });
+
+  it('resolves digest byok with configured digestModel or defaults to first available model', () => {
+    expect(resolveDigestByok(USER)).toBeNull();
+
+    writeAiConnections(USER, [
+      {
+        id: 'conn-ds',
+        adapter: 'deepseek',
+        name: 'DeepSeek',
+        baseUrl: null,
+        status: 'valid',
+        credentialHint: 'sk-…1',
+        apiKey: 'sk-ds-key',
+        generationCapability: { ok: true, reason: null, model: 'deepseek-chat', testedAt: 'x' },
+        models: ['deepseek-chat', 'deepseek-reasoner'],
+        createdAt: '2026-09-20T00:00:00.000Z',
+        updatedAt: '2026-09-20T00:00:00.000Z',
+      },
+      {
+        id: 'conn-oa',
+        adapter: 'openai',
+        name: 'OpenAI',
+        baseUrl: null,
+        status: 'valid',
+        credentialHint: 'sk-…2',
+        apiKey: 'sk-oa-key',
+        generationCapability: { ok: true, reason: null, model: 'gpt-4o', testedAt: 'x' },
+        models: ['gpt-4o-mini', 'gpt-4o'],
+        createdAt: '2026-09-20T00:00:00.000Z',
+        updatedAt: '2026-09-20T00:00:00.000Z',
+      },
+    ]);
+
+    // 默认回退到首个可用模型（DeepSeek 优先）
+    const defaultByok = resolveDigestByok(USER);
+    expect(defaultByok).toEqual({
+      connectionId: 'conn-ds',
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+      providerKey: 'sk-ds-key',
+    });
+
+    // 用户在设置中选定特定模型（如 gpt-4o）
+    writeAiSettings(USER, { digestModel: 'gpt-4o' });
+    const selectedByok = resolveDigestByok(USER);
+    expect(selectedByok).toEqual({
+      connectionId: 'conn-oa',
+      provider: 'openai',
+      model: 'gpt-4o',
+      providerKey: 'sk-oa-key',
+    });
   });
 });

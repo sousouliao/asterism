@@ -355,6 +355,7 @@ export function useUpdateAiSettings() {
       generationConnectionId?: string | null;
       selectedModel?: string | null;
       includeNotesInAi?: boolean;
+      digestModel?: string | null;
     }): Promise<AiSettings> => {
       if (!userId) {
         throw new Error(NO_USER);
