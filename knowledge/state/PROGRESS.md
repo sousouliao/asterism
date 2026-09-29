@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-29 · Browse 宫格与列表视图切换系统性重构与体验优化**：根除常驻挂载配合 `hidden`（`display: none`）导致的尺寸测量归零毒化（`useColumns` 坍塌为 1 列与 `useTableLayout` 坍塌为移动端 104px 单列，以及虚拟行高缓存污染与闪烁）；`BrowseRepoList` 改为干净单视图按需挂载；`useColumns` 与 `useTableLayout` 增加 `window.innerWidth` 智能首帧初值与非正宽度保护；`RepoTable` 尊重显式传入的 `scrollElement` 杜绝越界反查；`useBrowseView` 移除多余双重 rAF 延时，改为纯粹 `startTransition` 即时响应；`BrowsePage` 移除切换视图时强行 `scrollTop = 0` 的生硬重置，平滑保留用户浏览位置。全工程 56 套件 303 项单测、类型与 Biome 门禁全绿。见 `logs/2026-09-29-browse-view-switch-refactor.md`。
+
 - **2026-09-29 · 批量选择模式下自动隐藏 Ask 对话框彻底消除浮层遮挡冲突**：建立跨组件共享的 `useBulkSelectionStore` 状态流。在 Browse 页面激活批量选择模式时，`AskDock` 根容器动态附加 `hidden` 类名，完整隐藏问答对话舱、背景流体氛围层及输入胶囊，彻底消除与底部常驻 `BulkSelectionBar` 的叠加重合；离开选择模式时平滑复原并保留用户上下文；`AppLayout` 中的 `⌘K` / `Ctrl+K` 快捷键在批量状态下礼貌屏蔽。全工程单测（56 套件 303 项）与 Biome 门禁全绿。见 `logs/2026-09-29-hide-ask-dock-during-bulk-selection.md`。
 
 - **2026-09-29 · 批量选择 Checkbox 移至卡片右上角消除布局重排**：彻底移除批量选择模式下在卡片内容容器强制叠加的 `pl-7`（28px 右偏移），消除进入选择状态时全屏卡片内容的横向位移与布局重绘（CLS）。Checkbox 改为内置于标题行右侧弹性区，在 `p-4` 下天然对齐物理右上角（`top: 16px, right: 16px`）；与归档/已取消星标徽章保持横向紧凑微间距，左侧标题通过 `flex-1 min-w-0` 优雅截断让位，卡片主体内容纹丝不动。单测（55 套件 301 项）与代码门禁全绿。见 `logs/2026-09-29-repo-card-bulk-checkbox-alignment.md`。

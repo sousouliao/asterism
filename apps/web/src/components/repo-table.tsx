@@ -36,7 +36,13 @@ function tableGridClass(layout: TableLayout): string {
 }
 
 function useTableLayout(ref: React.RefObject<HTMLElement | null>): TableLayout {
-  const [layout, setLayout] = useState<TableLayout>('mobile');
+  const [layout, setLayout] = useState<TableLayout>(() => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      return width < 640 ? 'mobile' : width < 1024 ? 'compact' : 'wide';
+    }
+    return 'wide';
+  });
 
   useEffect(() => {
     const element = ref.current;
@@ -45,6 +51,9 @@ function useTableLayout(ref: React.RefObject<HTMLElement | null>): TableLayout {
     }
     const update = () => {
       const width = element.clientWidth;
+      if (width <= 0) {
+        return;
+      }
       setLayout(width < 640 ? 'mobile' : width < 1024 ? 'compact' : 'wide');
     };
     update();
@@ -438,7 +447,7 @@ export const RepoTable = memo(function RepoTable({
   const scrollMargin = useScrollMargin(tableRef, resolvedScroll);
 
   useEffect(() => {
-    if (scrollElement) {
+    if (scrollElement !== undefined) {
       setResolvedScroll(scrollElement);
       return;
     }

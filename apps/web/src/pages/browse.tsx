@@ -9,7 +9,7 @@ import {
   SearchXIcon,
   StarIcon,
 } from 'lucide-react';
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { BulkExportDialog } from '../components/bulk-export';
@@ -41,7 +41,6 @@ import {
   removeSelection,
   toggleSelection,
 } from '../lib/bulk-selection';
-import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
 import { useBulkSelectionStore } from '../stores/bulk-selection';
@@ -97,7 +96,6 @@ function BrowseDataPage() {
   const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(() => new Set());
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkExportOpen, setBulkExportOpen] = useState(false);
-  const skipViewScrollResetRef = useRef(peekPendingReadmeReturn()?.sourceKey === 'browse');
   const activeBulkDialogOperation = bulkOperations?.find(
     (operation) => operation.status !== 'completed' && operation.interaction === 'bulk_dialog',
   );
@@ -115,18 +113,6 @@ function BrowseDataPage() {
     el.addEventListener('scroll', update, { passive: true });
     return () => el.removeEventListener('scroll', update);
   }, [repoScrollElement]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset scroll after committed view changes
-  useEffect(() => {
-    if (!repoScrollElement) {
-      return;
-    }
-    if (skipViewScrollResetRef.current) {
-      skipViewScrollResetRef.current = false;
-      return;
-    }
-    repoScrollElement.scrollTop = 0;
-  }, [view, repoScrollElement]);
 
   const facets = useMemo(() => deriveRepoFacets(records), [records]);
   const collectionsByRepoId = useMemo(() => {

@@ -29,7 +29,14 @@ type RepoCollectionProps = {
 };
 
 function useColumns(ref: React.RefObject<HTMLElement | null>): number {
-  const [columns, setColumns] = useState(1);
+  const [columns, setColumns] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      if (width >= 1024) return 3;
+      if (width >= 640) return 2;
+    }
+    return 1;
+  });
 
   useEffect(() => {
     const el = ref.current;
@@ -37,12 +44,13 @@ function useColumns(ref: React.RefObject<HTMLElement | null>): number {
       return;
     }
     const update = () => {
+      const width = el.clientWidth;
+      if (width <= 0) {
+        return;
+      }
       const next = Math.max(
         1,
-        Math.min(
-          MAX_COLUMNS,
-          Math.floor((el.clientWidth + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP)),
-        ),
+        Math.min(MAX_COLUMNS, Math.floor((width + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP))),
       );
       setColumns(next);
     };
@@ -185,8 +193,7 @@ const RepoListView = memo(function RepoListView({
   );
 });
 
-// memo 让常驻挂载但当前不可见的那一侧在切换时跳过整棵子树的重渲染，
-// 只有真正 props 变化(如 scrollElement 从 null 变为真实节点)的一侧才会重新渲染。
+// 根据 view prop 按需渲染 RepoListView 或 RepoGridView。
 export const RepoCollection = memo(function RepoCollection({
   records,
   semanticStartIndex,
