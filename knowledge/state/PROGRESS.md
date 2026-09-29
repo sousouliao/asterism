@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-30 · 设置页速读模型配置与速读凭据解耦**：遵循「设置页仅配置 Provider，不指定活跃连接」的设计准则，彻底清理设置页内多余的活跃连接自动激活和出网弹窗逻辑；在设置页偏好区域新增「速读使用模型」下拉选择控件，候选模型列表通过 `getAvailableAiModels` 聚合所有已通过测试的有效模型并按 Provider 分组展示，与全局 Ask 输入舱保持完全一致；实现 `useDigestByok` / `resolveDigestByok` 彻底将单仓库速读与 Ask 问答凭据解耦，优先使用用户选定模型并在未指定时自动回退至首个可用模型；优化设置页顶栏「已就绪」徽章判断，只要检测到存在测试通过的有效 AI 连接即标记就绪。全库 59 个测试套件 316 项单测、TypeScript 与 Biome 门禁全绿。见 `logs/2026-09-30-repo-digest-model-settings.md`。
+
 - **2026-09-30 · 单仓库核心速读（AI 智能提炼）端到端落地**：在 Quick Look 仓库详情抽屉落地极简「AI 核心速读」能力，助力用户 5 秒看透项目本质。视觉上选用灵动「灵感火花（`Sparkles`）」图标，剔除生态对标等非核心干扰，收敛至「一句话定义、核心痛点、适用场景」三大不可替代维度；微晶卡片内边距调优为对称匀称的 `px-3.5 pt-2 pb-2.5`，标题栏高显式锁定 `h-6`（顶栏 31px，底线 38px），彻底消除生成前后像素抖动（CLS）；README 预处理自动切除徽章、图片与尾部许可证/贡献者章节并安全截取；提示词遵循 Matt Pocock 的 `writing-for-agents` 规范（消灭否定句与禁止词反噬、就地收拢 Co-location 字段规则、先验 Leading words）；落地客户端版本化本地持久化、`useSyncExternalStore` 跨标签页同步与完整状态机编排。全库 59 个测试套件 313 项单测、TypeScript 与 Biome 门禁全绿。见 `logs/2026-09-30-repo-ai-digest.md`。
 
 - **2026-09-30 · 集合与技术标签视觉解耦及折叠浮层边距优化**：将仓库上下文中的自定义「集合（Collections）」与 GitHub 原生「技术标签（Topics）」进行视觉解耦，创建独立复用组件 `ContextChip`，集合徽章引入 Lucide 精致矢量图标 `FolderIcon`（12px），技术标签保持纯净外观，两者保持统一的 `variant="secondary"` 规范；修复 `OverflowChipRow` 中因 inline baseline 不一致导致的徽章垂直位移问题，统一为 `inline-flex shrink-0 items-center` 与 `leading-none`；优化 `+n` 折叠浮层的内外边距，将 `TooltipContent` 的非对称边距替换为统一匀称的 `p-2`（8px），使浮层四周留白与标签间距协调平衡。全库 57 个测试套件 306 项单测及代码门禁全绿。见 `logs/2026-09-30-visually-decouple-collections-and-topics.md`。
