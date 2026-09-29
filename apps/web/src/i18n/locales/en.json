@@ -614,5 +614,24 @@
       "runTest": "Run test",
       "testing": "Testing…"
     }
+  },
+  "digest": {
+    "title": "Repository Digest",
+    "compactTitle": "Core Digest",
+    "subtitle": "Extract core archetype, pain points, and target scenarios",
+    "generate": "Generate Digest",
+    "regenerate": "Regenerate",
+    "generating": "Extracting README key points…",
+    "unconfiguredHint": "Configure AI key to enable one-click structured digest",
+    "goToConfigure": "Configure",
+    "copy": "Copy",
+    "copied": "Copied",
+    "definitionLabel": "Core Archetype: ",
+    "painPointLabel": "Friction Solved: ",
+    "scenariosLabel": "Target Scenarios: ",
+    "copyDefinition": "[Core Archetype] ",
+    "copyPainPoint": "[Friction Solved] ",
+    "copyScenarios": "[Target Scenarios] ",
+    "error": "Failed to generate digest, please retry"
   }
 }

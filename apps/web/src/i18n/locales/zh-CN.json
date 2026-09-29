@@ -614,5 +614,24 @@
       "runTest": "开始测试",
       "testing": "测试中…"
     }
+  },
+  "digest": {
+    "title": "仓库核心速读",
+    "compactTitle": "核心速读",
+    "subtitle": "提炼一句话定位、核心痛点与适用场景",
+    "generate": "生成速读",
+    "regenerate": "重新生成",
+    "generating": "正在提炼 README 核心要点…",
+    "unconfiguredHint": "配置 AI 密钥后即可一键生成结构化速读",
+    "goToConfigure": "前往配置",
+    "copy": "复制",
+    "copied": "已复制",
+    "definitionLabel": "一句话定位：",
+    "painPointLabel": "核心痛点：",
+    "scenariosLabel": "适用场景：",
+    "copyDefinition": "【一句话定位】",
+    "copyPainPoint": "【核心解决痛点】",
+    "copyScenarios": "【最佳适用场景】",
+    "error": "速读生成失败，请重试"
   }
 }

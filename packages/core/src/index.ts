@@ -136,6 +136,16 @@ export {
   tokenizeQuestion,
 } from './repos/ask';
 export type {
+  BuildRepoDigestPromptInput,
+  RepoDigestData,
+  RepoDigestPrompt,
+} from './repos/digest';
+export {
+  buildRepoDigestPrompt,
+  cleanReadmeForDigest,
+  parseRepoDigest,
+} from './repos/digest';
+export type {
   RepoFacets,
   RepoFilter,
   RepoSort,

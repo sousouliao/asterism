@@ -31,6 +31,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
+import { useRepoDigestManager } from '../data/use-repo-digest';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
@@ -52,6 +53,7 @@ import { useBrowseFilters } from '../stores/browse-filters';
 import { getBrowseView } from '../stores/browse-view';
 import { useListScrollStore } from '../stores/list-scroll';
 import { adjacentRepo, findRepoIndex, useRepoInspectorStore } from '../stores/repo-inspector';
+import { RepoAiDigest } from './repo-digest/repo-ai-digest';
 import { CollectionsSection } from './repo-inspector/collections-section';
 import {
   clampFloatingPosition,
@@ -683,6 +685,21 @@ function InspectorBody({
   );
 }
 
+function RepoInspectorDigest({ record }: { record: StarredRepoRecord }) {
+  const { status, data, generate, regenerate, configureKey } = useRepoDigestManager(record);
+
+  return (
+    <RepoAiDigest
+      status={status}
+      data={data}
+      iconType="lightbulb"
+      onGenerate={() => void generate()}
+      onRegenerate={() => void regenerate()}
+      onConfigureKey={configureKey}
+    />
+  );
+}
+
 function Overview({
   record,
   onReadReadme,
@@ -749,6 +766,11 @@ function Overview({
         ) : null}
         {record.unstarredAt ? <span>{t('browse.unstarred')}</span> : null}
       </div>
+
+      <div className="mt-4">
+        <RepoInspectorDigest record={record} />
+      </div>
+
       <button
         type="button"
         onClick={onReadReadme}

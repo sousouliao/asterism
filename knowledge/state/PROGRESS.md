@@ -12,6 +12,8 @@
 
 ## 已完成里程碑
 
+- **2026-09-30 · 单仓库核心速读（AI 智能提炼）端到端落地**：在 Quick Look 仓库详情抽屉落地极简「AI 核心速读」能力，助力用户 5 秒看透项目本质。视觉上选用灵动「灵感火花（`Sparkles`）」图标，剔除生态对标等非核心干扰，收敛至「一句话定义、核心痛点、适用场景」三大不可替代维度；微晶卡片内边距调优为对称匀称的 `px-3.5 pt-2 pb-2.5`，标题栏高显式锁定 `h-6`（顶栏 31px，底线 38px），彻底消除生成前后像素抖动（CLS）；README 预处理自动切除徽章、图片与尾部许可证/贡献者章节并安全截取；提示词遵循 Matt Pocock 的 `writing-for-agents` 规范（消灭否定句与禁止词反噬、就地收拢 Co-location 字段规则、先验 Leading words）；落地客户端版本化本地持久化、`useSyncExternalStore` 跨标签页同步与完整状态机编排。全库 59 个测试套件 313 项单测、TypeScript 与 Biome 门禁全绿。见 `logs/2026-09-30-repo-ai-digest.md`。
+
 - **2026-09-30 · 集合与技术标签视觉解耦及折叠浮层边距优化**：将仓库上下文中的自定义「集合（Collections）」与 GitHub 原生「技术标签（Topics）」进行视觉解耦，创建独立复用组件 `ContextChip`，集合徽章引入 Lucide 精致矢量图标 `FolderIcon`（12px），技术标签保持纯净外观，两者保持统一的 `variant="secondary"` 规范；修复 `OverflowChipRow` 中因 inline baseline 不一致导致的徽章垂直位移问题，统一为 `inline-flex shrink-0 items-center` 与 `leading-none`；优化 `+n` 折叠浮层的内外边距，将 `TooltipContent` 的非对称边距替换为统一匀称的 `p-2`（8px），使浮层四周留白与标签间距协调平衡。全库 57 个测试套件 306 项单测及代码门禁全绿。见 `logs/2026-09-30-visually-decouple-collections-and-topics.md`。
 
 - **2026-09-29 · Browse 宫格与列表视图切换系统性重构与体验优化**：根除常驻挂载配合 `hidden`（`display: none`）导致的尺寸测量归零毒化（`useColumns` 坍塌为 1 列与 `useTableLayout` 坍塌为移动端 104px 单列，以及虚拟行高缓存污染与闪烁）；`BrowseRepoList` 改为干净单视图按需挂载；`useColumns` 与 `useTableLayout` 增加 `window.innerWidth` 智能首帧初值与非正宽度保护；`RepoTable` 尊重显式传入的 `scrollElement` 杜绝越界反查；`useBrowseView` 移除多余双重 rAF 延时，改为纯粹 `startTransition` 即时响应；`BrowsePage` 移除切换视图时强行 `scrollTop = 0` 的生硬重置，平滑保留用户浏览位置。全工程 56 套件 303 项单测、类型与 Biome 门禁全绿。见 `logs/2026-09-29-browse-view-switch-refactor.md`。

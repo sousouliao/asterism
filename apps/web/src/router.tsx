@@ -85,6 +85,12 @@ function createDevelopmentRoutes() {
     })),
   );
 
+  const RepoDigestPreviewPage = lazy(() =>
+    import('./pages/repo-digest-preview').then((module) => ({
+      default: module.RepoDigestPreviewPage,
+    })),
+  );
+
   return [
     {
       path: '/dev/readme-corpus',
@@ -107,6 +113,14 @@ function createDevelopmentRoutes() {
       element: (
         <Suspense fallback={<CorpusLabFallback />}>
           <ResurfacePreviewPage />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/dev/repo-digest-preview',
+      element: (
+        <Suspense fallback={<CorpusLabFallback />}>
+          <RepoDigestPreviewPage />
         </Suspense>
       ),
     },
