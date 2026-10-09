@@ -33,10 +33,10 @@ describe('MatchExplanationBadge', () => {
       root.render(<MatchExplanationBadge explanation={explanation} />);
     });
 
-    expect(container.textContent).toContain('命中收藏原因');
+    expect(container.textContent).toContain('收藏原因匹配');
     expect(container.textContent).toContain('用于替换旧网关');
     const trigger = container.querySelector('button');
-    expect(trigger?.getAttribute('aria-label')).toContain('查看匹配详情');
+    expect(trigger?.getAttribute('aria-label')).toContain('匹配详情');
     await act(async () => {
       trigger?.focus();
     });
@@ -47,7 +47,7 @@ describe('MatchExplanationBadge', () => {
       await i18next.changeLanguage('en');
     });
 
-    expect(container.textContent).toContain('Matches saved reason');
+    expect(container.textContent).toContain('Saved reason matches');
 
     await act(async () => root.unmount());
     container.remove();
@@ -71,7 +71,7 @@ describe('MatchExplanationBadge', () => {
       root.render(<MatchExplanationBadge explanation={explanation} showSnippet={false} />);
     });
 
-    expect(container.textContent).toContain('命中笔记');
+    expect(container.textContent).toContain('笔记匹配');
     expect(container.textContent).not.toContain('私有笔记');
 
     await act(async () => root.unmount());
@@ -97,7 +97,7 @@ describe('MatchExplanationBadge', () => {
       root.render(<MatchExplanationBadge explanation={explanation} />);
     });
 
-    expect(container.textContent).toContain('命中仓库描述');
+    expect(container.textContent).toContain('描述匹配');
     expect(container.textContent).not.toContain('Help AI coding agents');
 
     await act(async () => root.unmount());

@@ -115,16 +115,16 @@ describe('ResurfaceSection', () => {
   it('renders both streams with explainable reasons and memory echo in zh-CN', async () => {
     const { container, root } = await renderSection();
 
-    expect(container.textContent).toContain('记忆唤醒');
+    expect(container.textContent).toContain('重温收藏');
     expect(container.textContent).toContain('值得重温');
-    expect(container.textContent).toContain('待补全记忆');
+    expect(container.textContent).toContain('补写原因');
     // 值得重温卡：沉睡理由 + 本人记忆回声
     expect(container.textContent).toContain('收藏于');
     expect(container.textContent).toContain('收藏原因 · 网关替换的备选方案');
     // 待补全卡：缺原因 + 高价值 + 补写入口
     expect(container.textContent).toContain('尚未记录收藏原因');
     expect(container.textContent).toContain('1.5万 Star');
-    expect(container.textContent).toContain('补写收藏原因');
+    expect(container.textContent).toContain('补写原因');
     expect(container.textContent).toContain('很有用');
 
     await act(async () => root.unmount());
@@ -167,7 +167,7 @@ describe('ResurfaceSection', () => {
     const { container, root } = await renderSection();
 
     expect(container.textContent).toContain('Worth remembering');
-    expect(container.textContent).toContain('Missing context');
+    expect(container.textContent).toContain('Add saved reasons');
     expect(container.textContent).toContain('No saved reason yet');
     expect(container.textContent).toContain('15K stars');
     expect(container.textContent).toContain('Why you saved · 网关替换的备选方案');
@@ -191,7 +191,7 @@ describe('ResurfaceSection', () => {
       expect.anything(),
     );
 
-    const addIntent = buttonsByText(container, '补写收藏原因')[0];
+    const addIntent = buttonsByText(container, '补写原因')[0];
     expect(addIntent).toBeDefined();
     await act(async () => {
       addIntent?.click();
@@ -275,7 +275,7 @@ describe('ResurfaceSection', () => {
 
     // 候选照常展示，但反馈按钮必须消失：没有会话时点击无处可存，
     // 留一个静默失效的按钮比不给按钮更糟。
-    expect(container.textContent).toContain('记忆唤醒');
+    expect(container.textContent).toContain('重温收藏');
     expect(container.textContent).not.toContain('有用');
     expect(container.querySelectorAll('button').length).toBeLessThan(feedbackButtonCount);
 

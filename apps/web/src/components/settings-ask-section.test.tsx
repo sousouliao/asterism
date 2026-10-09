@@ -65,8 +65,8 @@ describe('SettingsAskSection', () => {
 
     expect(container.textContent).toContain('Ask Asterism');
     expect(container.textContent).toContain('Not configured');
-    expect(container.textContent).toContain('key is stored only in this browser');
-    expect(container.textContent).not.toContain('Generation connections');
+    expect(container.textContent).toContain('It is stored only in this browser.');
+    expect(container.textContent).not.toContain('AI connections');
     expect(container.querySelector('[data-testid="ai-connections-manager"]')).not.toBeNull();
   });
 

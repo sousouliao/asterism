@@ -122,7 +122,9 @@ describe('AiConnectionsManager', () => {
     await render();
 
     expect(container.textContent).toContain('No connections yet');
-    expect(container.textContent).toContain('Connect an AI provider to enable Ask Asterism');
+    expect(container.textContent).toContain(
+      'Connect a Provider to ask questions about your Stars.',
+    );
     expect(container.textContent).not.toContain('Include notes');
   });
 
@@ -137,8 +139,8 @@ describe('AiConnectionsManager', () => {
     expect(container.textContent).toContain('Last test:');
     expect(container.textContent).toContain('DeepSeek');
     expect(container.textContent).not.toContain('In use');
-    expect(container.textContent).not.toContain('Active connection');
-    expect(container.textContent).not.toContain('Generation connections');
+    expect(container.textContent).not.toContain('Current connection');
+    expect(container.textContent).not.toContain('AI connections');
   });
 
   it('uses the host section title instead of a nested generation heading', async () => {
@@ -150,7 +152,7 @@ describe('AiConnectionsManager', () => {
     expect(container.querySelector('h2')?.textContent).toBe('Ask Asterism');
     expect(container.textContent).toContain('Bring your own key.');
     expect(container.textContent).toContain('Add connection');
-    expect(container.textContent).not.toContain('Generation connections');
+    expect(container.textContent).not.toContain('AI connections');
   });
 
   it('exposes enable or disable as a real connection lifecycle action', async () => {
@@ -250,7 +252,7 @@ describe('AiConnectionsManager', () => {
 
     await render();
 
-    expect(container.textContent).toContain('Repo Digest Model');
+    expect(container.textContent).toContain('Digest model');
     expect(container.textContent).toContain('deepseek-chat');
   });
 
@@ -261,9 +263,7 @@ describe('AiConnectionsManager', () => {
 
     await render();
 
-    expect(container.textContent).toContain(
-      'No models available. Add and verify an AI connection first.',
-    );
+    expect(container.textContent).toContain('Add a connection and test it first.');
   });
 
   it('does not offer private-note inclusion without a valid connection', async () => {
@@ -273,7 +273,7 @@ describe('AiConnectionsManager', () => {
 
     await render();
 
-    expect(container.textContent).toContain('Add and verify a valid AI connection');
+    expect(container.textContent).toContain('Add a connection and test it first.');
     const switchEl = container.querySelector<HTMLButtonElement>('button[data-slot="switch"]');
     expect(switchEl?.disabled).toBe(true);
   });
@@ -301,7 +301,7 @@ describe('AiConnectionsManager', () => {
     const dialog = [...document.body.querySelectorAll('[role="dialog"]')].pop();
     expect(dialog?.textContent).toContain('Test "Personal DeepSeek"');
     // aria-label 不进 textContent，以属性选择器断言已发现的模型下拉存在。
-    const discoverSelect = dialog?.querySelector('[aria-label="Discovered models"]');
+    const discoverSelect = dialog?.querySelector('[aria-label="Available models"]');
     expect(discoverSelect).not.toBeNull();
     expect(dialog?.textContent).toContain('deepseek-reasoner');
   });

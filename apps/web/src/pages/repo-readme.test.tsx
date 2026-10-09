@@ -365,8 +365,8 @@ describe('README workspace route', () => {
   });
 
   it.each([
-    ['en', 'Repository not in your library'],
-    ['zh-CN', '仓库不在你的资料库中'],
+    ['en', 'Repository not synced'],
+    ['zh-CN', '仓库尚未同步'],
   ])('renders the membership rejection state in %s', async (locale, title) => {
     mocks.result.data = { status: 'not_in_library' };
 
@@ -378,7 +378,7 @@ describe('README workspace route', () => {
 
   it.each([
     ['not_found', 'This repository has no README', 'Check again'],
-    ['rate_limited', 'GitHub rate limit reached', 'Reconnect GitHub'],
+    ['rate_limited', 'Too many requests', 'Reconnect GitHub'],
     ['reconnect_required', 'GitHub access needs reconnecting', 'Reconnect GitHub'],
     ['retryable_error', "Couldn't load this README", 'Try again'],
   ])('renders dedicated recovery for %s', async (status, title, action) => {
