@@ -313,29 +313,7 @@
     "emptyTitle": "No stars to analyze",
     "emptyDescription": "Sync your GitHub stars to see insights here.",
     "errorTitle": "Could not load insights",
-    "errorDescription": "Try again later.",
-    "resurface": {
-      "title": "Revisit your Stars",
-      "description": "Look back at earlier Stars and your memories.",
-      "loadError": "Couldn't load your memories. Try again.",
-      "worthRemembering": "Worth remembering",
-      "missingContext": "Add saved reasons",
-      "reasons": {
-        "anniversary_one": "Starred {{count}} year ago today",
-        "anniversary_other": "Starred {{count}} years ago today",
-        "dormant": "Saved for {{duration}}",
-        "noted": "You recorded a note",
-        "repoQuiet": "No repo updates for {{duration}}",
-        "missingWhySaved": "No saved reason yet",
-        "notedWithoutReason": "Has a note, but no saved reason",
-        "highValue": "{{value}} stars"
-      },
-      "echoWhySaved": "Why you saved",
-      "echoNote": "Your note",
-      "addWhySaved": "Add a reason",
-      "useful": "Useful",
-      "dismiss": "Dismiss"
-    }
+    "errorDescription": "Try again later."
   },
   "importExport": {
     "title": "Import / Export",

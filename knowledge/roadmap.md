@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR 0037）。GitHub Stars 是首个 Memory 来源；Collection 保留为次级人工组织能力。GitHub #37 **Memory Foundation · Why I saved this**、#39 **Unified Retrieval**、#40 **Resurface** 与 #41 **Ask Asterism** 三大核心纵向切片已全部交付并真实环境验收关闭。当前 frontier 是 Star 完整同步与历史远端验收（ADR 0047）。
+Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR 0037）。GitHub Stars 是首个 Memory 来源；Collection 保留为次级人工组织能力。GitHub #37 **Memory Foundation · Why I saved this**、#39 **Unified Retrieval** 与 #41 **Ask Asterism** 已交付并真实环境验收关闭。#40 **Resurface** 曾交付，现按 ADR 0049 退役。当前 frontier 是 Star 完整同步与历史远端验收（ADR 0047）。
 
 | 阶段 | 状态 | 结果 / 边界 |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ Asterism 已从 GitHub Star Manager 转向 **Personal Open Source Memory**（ADR
 | Product Repositioning | Done（ADR 0037） | Personal Open Source Memory 成为正式定位 |
 | Memory Foundation | **Done（2026-09-17）** | #37：一对一 Memory 与 “Why I saved this” 完整纵向切片已部署上线 |
 | Unified Retrieval | **Done（2026-09-18）** | #39：Memory-aware 词法 / 语义检索、可验证解释与可信 Related Stars 降级 |
-| Resurface | **Done（2026-09-19，已验收关闭）** | #40：沉睡唤醒双流、本地可解释算法与本地反馈（ADR 0041）；真实环境验收通过 |
+| Resurface | **Retired（2026-10-10，ADR 0049）** | #40 曾交付；用户确认移除重温推荐流及全部专用运行时代码 |
 | Ask Asterism | **Done（2026-09-22，已验收关闭）** | #41：目录常驻 Agent、客户端 BYOK、无状态 SSE 代理与防幻觉 read gate（ADR 0042 / 0044 / 0045 / 0046）；真实环境验收通过 |
 | Browser Extension / Desktop | Deferred | Memory / Retrieval 基础稳定后重新排期 |
 
@@ -48,7 +48,7 @@ GitHub #37 的本地实现已覆盖：
 
 ## 当前 frontier
 
-统一 Retrieval 已把关键词匹配、语义近邻、Related Stars 与用户 Memory 组合成面向个人意图的检索，并以可信解释和本地降级作为边界。Resurface（#40）已在主页交付沉睡唤醒双流与本地反馈（ADR 0041）。下一活动方向是 GitHub #41 Ask Asterism 私有问答。
+统一 Retrieval 与 Ask 已交付，收藏检回由搜索、Ask 与 Related Stars 承接。Resurface（#40）按 ADR 0049 退役，洞察页保留统计与图表。当前待办仍为 Star 完整同步与历史远端验收（ADR 0047）。
 
 以下方向只保存在长期提案中，尚未获得实现授权：联网搜索、RepoSnapshot、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 与星图 UI。Ask Asterism 已进入 GitHub #41，不再属于未授权方向。
 

@@ -4,10 +4,12 @@
 
 ## 当前状态
 
+- **2026-10-10 · 重温收藏退役**：按用户要求移除洞察页推荐区及专用算法、反馈存储、组件、开发预览、双语文案和对应测试；保留统计、Memory、搜索、Ask 与 Related Stars。ADR 0049 取代 ADR 0041；详见 `logs/2026-10-10-retire-resurface.md`。
+
 - **2026-10-09 · 双语文案精简落地**：按第二版审视更新中文 186 条、英文 182 条，保留 Star / Provider / API Key 等准确名称，统一状态、错误恢复与隐私说明；相关 11 个测试文件的 88 项测试及局部 Biome 检查通过。详见 `logs/2026-10-09-copy-review.md`。
 
 - **产品定位**：Personal Open Source Memory（ADR 0037）。Asterism 是开源、可自部署的个人开源软件记忆库，GitHub Stars 是首个来源。
-- **三大纵向切片已完成闭环**：#39（Unified Retrieval Engine）、#40（Resurface & Memory Streams）与 #41（Ask Asterism 私有问答）已全部完成交付、代码审查、门禁与真实生产环境验收。
+- **检索与问答已完成闭环**：#39（Unified Retrieval Engine）与 #41（Ask Asterism 私有问答）已交付并通过真实生产环境验收；#40（Resurface）曾交付，现按 ADR 0049 退役。
 - **当前工程 frontier**：Star 同步与历史（ADR 0047）。本地实现已完成完整快照对账、加密保存 GitHub 连接、开站静默同步、定时同步配置，以及 Browse 历史入口。待远端部署 migration、`sync-stars` Edge Function、Secrets/Cron 并以真实账号验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
 - **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。

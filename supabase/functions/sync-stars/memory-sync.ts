@@ -14,7 +14,7 @@ export interface MemorySyncStore {
  *
  * 修复逻辑整体下推到 SQL：分页 upsert 曾用 ignoreDuplicates 保护用户已写入的
  * why_saved / note，代价是用户先手工保存过的记录会被整行跳过，其 source_created_at
- * 永远为 null，Resurface 的沉睡判定因此永远跳过这些仓库。数据库端的条件冲突更新
+ * 永远为 null，导致 Memory 缺失来源时间。数据库端的条件冲突更新
  * 同时满足两个要求：不覆盖用户内容，且补齐缺失的收藏时间。
  */
 export async function ensureUserMemories(store: MemorySyncStore, userId: string): Promise<number> {

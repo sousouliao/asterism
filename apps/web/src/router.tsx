@@ -79,12 +79,6 @@ function createDevelopmentRoutes() {
     })),
   );
 
-  const ResurfacePreviewPage = lazy(() =>
-    import('./pages/resurface-preview').then((module) => ({
-      default: module.ResurfacePreviewPage,
-    })),
-  );
-
   const RepoDigestPreviewPage = lazy(() =>
     import('./pages/repo-digest-preview').then((module) => ({
       default: module.RepoDigestPreviewPage,
@@ -105,14 +99,6 @@ function createDevelopmentRoutes() {
       element: (
         <Suspense fallback={<CorpusLabFallback />}>
           <AskPreviewPage />
-        </Suspense>
-      ),
-    },
-    {
-      path: '/dev/resurface-preview',
-      element: (
-        <Suspense fallback={<CorpusLabFallback />}>
-          <ResurfacePreviewPage />
         </Suspense>
       ),
     },

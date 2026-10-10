@@ -1,6 +1,6 @@
 # ADR 0041 · Resurface 沉睡唤醒：本地可解释双流与本地反馈
 
-- Status: Accepted
+- Status: Superseded by ADR 0049（2026-10-10 退役）
 - Date: 2026-09-19
 - Implements: GitHub #40 `feat(memory): resurface inactive stars and contextual memory streams`
 - Preserves: ADR 0037 Memory 模型、ADR 0039 的「解释只陈述可验证事实」原则、ui-ux 契约 Graphite Glass 与「不做遥测」

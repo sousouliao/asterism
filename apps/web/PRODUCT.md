@@ -20,7 +20,7 @@ Context: 开发者坐在工作台前，处于开发或技术选型的工作流�
 
 Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库**（your private memory for open-source software）。GitHub Stars 是其首个来源；产品致力于帮用户沉淀 GitHub 原生缺乏的个人私有上下文，并在需要时重新找到、理解和使用曾关注的软件。
 
-`apps/web` 是当前的核心载体，覆盖账号认证、Star 完整同步与历史对账、卡片/列表响应式浏览（虚拟滚动）、多维客观筛选、隐形混合搜索、Quick Look 记忆检视与编辑、记忆沉睡唤醒流（Resurface）、集合整理（Collections）、本地问答（Ask Asterism）以及备份导入导出。
+`apps/web` 是当前的核心载体，覆盖账号认证、Star 完整同步与历史对账、卡片/列表响应式浏览（虚拟滚动）、多维客观筛选、隐形混合搜索、Quick Look 记忆检视与编辑、统计洞察、集合整理（Collections）、本地问答（Ask Asterism）以及备份导入导出。
 
 ## Positioning
 
@@ -36,7 +36,7 @@ Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库
   1. 浏览与过滤：快速在几百上千个 Star 仓库中按语言、Topic、更新时间等客观属性筛选；
   2. 隐形检索：无需切换模式，直接输入关键词或自然语言意图，融合词法与语义即时召回；
   3. 记忆沉淀：在 Quick Look 中记录 `whySaved`（为何收藏）与 `note`（备忘笔记）；
-  4. 唤醒与追溯：通过 Resurface 发现长期未触碰但仍具价值的技术资产；
+  4. 关联探索：在 Quick Look 中通过 Related Stars 继续查看相关收藏；
   5. 智能问答：在底部 Ask 胶囊中针对个人收藏库直接提问并获得证据支持。
 
 ## Capabilities and Constraints
@@ -46,7 +46,7 @@ Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库
   - 卡片视图 / 列表视图虚拟滚动（TanStack Virtual）；
   - 隐形混合搜索（Lexical + In-browser Embedding）与 Related Stars 语义探索；
   - Quick Look 非模态仓库详情与 Memory（`whySaved`, `note`）双字段编辑保护；
-  - 沉睡唤醒流（Resurface & Memory Streams）与本地反馈持久化；
+  - 洞察页展示个人收藏统计与图表；重温推荐流已按 ADR 0049 退役；
   - 次级人工组织分组（Collections）；
   - Ask Asterism 目录常驻 Agent 智能问答（BYOK 本地加密存储）；
   - JSON v3 完整数据备份导入与导出。

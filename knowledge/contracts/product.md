@@ -21,7 +21,7 @@ Asterism 是一个**开源、多端、可自部署的个人开源软件记忆库
 
 ## Scope · 范围
 
-- **阶段顺序**：已交付响应式 Web、可靠批量整理、Memory Foundation、统一 Retrieval 与 Resurface；下一 frontier 为 Ask Asterism 私有问答。浏览器扩展与桌面端保留，但延后到 Memory / Retrieval 稳定以后。
+- **阶段顺序**：已交付响应式 Web、可靠批量整理、Memory Foundation、统一 Retrieval 与 Ask Asterism 私有问答。Resurface 已按 ADR 0049 退役。浏览器扩展与桌面端保留，但延后到 Memory / Retrieval 稳定以后。
 - **数据源**：用户自己的 GitHub starred 仓库是首个 Memory 来源（通过 GitHub GraphQL API 拉取）；近期不接入外部互联网发现或其他 Provider。
 - **后端**：Supabase（Auth + Postgres source-of-truth + Edge Functions），TanStack Query 提供会话内请求缓存。当前不承诺离线浏览；多个客户端会话不主动推送收敛，进入页面、查询刷新、完成本地操作或重新连接后读取最新状态。
 - **语义能力**：隐形混合搜索与 Related Stars 使用浏览器内 embedding；被嵌文本由仓库元数据与用户自己的 `whySaved` / `note` 组成，原文只在浏览器内处理，派生向量按用户存于 RLS 隔离的 `user_repo_embeddings`。它不依赖 BYOK，也不修改集合或 Memory canonical。
@@ -145,7 +145,7 @@ Cutover 后集合还需承担原标签的 Browse 筛选与卡片整理上下文�
 > **ADR 0032 退役 AI 整理**：Asterism 保留手动批量整理与浏览器内语义检索，不再提供 BYOK Generation、AI 草稿、Organization Task 或同步后整理机会。历史执行结果继续作为普通 canonical 数据保留。
 - **Memory Foundation（GitHub #37，本地实现完成、远端验收待办）**：以每个 `user × repo` 一条 Memory 替代独立 Note，承载 `whySaved` 与 `note`；Stars 同步幂等创建基础记录，Quick Look 提供完整编辑与失败恢复，导入导出使用 JSON v3 Memory 格式。ADR 0038 明确不迁移旧 Note，也不兼容 v1/v2 JSON。
 - **统一 Retrieval（GitHub #39，已交付）**：`@asterism/core` 统一处理仓库元数据与 Memory 的词法召回、个人意图优先排序、语义扩展与可验证的 Match Explanation；Browse 与 Related Stars 共用浏览器内 embedding，弱设备或运行时失败时保持关键词检索与可信的本地 Related Stars 降级。
-- **Resurface 沉睡唤醒（GitHub #40，已交付）**：主页以纯本地、确定性的双流唤醒沉睡 Star——「值得重温」（沉睡且有个人记忆信号或整年纪念日）与「补写原因」（高价值且未记录 `why_saved`）；每条候选只携带可验证的结构化理由（收藏时长、纪念日、笔记存在性、push 时间、star 数），不推断访问行为。Useful / Dismiss 反馈为 90 天本地压制，不写 canonical、不做遥测。规格见 ADR 0041。
+- **退役重温收藏（Resurface，ADR 0049）**：洞察页不再提供「值得重温」与「补写原因」推荐流。专用算法、Useful / Dismiss 本地反馈、卡片、预览路由与翻译资源一并移除。收藏检回继续由搜索、Ask 与 Related Stars 承接；收藏原因与笔记继续在 Quick Look 中编辑。Memory、Collection 与同步数据不受影响。
 - **Ask Asterism 私有问答（GitHub #41，已授权）**：常驻页面底部的直接输入区；全局快捷键（⌘K / Ctrl K）聚焦 composer，而不是唤起弹层。主干是目录常驻浅层 Agent（ADR 0045）：个人库目录作为稳定前缀，浏览器内 `filter` / `search` / `expand` 穷举取证，推荐 `repoId` 必须属于本轮已展开集合；Ask 不再依赖 embedding。回答由用户 BYOK 的 OpenAI 兼容 LLM 流式生成（ADR 0042 / 0044）；正文为受约束的 Markdown，证据卡片只渲染本地数据，点击直达 Repo Quick Look。空库不调用 LLM，明确告知未找到；预算耗尽与未找到必须区分，前者提供「继续深入」。支持快捷追问（目录前缀稳定，历史轮次随对话保留）与停止生成；不存在按模型能力分流的第二条流程（ADR 0046）。双语、键盘友好与移动端自适应。未配置 key 时引导配置，无抽取式兜底。
 - **退役用户自定义 Tag（ADR 0035）**：cutover 已把每个 Tag 转为或合并进同名 Collection，删除 Tag 用户面与表。Browse 增加集合筛选；Quick Look 与批量只留 Collection + Memory；Collections 索引 / 选择器可搜索并支撑约 100 个集合；新导出只写 Collection。ADR 0038 之后导入仅接受 v3，不再保留 v1 Tag 转换入口。Tag color 不迁移。实现规格见 `logs/2026-08-19-retire-user-tags.md`，落地记录见 `logs/2026-08-19-retire-user-tags-cutover.md`。
 - **失效仓库检测**：识别已删除 / 已归档 / 长期无更新的仓库并提示。

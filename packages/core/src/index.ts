@@ -161,14 +161,6 @@ export {
 export type { HybridRankInput, HybridRankResult } from './repos/hybrid-search';
 export { rankHybridRepos } from './repos/hybrid-search';
 export type {
-  DeriveResurfaceInput,
-  ResurfaceCandidate,
-  ResurfaceReason,
-  ResurfaceStreamKind,
-  ResurfaceStreams,
-} from './repos/resurface';
-export { deriveResurfaceStreams } from './repos/resurface';
-export type {
   MatchExplanation,
   MatchReason,
   MatchReasonKind,
