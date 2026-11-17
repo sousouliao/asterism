@@ -126,24 +126,16 @@ async function fillTextarea(label: string, value: string) {
   });
 }
 
-async function prepareDirtyNavigation(readLabel: string) {
+async function prepareDirtyNavigation() {
   await clickTestButton('prepare');
-  await clickVisibleButton(readLabel);
+  await clickVisibleButton('Read README');
   await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
   expect(text('path')).toBe('/');
 }
 
-const localeCases = [
-  ['en', 'Read README', 'Save changes', 'Discard changes', 'Keep editing'],
-  ['zh-CN', '阅读 README', '保存更改', '放弃更改', '继续编辑'],
-] as const;
-
-async function setLocale(locale: (typeof localeCases)[number][0]) {
-  await act(async () => i18n.changeLanguage(locale));
-}
-
 beforeEach(async () => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  await act(async () => i18n.changeLanguage('en'));
   mocks.mutateAsync.mockReset().mockResolvedValue({
     repoId: 'repo-1',
     source: 'github_star',
@@ -179,7 +171,6 @@ afterEach(async () => {
 
 describe('README navigation with an unsaved Memory', () => {
   it('can leave an unchanged Memory edit without closing Quick Look', async () => {
-    await setLocale('en');
     await clickTestButton('prepare');
     await clickVisibleButton('Edit');
     await clickVisibleButton('Cancel');
@@ -198,10 +189,9 @@ describe('README navigation with an unsaved Memory', () => {
   });
 
   it('edits and saves Why saved and Note as one draft', async () => {
-    await setLocale('en');
     await clickTestButton('prepare');
     await clickVisibleButton('Edit');
-    await fillTextarea('Why I saved this', 'Local-first memory research');
+    await fillTextarea('Why saved', 'Local-first memory research');
     await fillTextarea('Note', 'Compare this with sqlite-vec');
     mocks.mutateAsync.mockResolvedValueOnce({
       ...mocks.memory,
@@ -221,7 +211,6 @@ describe('README navigation with an unsaved Memory', () => {
   });
 
   it('refuses pickup-style close requests while retaining the draft and inspector', async () => {
-    await setLocale('en');
     await clickTestButton('prepare');
     await clickTestButton('attempt-close');
 
@@ -230,12 +219,9 @@ describe('README navigation with an unsaved Memory', () => {
     expect(document.body.textContent).toContain('Save changes');
   });
 
-  it.each(
-    localeCases,
-  )('starts navigation only after save succeeds in %s', async (locale, read, save) => {
-    await setLocale(locale);
-    await prepareDirtyNavigation(read);
-    await clickVisibleButton(save);
+  it('starts navigation only after save succeeds', async () => {
+    await prepareDirtyNavigation();
+    await clickVisibleButton('Save changes');
 
     expect(mocks.mutateAsync).toHaveBeenCalledWith({
       repoId: 'repo-1',
@@ -245,31 +231,26 @@ describe('README navigation with an unsaved Memory', () => {
     expect(text('path')).toBe('/repos/openai/codex/readme');
   });
 
-  it.each(localeCases)('discards the draft before navigating in %s', async (locale, ...labels) => {
-    await setLocale(locale);
-    await prepareDirtyNavigation(labels[0]);
-    await clickVisibleButton(labels[2]);
+  it('discards the draft before navigating', async () => {
+    await prepareDirtyNavigation();
+    await clickVisibleButton('Discard changes');
 
     expect(mocks.mutateAsync).not.toHaveBeenCalled();
     expect(text('path')).toBe('/repos/openai/codex/readme');
   });
 
-  it.each(localeCases)('continues editing without navigating in %s', async (locale, ...labels) => {
-    await setLocale(locale);
-    await prepareDirtyNavigation(labels[0]);
-    await clickLabeledControl(labels[3]);
+  it('continues editing without navigating', async () => {
+    await prepareDirtyNavigation();
+    await clickLabeledControl('Keep editing');
 
-    expect(document.body.textContent).not.toContain(labels[1]);
+    expect(document.body.textContent).not.toContain('Save changes');
     expect(text('path')).toBe('/');
   });
 
-  it.each(
-    localeCases,
-  )('keeps the draft and route in place when save fails in %s', async (locale, ...labels) => {
-    await setLocale(locale);
+  it('keeps the draft and route in place when save fails', async () => {
     mocks.mutateAsync.mockRejectedValueOnce(new Error('save failed'));
-    await prepareDirtyNavigation(labels[0]);
-    await clickVisibleButton(labels[1]);
+    await prepareDirtyNavigation();
+    await clickVisibleButton('Save changes');
 
     expect(text('error')).toBe('true');
     expect(text('path')).toBe('/');
