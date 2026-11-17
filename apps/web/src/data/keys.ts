@@ -42,3 +42,8 @@ export const aiSettingsKeys = {
   all: ['ai-settings'] as const,
   detail: (userId: string) => ['ai-settings', userId] as const,
 };
+
+export const mcpGrantKeys = {
+  all: ['mcp-grants'] as const,
+  list: (userId: string) => ['mcp-grants', userId] as const,
+};

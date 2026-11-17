@@ -595,7 +595,43 @@
       },
       "runTest": "Run test",
       "testing": "Testing…"
+    },
+    "mcp": {
+      "title": "MCP access",
+      "readOnlyBadge": "Read-only",
+      "description": "Connect Cursor, Claude, or other MCP clients to search your Stars, Memories, and Collections via OAuth 2.1.",
+      "endpointLabel": "Remote MCP endpoint",
+      "endpointHint": "Add this Streamable HTTP URL in your MCP client and complete sign-in when prompted.",
+      "copyEndpoint": "Copy URL",
+      "copiedEndpoint": "Copied",
+      "clientsLabel": "Authorized clients",
+      "clientsEmpty": "No MCP clients authorized yet.",
+      "clientsLoadError": "Couldn't load authorized clients. Try again.",
+      "grantedAt": "Authorized {{date}}",
+      "revoke": "Revoke",
+      "revoking": "Revoking…",
+      "revokeTitle": "Revoke access for \"{{name}}\"?",
+      "revokeDescription": "This client will immediately lose read-only access to your Asterism library and must be authorized again to reconnect.",
+      "revokeConfirm": "Revoke access",
+      "revokeError": "Couldn't revoke access. Try again."
     }
+  },
+  "oauthConsent": {
+    "title": "Authorize MCP client",
+    "subtitle": "{{name}} is requesting read-only access to your Asterism memory.",
+    "signedInAccount": "Signed in as {{name}}",
+    "redirectLabel": "Redirects back to",
+    "scopesLabel": "Requested OAuth scopes",
+    "readOnlyNotice": "Read-only access: the client can search your Stars, read personal Memories, inspect Collections, and fetch READMEs. It cannot edit or delete your data.",
+    "approve": "Authorize",
+    "approving": "Authorizing…",
+    "deny": "Cancel",
+    "denying": "Canceling…",
+    "loading": "Loading authorization request…",
+    "missingRequest": "Missing authorization request ID. Start the connection from your MCP client again.",
+    "loadError": "Couldn't load the authorization request. It may have expired.",
+    "decisionError": "Couldn't complete authorization. Try again.",
+    "backHome": "Back to Asterism"
   },
   "digest": {
     "title": "Repository digest",

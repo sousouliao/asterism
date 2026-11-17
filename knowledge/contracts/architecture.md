@@ -19,9 +19,9 @@ flowchart TD
     db[db: Supabase客户端+查询]
   end
   subgraph supabase [Supabase]
-    auth[Auth: GitHub OAuth]
+    auth[Auth: GitHub OAuth + OAuth 2.1 Server]
     pg[(Postgres)]
-    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize / ask-generate]
+    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize / ask-generate / mcp]
   end
   gh[GitHub GraphQL / REST API]
 
@@ -131,7 +131,11 @@ README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML
 
 ADR 0037 把 Memory 设为用户与 Repo 的一等关系；ADR 0038 明确采用无旧数据兼容的干净切换。`@asterism/core` 定义领域类型，`@asterism/db` 是读取与保存的唯一入口，`sync-stars` 通过幂等 repair pass 创建缺失基础记录，Web Quick Look 编辑个人上下文。旧 `notes` 运行时与查询接口不再保留。
 
-Collection、统一 Retrieval、Related Stars、embedding、同步与可靠写入保持为可复用能力。Snapshot、Research、MCP 与其他长期能力没有运行时授权。
+Collection、统一 Retrieval、Related Stars、embedding、同步与可靠写入保持为可复用能力。Snapshot、Research 与其他长期能力没有运行时授权。
+
+### 只读远程 MCP（ADR 0050）
+
+外部 MCP 客户端通过 Streamable HTTP 访问 Edge Function `mcp`：未携带有效 Bearer Token 时返回 `401` 与 `WWW-Authenticate`（指向 `/.well-known/oauth-protected-resource`）；客户端经 Supabase Auth OAuth 2.1 Server 与 Web `/oauth/consent` 完成授权后，携带 OAuth JWT 调用 `mcp`。函数内部验证 JWT 并用调用方 JWT 构造用户作用域 Supabase 客户端调用 `security invoker` 只读 RPC（`mcp_*`），严格受 RLS 隔离，不用 `service_role` 读取仓库或 Memory。`read_repo_readme` 工具先在用户 RLS 客户端校验 `user_stars` 成员关系，再经共享凭据辅助模块可选读取已加密 GitHub Token（缺失时对公开仓库匿名请求）向 GitHub 拉取原始 Markdown（`application/vnd.github.raw+json`）并做安全截断，README 仍不持久化。Edge Functions 共享 CORS、JWT 校验与加密 GitHub 凭据逻辑收口于 `supabase/functions/_shared/`。
 
 ### README 实时读取
 

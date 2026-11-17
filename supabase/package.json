@@ -10,7 +10,9 @@
   "devDependencies": {
     "@asterism/config": "workspace:*",
     "@supabase/supabase-js": "^2.108.2",
+    "mcp-lite": "^0.10.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "zod": "^4.6.7"
   }
 }

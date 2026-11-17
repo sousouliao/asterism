@@ -50,7 +50,7 @@ GitHub #37 的本地实现已覆盖：
 
 统一 Retrieval 与 Ask 已交付，收藏检回由搜索、Ask 与 Related Stars 承接。Resurface（#40）按 ADR 0049 退役，洞察页保留统计与图表。当前待办仍为 Star 完整同步与历史远端验收（ADR 0047）。
 
-以下方向只保存在长期提案中，尚未获得实现授权：联网搜索、RepoSnapshot、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 与星图 UI。Ask Asterism 已进入 GitHub #41，不再属于未授权方向。
+以下方向只保存在长期提案中，尚未获得实现授权：联网搜索、RepoSnapshot、Research Session、动态 Constellation、Taste Graph、Idea Collision 与星图 UI。Ask Asterism（#41）已交付；只读远程 MCP（ADR 0050）已获授权实施。
 
 ## 延后客户端
 

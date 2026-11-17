@@ -3,6 +3,8 @@ import { Button } from '@asterism/ui';
 import { ChartColumnIcon, SearchIcon, ShieldCheckIcon, TagIcon } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
+import { buildOAuthRedirectUrl } from '../auth/redirect';
 import { BrandLogo } from '../components/brand-logo';
 import { GitHubIcon } from '../components/github-icon';
 import { ThemeToggle } from '../components/theme-toggle';
@@ -21,9 +23,11 @@ const SCOPES = ['login.scopeStars', 'login.scopeMetadata', 'login.scopeProfile']
 
 export function LoginPage() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
 
   function handleSignIn() {
-    void signInWithGitHub(supabase, window.location.origin);
+    const redirectTo = buildOAuthRedirectUrl(window.location.origin, searchParams.get('next'));
+    void signInWithGitHub(supabase, redirectTo);
   }
 
   return (

@@ -4,6 +4,8 @@
 
 ## 当前状态
 
+- **2026-11-17 · 只读远程 MCP Server 与 OAuth 2.1 本地实现完成（ADR 0050）**：落地 Supabase Edge Function `mcp`（Streamable HTTP + RFC 9728 Protected Resource Metadata，7 个只读工具）、6 个 `security invoker` Postgres 只读检索 RPC 与 trigram/GIN 索引（`20261117120000_mcp_read_rpcs.sql` + pgTAP 测试）、`supabase/functions/_shared/` 共享基座重构（CORS、Bearer JWT 鉴权、AES-GCM GitHub 凭据复用）、Web 登录安全 `next` 回跳修复、`/oauth/consent` OAuth 2.1 授权确认页与 Settings MCP 客户端管理分区；待远端 `db push`、开启 Supabase OAuth Server 并部署 `mcp` 函数后以真实客户端验收。详见 ADR 0050 与 `logs/2026-11-17-remote-read-only-mcp-server.md`。
+
 - **2026-10-10 · 重温收藏退役**：按用户要求移除洞察页推荐区及专用算法、反馈存储、组件、开发预览、双语文案和对应测试；保留统计、Memory、搜索、Ask 与 Related Stars。ADR 0049 取代 ADR 0041；详见 `logs/2026-10-10-retire-resurface.md`。
 
 - **2026-10-09 · 双语文案精简落地**：按第二版审视更新中文 186 条、英文 182 条，保留 Star / Provider / API Key 等准确名称，统一状态、错误恢复与隐私说明；相关 11 个测试文件的 88 项测试及局部 Biome 检查通过。详见 `logs/2026-10-09-copy-review.md`。
@@ -12,7 +14,7 @@
 - **检索与问答已完成闭环**：#39（Unified Retrieval Engine）与 #41（Ask Asterism 私有问答）已交付并通过真实生产环境验收；#40（Resurface）曾交付，现按 ADR 0049 退役。
 - **当前工程 frontier**：Star 同步与历史（ADR 0047）。本地实现已完成完整快照对账、加密保存 GitHub 连接、开站静默同步、定时同步配置，以及 Browse 历史入口。待远端部署 migration、`sync-stars` Edge Function、Secrets/Cron 并以真实账号验收。
 - **本轮边界**：保持个人库私有优先；检索与问答不接入外网，不凭空生成虚假推荐。
-- **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session、MCP 暂未进入开发。
+- **延后方向**：Extension / Desktop 等待核心检索与交互稳定后再启动。AI 自动联网搜索、Snapshot 追踪、Research Session 暂未进入开发。
 
 ## 已完成里程碑
 
@@ -117,7 +119,8 @@
 
 ## 下一恢复点
 
-1. Star 完整同步与历史远端验收（ADR 0047）：本地代码已完成合入 main；按 `supabase/functions/sync-stars/README.md` 应用两项 migration、设置 Edge/Vault secrets、部署 `sync-stars` 与 Web、安装 Cron，运行数据库 pgTAP；用真实账号验证首连、刷新后免重新连接、取消/再次 Star、Memory 与 Collection 保留、关站定时同步和授权失效提示。
+1. 只读远程 MCP 远端部署与实机验收（ADR 0050）：应用 `20261117120000_mcp_read_rpcs.sql`、在 Supabase Dashboard 开启 OAuth 2.1 Server（`Authorization Path = /oauth/consent`、Dynamic Client Registration）、部署 `mcp --no-verify-jwt` 与共享 `_shared/` 的 Edge Functions，并以 MCP Inspector / Cursor 完成 OAuth 授权与撤销验收。
+2. Star 完整同步与历史远端验收（ADR 0047）：本地代码已完成合入 main；按 `supabase/functions/sync-stars/README.md` 应用两项 migration、设置 Edge/Vault secrets、部署 `sync-stars` 与 Web、安装 Cron，运行数据库 pgTAP；用真实账号验证首连、刷新后免重新连接、取消/再次 Star、Memory 与 Collection 保留、关站定时同步和授权失效提示。
 
 ## 环境提示
 

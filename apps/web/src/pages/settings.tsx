@@ -24,6 +24,7 @@ import { PageHeader } from '../components/page-header';
 import { PendingActionContent } from '../components/pending-action-content';
 import { SectionHeader } from '../components/section-header';
 import { SettingsAskSection } from '../components/settings-ask-section';
+import { SettingsMcpSection } from '../components/settings-mcp-section';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
 import { changeInterfaceLanguage } from '../i18n';
 import { supabase } from '../lib/supabase';
@@ -237,6 +238,8 @@ export function SettingsPage() {
         </section>
 
         <SettingsAskSection />
+
+        <SettingsMcpSection />
 
         <section className="flex flex-col gap-4">
           <SectionHeader title={t('settings.account')} />

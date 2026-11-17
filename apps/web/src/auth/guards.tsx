@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { buildLoginPath, sanitizeNextPath } from './redirect';
 import { useSession } from './use-session';
 
 function FullScreenLoader() {
@@ -25,24 +26,26 @@ function FullScreenLoader() {
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { session, loading } = useSession();
+  const location = useLocation();
 
   if (loading) {
     return <FullScreenLoader />;
   }
   if (!session) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={buildLoginPath(location.pathname, location.search)} replace />;
   }
   return children;
 }
 
 export function RequireAnon({ children }: { children: ReactNode }) {
   const { session, loading } = useSession();
+  const [searchParams] = useSearchParams();
 
   if (loading) {
     return <FullScreenLoader />;
   }
   if (session) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={sanitizeNextPath(searchParams.get('next')) ?? '/'} replace />;
   }
   return children;
 }

@@ -18,7 +18,16 @@ vi.mock('../contexts/embedding-bootstrap-context', () => ({
   useEmbeddingBootstrapContext: () => embedding.state,
 }));
 
-vi.mock('../lib/supabase', () => ({ supabase: {} }));
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      oauth: {
+        listGrants: vi.fn().mockResolvedValue({ data: [], error: null }),
+        revokeGrant: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      },
+    },
+  },
+}));
 
 vi.stubGlobal('matchMedia', (query: string) => ({
   matches: false,

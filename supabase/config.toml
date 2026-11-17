@@ -28,3 +28,6 @@ enabled = false
 
 [edge_runtime]
 enabled = false
+
+[functions.mcp]
+verify_jwt = false

@@ -10,8 +10,23 @@ export type {
   StreamAskGenerateOptions,
 } from './ask';
 export { invokeAskModels, invokeAskTest, streamAskGenerate } from './ask';
-export type { Session } from './auth';
-export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
+export type {
+  OAuthAuthorizationDetails,
+  OAuthGrant,
+  OAuthRedirect,
+  Session,
+} from './auth';
+export {
+  approveOAuthAuthorization,
+  denyOAuthAuthorization,
+  getOAuthAuthorizationDetails,
+  getSession,
+  listOAuthGrants,
+  onAuthChange,
+  revokeOAuthGrant,
+  signInWithGitHub,
+  signOut,
+} from './auth';
 export type {
   BulkChange,
   BulkItemStatus,

@@ -4,6 +4,7 @@
 
 ## 当前 frontier
 
+- [ ] **只读远程 MCP 远端部署与实机验收（ADR 0050）**：本地实现已完成；需执行 `supabase db push`、在 Supabase Dashboard **Authentication → OAuth Server** 启用 OAuth 2.1（Authorization Path 设为 `/oauth/consent`）、部署 `mcp --no-verify-jwt` 与 Web，并用 MCP Inspector / Cursor 验证 OAuth 授权、7 个只读工具与 Settings 撤销流程。
 - [ ] **Star 完整同步与历史远端验收（ADR 0047）**：本地代码已完成；按 `supabase/functions/sync-stars/README.md` 应用两项 migration、设置 Edge/Vault secrets、部署 `sync-stars` 与 Web、安装 Cron，运行数据库 pgTAP；用真实账号验证首连、刷新后免重新连接、取消/再次 Star、Memory 与 Collection 保留、关站定时同步和授权失效提示。
 
 ## 已完成近期 frontier
@@ -23,4 +24,4 @@
 
 ## 未获授权的长期方向
 
-联网搜索、RepoSnapshot、Research Session、MCP、动态 Constellation、Taste Graph、Idea Collision 与星图 UI 仅存在于 `proposals/asterism-transformation-roadmap.md`，不是 backlog，也不得提前实现。Ask Asterism 已由 GitHub #41 交付；Resurface 已按 ADR 0049 退役，长期提案不授权恢复。
+联网搜索、RepoSnapshot、Research Session、动态 Constellation、Taste Graph、Idea Collision 与星图 UI 仅存在于 `proposals/asterism-transformation-roadmap.md`，不是 backlog，也不得提前实现。Ask Asterism 已由 GitHub #41 交付；只读远程 MCP 已由 ADR 0050 授权实现；Resurface 已按 ADR 0049 退役，长期提案不授权恢复。

@@ -595,7 +595,43 @@
       },
       "runTest": "开始测试",
       "testing": "测试中…"
+    },
+    "mcp": {
+      "title": "MCP 访问",
+      "readOnlyBadge": "只读",
+      "description": "通过 OAuth 2.1 连接 Cursor、Claude 等 MCP 客户端，只读检索你的 Star、记忆与集合。",
+      "endpointLabel": "远程 MCP 地址",
+      "endpointHint": "在 MCP 客户端中填入该 Streamable HTTP 地址，按提示完成 OAuth 授权即可使用。",
+      "copyEndpoint": "复制地址",
+      "copiedEndpoint": "已复制",
+      "clientsLabel": "已授权客户端",
+      "clientsEmpty": "还没有已授权的 MCP 客户端。",
+      "clientsLoadError": "加载已授权客户端失败，请重试。",
+      "grantedAt": "授权于 {{date}}",
+      "revoke": "撤销",
+      "revoking": "撤销中…",
+      "revokeTitle": "撤销「{{name}}」的访问权限？",
+      "revokeDescription": "该客户端将立即失去对 Asterism 资料库的只读访问权限，如需使用需重新授权。",
+      "revokeConfirm": "确认撤销",
+      "revokeError": "撤销失败，请重试。"
     }
+  },
+  "oauthConsent": {
+    "title": "授权 MCP 客户端",
+    "subtitle": "{{name}} 申请以只读权限访问你的 Asterism 个人记忆。",
+    "signedInAccount": "当前登录账号：{{name}}",
+    "redirectLabel": "授权后跳转至",
+    "scopesLabel": "申请的 OAuth 权限范围",
+    "readOnlyNotice": "仅限只读访问：客户端可检索你的 Star、读取个人记忆与集合，以及实时拉取 README，无法修改或删除任何数据。",
+    "approve": "同意授权",
+    "approving": "授权中…",
+    "deny": "取消",
+    "denying": "取消中…",
+    "loading": "正在加载授权请求…",
+    "missingRequest": "缺少授权请求 ID，请从 MCP 客户端重新发起连接。",
+    "loadError": "无法加载授权请求，可能已过期或无效。",
+    "decisionError": "完成授权操作失败，请重试。",
+    "backHome": "返回 Asterism"
   },
   "digest": {
     "title": "仓库速读",

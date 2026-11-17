@@ -177,3 +177,15 @@ ADR 0038 采用无旧数据兼容的干净切换：`notes` 表与旧查询已经
   - 完整快照对账由仅授权给 `service_role` 的 `security definer` RPC（`apply_github_star_snapshot`）在单一事务中执行。
 
 > 通用规则：只有 `repos` 全局可读；用户私有数据都以 `auth.uid()` 与行内 `user_id` 匹配作为访问前提。连接表冗余存 `user_id` 即为简化此类 RLS 过滤。
+
+### 只读 MCP 服务端检索 RPC（ADR 0050）
+
+为支持远程 MCP Edge Function 在服务端高效按页检索且不引入 `service_role` 越权路径，新增 6 个 `security invoker`、`set search_path = ''`、`stable` 的只读数据库函数，全部仅授权给 `authenticated`：
+
+- `mcp_library_summary()`：返回当前用户 active / historical Star 计数、已写 Memory 计数、集合数量及热门语言/Topic。
+- `mcp_search_repos(...)`：联合检索 `repos`（`full_name` / `description` / `topics`）、`memories`（`why_saved` / `note`）与 `collection_repos`，默认仅查 `unstarred_at is null`，可选包含历史，返回分页结果、总数与 `matchReasons`。
+- `mcp_get_repo(...)`：按 `repo_id` 或 `full_name` 读取本人库内单个仓库详情、Star 状态、个人 Memory 与所属集合；非本人库内仓库返回 `null`。
+- `mcp_list_collections()` / `mcp_get_collection(...)`：读取本人集合列表与集合内分页仓库。
+- `mcp_related_repos(...)`：若锚点仓库存在 `user_repo_embeddings` 向量则以 `extensions.<=>` 返回近邻（`semantic`），否则按 `topics` / 语言 / 共享集合做确定性回退（`metadata_fallback`）。
+
+配套在 `extensions` schema 启用 `pg_trgm`，并为 `repos.full_name`、`repos.description`（GIN trigram）与 `repos.topics`（GIN）建立索引。

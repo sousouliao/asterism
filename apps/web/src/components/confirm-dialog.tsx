@@ -17,6 +17,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  pendingLabel,
   pending = false,
   errorMessage,
   onConfirm,
@@ -26,6 +27,7 @@ export function ConfirmDialog({
   title: string;
   description?: string;
   confirmLabel: string;
+  pendingLabel?: string;
   pending?: boolean;
   errorMessage?: string;
   onConfirm: () => void;
@@ -65,7 +67,7 @@ export function ConfirmDialog({
             <PendingActionContent
               pending={pending}
               idleLabel={confirmLabel}
-              pendingLabel={t('common.deleting')}
+              pendingLabel={pendingLabel ?? t('common.deleting')}
             />
           </Button>
         </DialogFooter>

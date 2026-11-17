@@ -12,6 +12,7 @@ import {
 import { AppLayout } from './layouts/app-layout';
 import { BrowsePage } from './pages/browse';
 import { LoginPage } from './pages/login';
+import { OAuthConsentPage } from './pages/oauth-consent';
 import { RepoBaseRedirect } from './pages/repo-base-redirect';
 import { RepoReadmePage } from './pages/repo-readme';
 
@@ -120,6 +121,14 @@ export const router = createBrowserRouter([
       <RequireAnon>
         <LoginPage />
       </RequireAnon>
+    ),
+  },
+  {
+    path: '/oauth/consent',
+    element: (
+      <RequireAuth>
+        <OAuthConsentPage />
+      </RequireAuth>
     ),
   },
   ...(import.meta.env.DEV ? createDevelopmentRoutes() : []),

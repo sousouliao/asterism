@@ -391,6 +391,49 @@ export interface Database {
         Args: { query_embedding: string; match_count?: number };
         Returns: { repo_id: string; distance: number }[];
       };
+      mcp_library_summary: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      mcp_search_repos: {
+        Args: {
+          p_query?: string | null;
+          p_language?: string | null;
+          p_topic?: string | null;
+          p_collection_id?: string | null;
+          p_include_archived?: boolean;
+          p_include_history?: boolean;
+          p_sort?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
+      mcp_get_repo: {
+        Args: { p_repo_id?: string | null; p_full_name?: string | null };
+        Returns: Json;
+      };
+      mcp_list_collections: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      mcp_get_collection: {
+        Args: {
+          p_collection_id?: string | null;
+          p_name?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
+      mcp_related_repos: {
+        Args: {
+          p_repo_id?: string | null;
+          p_full_name?: string | null;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
