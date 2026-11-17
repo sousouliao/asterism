@@ -34,6 +34,7 @@
 - 精简测试并修复 Web 断言后，CI 首次推进到 `Database integration tests`（`44046725883`），暴露 `mcp_read_rpcs.test.sql` 在 `set local role authenticated` 后调用 `security invoker` RPC `mcp_library_summary()` 时报 `permission denied for table user_stars`。
 - 根因与此前 `memories` / `user_repo_embeddings` 一致：`repos`、`user_stars`、`collections`、`collection_repos` 在初始迁移只设了 RLS policy 而缺少表级 `GRANT`，本地 / CI Supabase 镜像不会自动授默认特权。
 - 新增 `supabase/migrations/20261117163000_grant_client_core_tables.sql`，显式为 `authenticated` 授予 `repos`（SELECT）、`user_stars`（SELECT）、`collections`（SELECT/INSERT/UPDATE/DELETE）与 `collection_repos`（SELECT）。
+- 同步修正 `supabase/tests/mcp_read_rpcs.test.sql` 的 pgTAP 计划计数（实际 13 项断言，原 `plan(12)` 少计 1 项）。
 
 ## 4. 本地验证
 
