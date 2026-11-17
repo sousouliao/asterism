@@ -26,4 +26,11 @@
   - `@asterism/db`：8 套件 59 项全部通过。
   - `@asterism/supabase-functions`：8 套件 70 项全部通过（含 `_shared/auth.test.ts` 与 `mcp/handler.test.ts`）。
   - `@asterism/web`：60 套件中 58 套件（306 项测试，含新增的 `redirect.test.ts`、`oauth-consent.test.tsx`、`settings-mcp-section.test.tsx`）通过；2 项既有测试（`app-topbar.test.tsx` 与 `repo-inspector-context.test.tsx`）在基线提交 `8073c9e` 改版双语文案后即存在断言漂移，与本次改动无关。
-- `pnpm test:db`：当前本机无 Docker，待 CI 或linked 环境执行 `supabase/tests/mcp_read_rpcs.test.sql`。
+- `pnpm test:db`：当前本机无 Docker，未在本地执行；`20261117120000_mcp_read_rpcs.sql` 已通过 `supabase db push` 实际应用到 `hqtrmulypxwdqvzlkhke`。
+
+## 远端上线与 Antigravity 实机验收
+
+- `supabase db push` 成功应用 `20260922144000_grant_sync_credentials_and_snapshot_security.sql` 与 `20261117120000_mcp_read_rpcs.sql`。
+- 部署 `mcp --no-verify-jwt`、`sync-stars`、`read-repo-readme`、`bulk-organize`，Vercel Production（`main @ 21616e3`）构建并发布成功。
+- 实测 `mcp/.well-known/oauth-protected-resource`、`auth/v1/.well-known/oauth-authorization-server` 与未授权 `401 WWW-Authenticate` 响应正确。
+- 通过 `agy mcp add` 在 Antigravity 注册 `asterism` 并完成真实账号 OAuth 2.1 浏览器授权（`/oauth/consent`），端到端验证全部 7 个只读工具：`get_library_summary`（`activeStars: 554`、`historicalStars: 2`、`collectionsCount: 1`）、`list_collections`、`get_collection`（`"Agent 开发"` → `lobehub/streamdown`）、`search_stars`（排行与 `matchReasons`）、`get_repo`（`morluto/rea`）、`get_related_repos`（`metadata_fallback`）以及 `read_repo_readme`（库内仓库截断返回原始 Markdown，非库内仓库 `torvalds/linux` 被拒绝）。

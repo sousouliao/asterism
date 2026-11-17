@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- **2026-11-17 · 只读远程 MCP Server 与 OAuth 2.1 本地实现完成（ADR 0050）**：落地 Supabase Edge Function `mcp`（Streamable HTTP + RFC 9728 Protected Resource Metadata，7 个只读工具）、6 个 `security invoker` Postgres 只读检索 RPC 与 trigram/GIN 索引（`20261117120000_mcp_read_rpcs.sql` + pgTAP 测试）、`supabase/functions/_shared/` 共享基座重构（CORS、Bearer JWT 鉴权、AES-GCM GitHub 凭据复用）、Web 登录安全 `next` 回跳修复、`/oauth/consent` OAuth 2.1 授权确认页与 Settings MCP 客户端管理分区；待远端 `db push`、开启 Supabase OAuth Server 并部署 `mcp` 函数后以真实客户端验收。详见 ADR 0050 与 `logs/2026-11-17-remote-read-only-mcp-server.md`。
+- **2026-11-17 · 只读远程 MCP Server 与 OAuth 2.1 远端验收通过（ADR 0050）**：已完成远端 migration（`20260922144000`、`20261117120000`）推送、`mcp --no-verify-jwt` 与 `_shared/` 关联函数部署、Supabase OAuth 2.1 Server 与 Vercel Web 上线，并在 Antigravity 完成真实账号 OAuth 授权与全部 7 个只读工具实测（`554` 活跃 Star、`2` 条历史、`1` 个集合、非库内仓库 `read_repo_readme` 拦截）。详见 ADR 0050 与 `logs/2026-11-17-remote-read-only-mcp-server.md`。
 
 - **2026-10-10 · 重温收藏退役**：按用户要求移除洞察页推荐区及专用算法、反馈存储、组件、开发预览、双语文案和对应测试；保留统计、Memory、搜索、Ask 与 Related Stars。ADR 0049 取代 ADR 0041；详见 `logs/2026-10-10-retire-resurface.md`。
 
@@ -119,8 +119,7 @@
 
 ## 下一恢复点
 
-1. 只读远程 MCP 远端部署与实机验收（ADR 0050）：应用 `20261117120000_mcp_read_rpcs.sql`、在 Supabase Dashboard 开启 OAuth 2.1 Server（`Authorization Path = /oauth/consent`、Dynamic Client Registration）、部署 `mcp --no-verify-jwt` 与共享 `_shared/` 的 Edge Functions，并以 MCP Inspector / Cursor 完成 OAuth 授权与撤销验收。
-2. Star 完整同步与历史远端验收（ADR 0047）：本地代码已完成合入 main；按 `supabase/functions/sync-stars/README.md` 应用两项 migration、设置 Edge/Vault secrets、部署 `sync-stars` 与 Web、安装 Cron，运行数据库 pgTAP；用真实账号验证首连、刷新后免重新连接、取消/再次 Star、Memory 与 Collection 保留、关站定时同步和授权失效提示。
+1. Star 完整同步与历史远端验收（ADR 0047）：`20260922144000` migration 与新版 `sync-stars` 已随 MCP 轮次一并部署，待按 `supabase/functions/sync-stars/README.md` 完成 Secrets/Cron 安装与取消/复 Star、关站定时同步真实账号验收。
 
 ## 环境提示
 

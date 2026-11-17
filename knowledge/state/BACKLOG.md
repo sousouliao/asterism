@@ -4,10 +4,11 @@
 
 ## 当前 frontier
 
-- [ ] **只读远程 MCP 远端部署与实机验收（ADR 0050）**：本地实现已完成；需执行 `supabase db push`、在 Supabase Dashboard **Authentication → OAuth Server** 启用 OAuth 2.1（Authorization Path 设为 `/oauth/consent`）、部署 `mcp --no-verify-jwt` 与 Web，并用 MCP Inspector / Cursor 验证 OAuth 授权、7 个只读工具与 Settings 撤销流程。
-- [ ] **Star 完整同步与历史远端验收（ADR 0047）**：本地代码已完成；按 `supabase/functions/sync-stars/README.md` 应用两项 migration、设置 Edge/Vault secrets、部署 `sync-stars` 与 Web、安装 Cron，运行数据库 pgTAP；用真实账号验证首连、刷新后免重新连接、取消/再次 Star、Memory 与 Collection 保留、关站定时同步和授权失效提示。
+- [ ] **Star 完整同步与历史远端验收（ADR 0047）**：`20260922144000` migration 与新版 `sync-stars` 已部署；按 `supabase/functions/sync-stars/README.md` 核对 Edge/Vault secrets 与 Cron，运行数据库 pgTAP；用真实账号验证首连、刷新后免重新连接、取消/再次 Star、Memory 与 Collection 保留、关站定时同步和授权失效提示。
 
 ## 已完成近期 frontier
+
+- [x] **只读远程 MCP Server 与 OAuth 2.1（ADR 0050）**：远端 migration `20261117120000_mcp_read_rpcs.sql`、Edge Function `mcp --no-verify-jwt`、Supabase Auth OAuth 2.1 Server、Vercel Web（`/oauth/consent` 与 Settings MCP 管理）均已上线，并在 Antigravity 完成真实账号授权与全部 7 个只读工具端到端验收。
 
 - [x] **个人私有知识问答（GitHub #41）**：`feat(ask): catalog-resident agent for Ask Asterism`。目录常驻浅层 Agent + 客户端 BYOK + 无状态 `ask-generate` SSE 代理 + read gate、无抽取式兜底（ADR 0042 / 0044 / 0045 / 0046）；一体化上凸流光拉手与双侧流体气泡（Liquid Glass）；生产部署与真实环境验收完成，issue 已关闭（`logs/2026-09-22-ask-asterism-production-acceptance.md`）；补充交付纯前端历史会话与斜杠命令（ADR 0048）。
 - [x] **退役重温收藏（ADR 0049）**：GitHub #40 曾交付并验收关闭；2026-10-10 按用户要求完整移除双流、专用算法、本地反馈、组件、预览路由、双语资源与测试。
