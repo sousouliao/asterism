@@ -1,6 +1,12 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+function readEnv(name: string): string | undefined {
+  const denoEnv = (globalThis as { Deno?: { env?: { get(key: string): string | undefined } } }).Deno
+    ?.env;
+  return denoEnv?.get(name);
+}
+
 export class GitHubRefreshError extends Error {
   constructor(readonly requiresReconnect: boolean) {
     super(requiresReconnect ? 'GitHub connection expired' : 'GitHub token refresh failed');
@@ -8,7 +14,7 @@ export class GitHubRefreshError extends Error {
 }
 
 function keyBytes(): ArrayBuffer {
-  const encoded = Deno.env.get('GITHUB_SYNC_ENCRYPTION_KEY');
+  const encoded = readEnv('GITHUB_SYNC_ENCRYPTION_KEY');
   if (!encoded) throw new Error('GitHub sync encryption key is not configured');
   const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0));
   if (bytes.length !== 32) throw new Error('GitHub sync encryption key must be 32 bytes');
@@ -49,8 +55,8 @@ export async function refreshGitHubToken(refreshToken: string): Promise<{
   accessToken: string;
   refreshToken: string;
 }> {
-  const clientId = Deno.env.get('GITHUB_CLIENT_ID');
-  const clientSecret = Deno.env.get('GITHUB_CLIENT_SECRET');
+  const clientId = readEnv('GITHUB_CLIENT_ID');
+  const clientSecret = readEnv('GITHUB_CLIENT_SECRET');
   if (!clientId || !clientSecret) throw new GitHubRefreshError(false);
   const response = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
@@ -68,4 +74,32 @@ export async function refreshGitHubToken(refreshToken: string): Promise<{
     throw new GitHubRefreshError(typeof result.error === 'string');
   }
   return { accessToken: result.access_token, refreshToken: result.refresh_token };
+}
+
+export interface StoredGitHubCredentialRow {
+  access_token_ciphertext: string;
+  refresh_token_ciphertext: string | null;
+}
+
+export interface StoredGitHubCredentialLookup {
+  readCiphertexts: (userId: string) => Promise<StoredGitHubCredentialRow | null>;
+}
+
+/**
+ * 尝试读取并解密用户保存在 github_sync_credentials 的 GitHub access token。
+ * 若未配置密钥、未连接或解密失败，返回 undefined，允许公开仓库 README 回退匿名请求。
+ */
+export async function resolveOptionalStoredGitHubToken(
+  lookup: StoredGitHubCredentialLookup,
+  userId: string,
+): Promise<string | undefined> {
+  try {
+    const row = await lookup.readCiphertexts(userId);
+    if (!row) {
+      return undefined;
+    }
+    return await decryptCredential(row.access_token_ciphertext);
+  } catch {
+    return undefined;
+  }
 }

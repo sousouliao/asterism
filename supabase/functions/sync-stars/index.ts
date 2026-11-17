@@ -8,12 +8,14 @@
 // 因 Supabase Edge（Deno）与 workspace 打包边界，这里就近内联一份实现。
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { extractBearerToken } from '../_shared/auth.ts';
+import { createJsonResponder, resolveCorsHeaders } from '../_shared/cors.ts';
 import {
   decryptCredential,
   encryptCredential,
   GitHubRefreshError,
   refreshGitHubToken,
-} from './credential.ts';
+} from '../_shared/github-credential.ts';
 
 const GITHUB_GRAPHQL_ENDPOINT = 'https://api.github.com/graphql';
 const STARRED_PAGE_SIZE = 100;
@@ -50,11 +52,8 @@ query StarredRepos($cursor: String, $pageSize: Int!) {
   }
 }`;
 
-const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+const syncCorsHeaders = resolveCorsHeaders(new Request('https://localhost/sync-stars'));
+const json = createJsonResponder(syncCorsHeaders);
 
 interface StarEdge {
   starredAt: string;
@@ -110,13 +109,6 @@ interface RepoRow {
   is_fork: boolean;
   synced_at: string;
   starred_at: string;
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
 }
 
 function mapEdgeToRow(edge: StarEdge, syncedAt: string): RepoRow {
@@ -180,7 +172,7 @@ async function fetchStarredPage(
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: syncCorsHeaders });
   }
   if (req.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
@@ -230,8 +222,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'GitHub connection unavailable' }, 500);
     }
   } else {
-    const authHeader = req.headers.get('Authorization') ?? '';
-    const jwt = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const jwt = extractBearerToken(req);
     if (!jwt) return json({ error: 'Missing Authorization bearer token' }, 401);
     const { data: userData, error: userError } = await admin.auth.getUser(jwt);
     if (userError || !userData.user) {

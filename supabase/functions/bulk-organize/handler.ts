@@ -1,8 +1,5 @@
-const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { extractBearerToken } from '../_shared/auth.ts';
+import { createJsonResponder, resolveCorsHeaders } from '../_shared/cors.ts';
 
 export type BulkRelationType = 'tag' | 'collection';
 export type BulkRelationAction = 'add' | 'remove';
@@ -68,12 +65,8 @@ export interface BulkOrganizeDependencies {
 
 type OperationAction = 'get' | 'execute' | 'retry' | 'complete';
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
+const defaultCorsHeaders = resolveCorsHeaders(new Request('https://localhost/bulk-organize'));
+const json = createJsonResponder(defaultCorsHeaders);
 
 function isId(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= 128;
@@ -183,13 +176,13 @@ function operationRequest(value: unknown): { action: OperationAction; operationI
 export function createBulkOrganizeHandler(dependencies: BulkOrganizeDependencies) {
   return async (request: Request): Promise<Response> => {
     if (request.method === 'OPTIONS') {
-      return new Response('ok', { headers: corsHeaders });
+      return new Response('ok', { headers: defaultCorsHeaders });
     }
     if (request.method !== 'POST') {
       return json({ error: 'method_not_allowed' }, 405);
     }
 
-    const jwt = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
+    const jwt = extractBearerToken(request);
     if (!jwt) {
       return json({ error: 'authentication_required' }, 401);
     }

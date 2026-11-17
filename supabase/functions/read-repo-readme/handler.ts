@@ -1,8 +1,5 @@
-const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { extractBearerToken } from '../_shared/auth.ts';
+import { createJsonResponder, resolveCorsHeaders } from '../_shared/cors.ts';
 
 type ReadmeTransportOutcome =
   | { status: 'success'; html: string; etag: string | null }
@@ -19,14 +16,11 @@ export interface ReadRepoReadmeDependencies {
   authenticate: (jwt: string) => Promise<string | null>;
   checkMembership: (userId: string, fullName: string) => Promise<MembershipResult>;
   fetchGitHub: typeof fetch;
+  resolveStoredToken?: (userId: string) => Promise<string | undefined>;
 }
 
-function json(body: ReadmeTransportOutcome | { error: string }, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
+const defaultCorsHeaders = resolveCorsHeaders(new Request('https://localhost/read-repo-readme'));
+const json = createJsonResponder<ReadmeTransportOutcome | { error: string }>(defaultCorsHeaders);
 
 function isRepoSegment(value: unknown): value is string {
   return (
@@ -43,13 +37,13 @@ function optionalHeaderValue(value: unknown, maxLength: number): string | undefi
 export function createReadRepoReadmeHandler(dependencies: ReadRepoReadmeDependencies) {
   return async (request: Request): Promise<Response> => {
     if (request.method === 'OPTIONS') {
-      return new Response('ok', { headers: corsHeaders });
+      return new Response('ok', { headers: defaultCorsHeaders });
     }
     if (request.method !== 'POST') {
       return json({ error: 'Method not allowed' }, 405);
     }
 
-    const jwt = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
+    const jwt = extractBearerToken(request);
     if (!jwt) {
       return json({ error: 'Missing Authorization bearer token' }, 401);
     }
@@ -92,7 +86,9 @@ export function createReadRepoReadmeHandler(dependencies: ReadRepoReadmeDependen
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'asterism-read-repo-readme',
     };
-    const providerToken = optionalHeaderValue(body.providerToken, 4096);
+    const providerToken =
+      optionalHeaderValue(body.providerToken, 4096) ??
+      (dependencies.resolveStoredToken ? await dependencies.resolveStoredToken(userId) : undefined);
     const etag = optionalHeaderValue(body.etag, 512);
     if (providerToken) {
       headers.Authorization = `Bearer ${providerToken}`;
