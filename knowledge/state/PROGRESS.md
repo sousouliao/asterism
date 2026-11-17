@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- **2026-11-17 · GitHub 流水线排查与核心测试用例精简**：排查最近 4 次 CI 失败均为 `8073c9e` 改版英文文案后未同步 `app-topbar.test.tsx` 与 `repo-inspector-context.test.tsx` 所致；同步精简全库测试至核心必须用例（移除 38 个纯 UI/CSS/动效/文案耦合/trivial 单测文件，修复并精简 `repo-inspector-context.test.tsx`），保留 `supabase/tests` 6 个 pgTAP、`supabase/functions` 8 套件 70 项、`core` 15 套件 129 项、`db` 7 套件 57 项、`web` 25 套件 117 项。本地 `lint`、`typecheck`、`test`（373 项全绿）与 `build` 通过；待推送触发 CI 验证完整流水线与 `test:db`。
+- **2026-11-17 · GitHub 流水线排查、核心测试用例精简与核心表 GRANT 修复**：排查最近 4 次 CI 失败均为 `8073c9e` 改版英文文案后未同步 `app-topbar.test.tsx` 与 `repo-inspector-context.test.tsx` 所致；同步精简全库测试至核心必须用例（移除 38 个纯 UI/CSS/动效/文案耦合/trivial 单测文件，修复并精简 `repo-inspector-context.test.tsx`），保留 `supabase/tests` 6 个 pgTAP、`supabase/functions` 8 套件 70 项、`core` 15 套件 129 项、`db` 7 套件 57 项、`web` 25 套件 117 项。初次推送后 CI 通过 `lint` / `typecheck` / `test` 并暴露 `mcp_read_rpcs.test.sql` 因 `user_stars` 等核心表缺显式 `GRANT` 报 `permission denied`，新增 `20261117163000_grant_client_core_tables.sql` 补齐 `repos` / `user_stars` / `collections` / `collection_repos` 对 `authenticated` 的表级权限。本地 `lint`、`typecheck`、`test`（373 项全绿）与 `build` 通过；推送后在 GitHub Actions 验证完整流水线与 `test:db`。
 
 - **2026-11-17 · 只读远程 MCP Server 与 OAuth 2.1 远端验收通过（ADR 0050）**：已完成远端 migration（`20260922144000`、`20261117120000`）推送、`mcp --no-verify-jwt` 与 `_shared/` 关联函数部署、Supabase OAuth 2.1 Server 与 Vercel Web 上线，并在 Antigravity 完成真实账号 OAuth 授权与全部 7 个只读工具实测（`554` 活跃 Star、`2` 条历史、`1` 个集合、非库内仓库 `read_repo_readme` 拦截）。详见 ADR 0050 与 `logs/2026-11-17-remote-read-only-mcp-server.md`。
 

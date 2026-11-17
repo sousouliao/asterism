@@ -29,7 +29,13 @@
   - `packages/db`（1）：`client.test.ts`。
   - `apps/web`（35）：`app-topbar`、`ask-panel`、`repo-card`、`repo-table`、`repo-filter-bar`、`repo-context-chip`、`repo-inspector-overlay`、`memory-section`、`match-explanation-badge`、`overflow-chip-row`、`facet-options`、`repo-card-context`、`truncated-description`、`trigger-active-states`、`ai-connection-form-dialog`、`ai-connections-manager`、`settings-ask-section`、`use-readme-return-restore`、`format`、`readme-corpus`、`readme-navigation`、`readme-outline`、`readme-return-coordinator`、`readme-workspace-motion*`、`repo-card-metadata`、`repo-digest-storage`、`ui-cn`、`repo-readme`、`settings`、`stores/*`、`theme-*`。
 
-## 3. 本地验证
+## 3. 补齐核心表 `authenticated` 表级 GRANT（修复 CI `test:db`）
+
+- 精简测试并修复 Web 断言后，CI 首次推进到 `Database integration tests`（`44046725883`），暴露 `mcp_read_rpcs.test.sql` 在 `set local role authenticated` 后调用 `security invoker` RPC `mcp_library_summary()` 时报 `permission denied for table user_stars`。
+- 根因与此前 `memories` / `user_repo_embeddings` 一致：`repos`、`user_stars`、`collections`、`collection_repos` 在初始迁移只设了 RLS policy 而缺少表级 `GRANT`，本地 / CI Supabase 镜像不会自动授默认特权。
+- 新增 `supabase/migrations/20261117163000_grant_client_core_tables.sql`，显式为 `authenticated` 授予 `repos`（SELECT）、`user_stars`（SELECT）、`collections`（SELECT/INSERT/UPDATE/DELETE）与 `collection_repos`（SELECT）。
+
+## 4. 本地验证
 
 - `pnpm lint`（Biome 检查 340 个文件）：通过。
 - `pnpm typecheck`（9 个包任务）：全部通过。
